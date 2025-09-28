@@ -13,6 +13,9 @@ import LoginForm from "./components/LoginForm";
 import AdminDashboard from "./components/AdminDashboard";
 import StudentDashboard from "./components/StudentDashboard";
 import NavigationHeader from "./components/NavigationHeader";
+import AdminSidebar from "./components/AdminSidebar";
+import AddStudent from "./pages/admin/AddStudent";
+import StudentsList from "./pages/admin/StudentsList";
 import NotFound from "@/pages/not-found";
 
 // Landing Page Component
@@ -38,19 +41,56 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
 }
 
 // Admin Layout Component
-function AdminLayout({ children, userName, onLogout }: { 
-  children: React.ReactNode; 
+function AdminLayout({ userName, onLogout }: { 
   userName: string;
   onLogout: () => void;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <NavigationHeader 
-        userType="admin" 
-        userName={userName}
-        onLogout={onLogout}
-      />
-      <main>{children}</main>
+    <div className="min-h-screen bg-background flex">
+      <AdminSidebar onLogout={onLogout} />
+      <main className="flex-1 md:ml-64">
+        <Switch>
+          <Route path="/admin">
+            <AdminDashboard />
+          </Route>
+          <Route path="/admin/dashboard">
+            <AdminDashboard />
+          </Route>
+          <Route path="/admin/alunos">
+            <StudentsList />
+          </Route>
+          <Route path="/admin/novo-aluno">
+            <AddStudent />
+          </Route>
+          <Route path="/admin/treinos-pdf">
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">Treinos PDF</h1>
+              <p className="text-muted-foreground mt-2">Em breve...</p>
+            </div>
+          </Route>
+          <Route path="/admin/treinos-video">
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">Treinos Vídeo</h1>
+              <p className="text-muted-foreground mt-2">Em breve...</p>
+            </div>
+          </Route>
+          <Route path="/admin/planos">
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">Planos Alimentares</h1>
+              <p className="text-muted-foreground mt-2">Em breve...</p>
+            </div>
+          </Route>
+          <Route path="/admin/pagamentos">
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">Pagamentos</h1>
+              <p className="text-muted-foreground mt-2">Em breve...</p>
+            </div>
+          </Route>
+          <Route>
+            <NotFound />
+          </Route>
+        </Switch>
+      </main>
     </div>
   );
 }
@@ -144,9 +184,7 @@ function Router() {
       )}
       
       {currentView === 'admin' && (
-        <AdminLayout userName={currentUser.name} onLogout={handleLogout}>
-          <AdminDashboard />
-        </AdminLayout>
+        <AdminLayout userName={currentUser.name} onLogout={handleLogout} />
       )}
       
       {currentView === 'student' && (
