@@ -1,0 +1,164 @@
+# PRD: Plataforma de Consultoria Fitness – Gestão de Alunos + Vídeos + Assinaturas
+
+## 🧭 Visão Geral
+
+Sistema web completo e responsivo, com painel administrativo para personal trainer e área exclusiva para alunos. Ideal para escalar uma consultoria fitness, centralizando gestão de alunos, treinos (PDF e vídeos), planos alimentares e assinaturas recorrentes via Mercado Pago.
+
+---
+
+## 🎯 Objetivos
+
+- Automatizar a entrega de conteúdo personalizado (treino, alimentação, vídeos).
+- Oferecer uma experiência profissional para alunos, com controle total para o administrador.
+- Centralizar a comunicação, pagamentos e evolução física.
+- Reduzir inadimplência e tarefas manuais com automação.
+
+---
+
+## 👥 Perfis de Usuário
+
+### 👨‍💼 Administrador (Douglas)
+- Acesso total ao painel de gestão.
+- Cadastra alunos, treinos (PDF e vídeo), planos alimentares, pagamentos.
+
+### 🧍‍♂️ Aluno
+- Acesso exclusivo ao seu perfil.
+- Visualiza PDFs de treino, vídeos, plano alimentar, evolução e status de pagamento.
+
+---
+
+## ✅ Requisitos Funcionais
+
+### 🔐 Autenticação
+- Login com e-mail e senha (Supabase Auth)
+- Recuperação de senha via e-mail
+- Perfis distintos: admin/aluno
+- JWT com refresh tokens
+
+---
+
+### 📄 Página Inicial (Landing Page)
+- Tema escuro, design profissional e responsivo
+- Apresentação institucional da consultoria
+- Benefícios do método
+- Tabela comparativa dos **3 planos**
+- Botões CTA com link para login/cadastro
+- Estilo: minimalista, fonte Poppins, cores:
+  - Fundo: `#0f172a` (cinza-azulado escuro)
+  - Azul primário: `#3c83f6`
+  - Branco para contraste: `#ffffff`
+
+---
+
+### 🎓 Gestão de Alunos (Admin)
+- Lista de alunos com filtros (nome, status)
+- Cadastro/edição de aluno:
+  - Dados pessoais + foto
+  - Status (ativo/inativo/pendente)
+  - Plano atual e vencimento
+- Evolução física:
+  - Peso, gordura corporal, medidas
+  - Histórico e gráfico automático
+
+---
+
+### 🏋️ Treinos
+#### 📄 PDF
+- Upload de treinos em PDF por aluno
+- Visualização pelo aluno
+
+#### 🎥 Vídeos
+- Upload de vídeos via Supabase Storage (MP4, até 500MB por vídeo)
+- Organização por:
+  - Nome
+  - Objetivo (ex: HIIT, força, abdômen)
+- Disponíveis no painel do aluno para **streaming apenas** (sem download)
+- Ações do Admin: Adicionar / Excluir vídeos
+
+---
+
+### 🥗 Planos Alimentares
+- Criados via formulário dinâmico ou upload de template
+- Associados ao aluno
+- Visualização estruturada (HTML) ou PDF no painel do aluno
+
+---
+
+### 📊 Evolução Física (Aluno)
+- Dashboard com gráficos:
+  - Peso
+  - Gordura corporal
+  - Medidas (peito, braço, cintura, etc)
+- Comparação entre períodos
+- Visualização somente
+
+---
+
+### 💳 Planos e Pagamentos
+- Assinaturas recorrentes com **Mercado Pago**
+- Checkout transparente
+- Planos:
+  - Mensal – R$100/mês
+  - Trimestral – R$250/3 meses
+  - Família – R$90/pessoa/mês (mínimo 2 pessoas)
+- Integração com webhooks:
+  - Ativação automática após pagamento
+  - Bloqueio automático após inadimplência
+- Histórico de transações por aluno
+- Painel financeiro com filtros (admin)
+
+---
+
+## 🧠 Estrutura de Dados
+
+### Tabelas principais:
+
+- `users`: id, email, senha_hash, tipo, nome, foto, status
+- `alunos`: user_id (FK), nascimento, altura, genero, plano_id, status
+- `evolucoes`: id, aluno_id, data, peso, gordura, medidas_json
+- `treinos_pdf`: id, aluno_id, nome, url_pdf, data
+- `treinos_video`: id, nome, objetivo, url_video, data_upload
+- `planos_alimentares`: id, aluno_id, conteudo_html, data
+- `assinaturas`: id, aluno_id, plano_tipo, preco, inicio, fim, status
+- `pagamentos`: id, assinatura_id, status, valor, metodo, data
+
+---
+
+## 🌐 Integrações
+
+- **Supabase**
+  - Auth com JWT e RLS
+  - PostgreSQL
+  - Storage (vídeos, PDFs, fotos)
+- **Mercado Pago**
+  - Assinaturas recorrentes
+  - Webhooks para bloqueio/desbloqueio
+- **Recharts**
+  - Gráficos de evolução
+- **Email SMTP**
+  - Recuperação de senha
+  - Confirmação de pagamento
+
+---
+
+## 🎨 Design e UX/UI
+
+- Tema escuro
+- Layout responsivo (Next.js + TailwindCSS)
+- Padrão Material Design adaptado ao fitness
+- Tipografia: Poppins
+- UX orientada a microinterações e foco no conteúdo
+- Gráficos com Recharts integrados diretamente no painel
+
+---
+
+## 🔒 Segurança
+
+- Supabase com RLS para isolar dados por aluno
+- Criptografia de senhas (bcrypt)
+- Tokens JWT com renovação segura
+- Proteções:
+  - XSS
+  - CSRF
+  - SQL Injection (via Supabase ORM)
+- Storage com URLs assinadas (vídeos não públicos)
