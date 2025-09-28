@@ -31,7 +31,7 @@ const menuItems = [
 
 export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
   const [location] = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   return (
     <>
@@ -45,9 +45,8 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
       
       {/* Sidebar */}
       <aside className={`
-        fixed left-0 top-0 z-50 h-screen bg-slate-900 text-white transition-transform duration-300 ease-in-out
+        fixed left-0 top-0 z-50 h-screen w-64 bg-[#0f172a] text-white transition-transform duration-300 ease-in-out
         ${isCollapsed ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}
-        w-64 md:relative md:translate-x-0
       `}>
         <div className="flex flex-col h-full">
           {/* Header */}

@@ -115,7 +115,7 @@ export default function AddStudent({ onBack }: AddStudentProps) {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-2xl">
+    <div className="p-6 max-w-2xl mx-auto">
       <div className="mb-6">
         <Button 
           variant="ghost" 
