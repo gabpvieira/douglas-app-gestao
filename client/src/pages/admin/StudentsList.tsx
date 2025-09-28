@@ -16,10 +16,23 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 
+interface Student {
+  id: string;
+  nome: string;
+  email: string;
+  dataNascimento: string | null;
+  altura: number | null;
+  genero: string | null;
+  status: string;
+  fotoUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export default function StudentsList() {
   const [searchTerm, setSearchTerm] = useState('');
   
-  const { data: students = [], isLoading } = useQuery({
+  const { data: students = [], isLoading } = useQuery<Student[]>({
     queryKey: ['/api/admin/students'],
   });
 
@@ -41,12 +54,13 @@ export default function StudentsList() {
     }
   };
 
-  const filteredStudents = students.filter((student: any) =>
+  const filteredStudents = students.filter((student: Student) =>
     student.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const calculateAge = (birthDate: string) => {
+  const calculateAge = (birthDate: string | null) => {
+    if (!birthDate) return 'N/A';
     const today = new Date();
     const birth = new Date(birthDate);
     let age = today.getFullYear() - birth.getFullYear();
@@ -134,7 +148,7 @@ export default function StudentsList() {
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={student.fotoUrl || undefined} />
                       <AvatarFallback data-testid={`text-student-initials-${student.id}`}>
-                        {student.nome.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        {student.nome.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     
@@ -151,11 +165,11 @@ export default function StudentsList() {
                         </span>
                         <span>•</span>
                         <span data-testid={`text-student-height-${student.id}`}>
-                          {student.altura}cm
+                          {student.altura || 'N/A'}cm
                         </span>
                         <span>•</span>
                         <span data-testid={`text-student-gender-${student.id}`}>
-                          {student.genero}
+                          {student.genero || 'N/A'}
                         </span>
                       </div>
                     </div>
