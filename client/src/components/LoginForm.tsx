@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft } from "lucide-react";
 import { useState } from "react";
+import logoImage from "@assets/logo-personal-douglas.png";
 
 interface LoginFormProps {
   onBack?: () => void;
@@ -47,6 +48,14 @@ export default function LoginForm({ onBack }: LoginFormProps) {
         )}
         
         <div className="text-center mb-8">
+          <div className="flex justify-center mb-6">
+            <img 
+              src={logoImage} 
+              alt="Personal Douglas" 
+              className="h-16 w-auto"
+              data-testid="img-logo-login"
+            />
+          </div>
           <h1 className="text-3xl font-bold mb-2">
             {isLogin ? 'Entrar na conta' : 'Criar conta'}
           </h1>
@@ -140,7 +149,7 @@ export default function LoginForm({ onBack }: LoginFormProps) {
         
         {isLogin && (
           <div className="text-center mt-4">
-            <Button variant="link" size="sm" data-testid="button-forgot-password">
+            <Button variant="ghost" size="sm" data-testid="button-forgot-password">
               Esqueci minha senha
             </Button>
           </div>

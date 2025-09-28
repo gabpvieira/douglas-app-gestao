@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings, User, Menu } from "lucide-react";
 import { useState } from "react";
+import logoImage from "@assets/logo-personal-douglas.png";
 
 interface NavigationHeaderProps {
   userType?: 'admin' | 'student';
@@ -47,12 +48,15 @@ export default function NavigationHeader({
             </Button>
           )}
           
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">CF</span>
-            </div>
+          <div className="flex items-center gap-3">
+            <img 
+              src={logoImage} 
+              alt="Personal Douglas" 
+              className="h-10 w-auto"
+              data-testid="img-logo-nav"
+            />
             <div>
-              <h1 className="font-semibold text-lg">Consultoria Fitness</h1>
+              <h1 className="font-semibold text-lg">Personal Douglas</h1>
               {userType === 'admin' && (
                 <p className="text-xs text-muted-foreground">Painel Administrativo</p>
               )}

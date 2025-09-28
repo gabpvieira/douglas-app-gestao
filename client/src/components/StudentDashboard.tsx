@@ -199,7 +199,7 @@ export default function StudentDashboard() {
                 </div>
                 <div className="flex items-center gap-2">
                   {workout.completed && (
-                    <Badge className="bg-chart-2 text-white" size="sm">
+                    <Badge className="bg-chart-2 text-white">
                       Concluído
                     </Badge>
                   )}

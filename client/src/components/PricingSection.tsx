@@ -60,7 +60,7 @@ export default function PricingSection() {
   ];
 
   return (
-    <section className="py-24 px-6 bg-card/20">
+    <section id="planos" className="py-24 px-6 bg-card/20">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">

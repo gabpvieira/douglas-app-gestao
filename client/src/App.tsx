@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useState, useEffect } from "react";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 import HeroSection from "./components/HeroSection";
 import BenefitsSection from "./components/BenefitsSection";
 import PricingSection from "./components/PricingSection";
@@ -17,6 +19,7 @@ import NotFound from "@/pages/not-found";
 function LandingPage({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Header onLoginClick={onLogin} />
       <HeroSection />
       <BenefitsSection />
       <PricingSection />
@@ -29,6 +32,7 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
           Ver Dashboard Demo
         </button>
       </div>
+      <Footer />
     </div>
   );
 }
