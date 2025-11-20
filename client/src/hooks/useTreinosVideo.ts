@@ -34,23 +34,15 @@ export function useTreinosVideo(objetivo?: string) {
   return useQuery<TreinoVideo[]>({
     queryKey: ['treinos-video', objetivo],
     queryFn: async () => {
-      let query = supabase
-        .from('treinos_video')
-        .select('*')
-        .order('createdAt', { ascending: false });
-
-      if (objetivo) {
-        query = query.eq('objetivo', objetivo);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Erro ao buscar vídeos:', error);
+      const url = objetivo 
+        ? `/api/treinos-video?objetivo=${encodeURIComponent(objetivo)}`
+        : '/api/treinos-video';
+      
+      const response = await fetch(url);
+      if (!response.ok) {
         throw new Error('Falha ao buscar vídeos');
       }
-
-      return data || [];
+      return response.json();
     }
   });
 }
