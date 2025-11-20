@@ -8,88 +8,76 @@ import {
   TrendingUp, 
   DollarSign, 
   AlertTriangle,
-  Plus,
   Search,
-  Filter,
-  MoreHorizontal,
-  Eye,
-  Edit,
-  FileText,
-  Video
+  Filter
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAlunos } from "@/hooks/useAlunos";
+import { useDashboardStats } from "@/hooks/useDashboard";
+import PageHeader from "@/components/PageHeader";
 
 export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
   
-  // TODO: Remove mock functionality - replace with real data
+  const { data: alunos = [], isLoading: loadingAlunos } = useAlunos();
+  const { data: dashboardStats, isLoading: loadingStats } = useDashboardStats();
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Atualiza a cada minuto
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const getInitials = (name: string) => {
+    const firstName = name.trim().split(' ')[0];
+    return firstName.substring(0, 2).toUpperCase();
+  };
+
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour >= 5 && hour < 12) return 'Bom dia';
+    if (hour >= 12 && hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
+
+  const getFormattedTime = () => {
+    return currentTime.toLocaleTimeString('pt-BR', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+  
   const stats = [
     {
       title: "Total de Alunos",
-      value: "127",
-      change: "+12%",
+      value: loadingStats ? "..." : String(dashboardStats?.totalAlunos || 0),
+      change: loadingStats ? "..." : `${dashboardStats?.alunosAtivos || 0} ativos`,
       icon: <Users className="w-6 h-6" />,
       trend: "up"
     },
     {
       title: "Receita Mensal",
-      value: "R$ 18.500",
-      change: "+8%",
+      value: loadingStats ? "..." : `R$ ${(dashboardStats?.receitaMensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      change: loadingStats ? "..." : `${dashboardStats?.totalPagamentosAprovados || 0} pagamentos`,
       icon: <DollarSign className="w-6 h-6" />,
       trend: "up"
     },
     {
-      title: "Taxa de Adesão",
-      value: "94%",
-      change: "+5%",
+      title: "Alunos Ativos",
+      value: loadingStats ? "..." : String(dashboardStats?.alunosAtivos || 0),
+      change: loadingStats ? "..." : `${dashboardStats?.alunosPendentes || 0} pendentes`,
       icon: <TrendingUp className="w-6 h-6" />,
       trend: "up"
     },
     {
-      title: "Inadimplência",
-      value: "3",
-      change: "-2",
+      title: "Inativos",
+      value: loadingStats ? "..." : String(dashboardStats?.alunosInativos || 0),
+      change: loadingStats ? "..." : `${dashboardStats?.totalPagamentosPendentes || 0} pag. pendentes`,
       icon: <AlertTriangle className="w-6 h-6" />,
       trend: "down"
-    }
-  ];
-
-  const students = [
-    {
-      id: 1,
-      name: "Ana Silva",
-      email: "ana@email.com",
-      plan: "Trimestral",
-      status: "ativo",
-      joinDate: "15/01/2024",
-      avatar: "/api/placeholder/40/40"
-    },
-    {
-      id: 2,
-      name: "Carlos Santos",
-      email: "carlos@email.com",
-      plan: "Mensal",
-      status: "pendente",
-      joinDate: "20/01/2024",
-      avatar: "/api/placeholder/40/40"
-    },
-    {
-      id: 3,
-      name: "Mariana Costa",
-      email: "mariana@email.com",
-      plan: "Família",
-      status: "ativo",
-      joinDate: "10/01/2024",
-      avatar: "/api/placeholder/40/40"
-    },
-    {
-      id: 4,
-      name: "João Oliveira",
-      email: "joao@email.com",
-      plan: "Trimestral",
-      status: "inativo",
-      joinDate: "05/01/2024",
-      avatar: "/api/placeholder/40/40"
     }
   ];
 
@@ -102,129 +90,122 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredStudents = students.filter(student => 
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = alunos
+    .filter(student => 
+      student.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .slice(0, 10); // Mostrar apenas os 10 primeiros
 
   return (
-    <div className="p-6 space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Painel Administrativo</h1>
-          <p className="text-muted-foreground">Gerencie seus alunos e monitore o desempenho</p>
-        </div>
-        <Button data-testid="button-add-student">
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Aluno
-        </Button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
+      <div className="w-full space-y-4 sm:space-y-6">
+        {/* Header */}
+        <PageHeader
+          title="Painel Administrativo"
+          description="Gerencie seus alunos e monitore o desempenho"
+        />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index} className="p-6" data-testid={`card-stat-${index}`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{stat.title}</p>
-                <p className="text-2xl font-bold">{stat.value}</p>
-                <p className={`text-sm flex items-center gap-1 ${
-                  stat.trend === 'up' ? 'text-chart-2' : 'text-destructive'
+        {/* Greeting Section */}
+        <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/30 rounded-lg p-4 sm:p-6">
+          <h2 className="text-xl sm:text-2xl font-semibold text-white">
+            {getGreeting()}, Douglas
+          </h2>
+          <p className="text-sm sm:text-base text-gray-300 mt-1">
+            {getFormattedTime()} • {currentTime.toLocaleDateString('pt-BR', { 
+              weekday: 'long', 
+              day: 'numeric', 
+              month: 'long' 
+            })}
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {stats.map((stat, index) => (
+            <Card key={index} className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur" data-testid={`card-stat-${index}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-400">{stat.title}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-white mt-1">{stat.value}</p>
+                  <p className={`text-[10px] sm:text-sm flex items-center gap-1 mt-1 ${
+                    stat.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {stat.change}
+                  </p>
+                </div>
+                <div className={`h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center ${
+                  stat.trend === 'up' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-red-500 to-red-600'
                 }`}>
-                  {stat.change} vs mês anterior
-                </p>
+                  <div className="text-white scale-75 sm:scale-100">{stat.icon}</div>
+                </div>
               </div>
-              <div className="text-primary">{stat.icon}</div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
 
-      {/* Students Management */}
-      <Card className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Gestão de Alunos</h2>
-          <div className="flex gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar alunos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-64"
-                data-testid="input-search-students"
-              />
+        {/* Students Management */}
+        <Card className="p-4 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-semibold text-white">Gestão de Alunos</h2>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <div className="relative flex-1 sm:flex-none">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                <Input
+                  placeholder="Buscar alunos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 sm:pl-10 sm:w-64 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-xs sm:text-sm"
+                  data-testid="input-search-students"
+                />
+              </div>
+              <Button variant="outline" size="sm" data-testid="button-filter" className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs sm:text-sm">
+                <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                Filtros
+              </Button>
             </div>
-            <Button variant="outline" size="sm" data-testid="button-filter">
-              <Filter className="w-4 h-4 mr-2" />
-              Filtros
-            </Button>
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-4">Aluno</th>
-                <th className="text-left py-3 px-4">Plano</th>
-                <th className="text-left py-3 px-4">Status</th>
-                <th className="text-left py-3 px-4">Data de Ingresso</th>
-                <th className="text-left py-3 px-4">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStudents.map((student) => (
-                <tr key={student.id} className="border-b hover-elevate" data-testid={`row-student-${student.id}`}>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-10 h-10">
-                        <AvatarImage src={student.avatar} />
-                        <AvatarFallback>{student.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{student.name}</div>
-                        <div className="text-sm text-muted-foreground">{student.email}</div>
-                      </div>
+          {/* Students List */}
+          <div className="space-y-2">
+            {loadingAlunos ? (
+              <div className="py-8 text-center text-gray-500">
+                Carregando alunos...
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">
+                {searchTerm ? 'Nenhum aluno encontrado' : 'Nenhum aluno cadastrado'}
+              </div>
+            ) : (
+              filteredStudents.map((student) => (
+                <div 
+                  key={student.id} 
+                  className="flex items-center gap-3 p-4 rounded-lg border border-gray-800 bg-gray-800/30 hover:bg-gray-800/50 transition-colors"
+                  data-testid={`card-student-${student.id}`}
+                >
+                  <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
+                    <AvatarImage src={student.fotoUrl || undefined} />
+                    <AvatarFallback className="bg-gray-700 text-white text-sm">
+                      {getInitials(student.nome)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-white text-sm sm:text-base truncate">
+                      {student.nome}
                     </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <Badge variant="outline">{student.plan}</Badge>
-                  </td>
-                  <td className="py-4 px-4">
-                    <Badge className={getStatusColor(student.status)}>
-                      {student.status}
-                    </Badge>
-                  </td>
-                  <td className="py-4 px-4 text-muted-foreground">
-                    {student.joinDate}
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="ghost" data-testid={`button-view-${student.id}`}>
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" data-testid={`button-edit-${student.id}`}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" data-testid={`button-workout-${student.id}`}>
-                        <FileText className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" data-testid={`button-videos-${student.id}`}>
-                        <Video className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" data-testid={`button-more-${student.id}`}>
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
+                    <div className="text-xs sm:text-sm text-gray-400 truncate">
+                      {student.email}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                  </div>
+                  <Badge className={`${getStatusColor(student.status)} text-xs whitespace-nowrap`}>
+                    {student.status}
+                  </Badge>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

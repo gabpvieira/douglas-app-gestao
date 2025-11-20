@@ -32,9 +32,17 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    hmr: {
+      overlay: true,
+    },
+    watch: {
+      usePolling: false,
+      interval: 100,
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],
     },
   },
+
 });

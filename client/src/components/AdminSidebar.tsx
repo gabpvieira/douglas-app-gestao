@@ -1,11 +1,11 @@
 import { 
   LayoutDashboard, 
   Users, 
-  UserPlus, 
   FileText, 
   Video, 
   UtensilsCrossed, 
   CreditCard, 
+  Calendar,
   LogOut,
   Menu,
   X
@@ -22,8 +22,7 @@ interface AdminSidebarProps {
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
   { icon: Users, label: "Alunos", href: "/admin/alunos" },
-  { icon: UserPlus, label: "Novo Aluno", href: "/admin/novo-aluno" },
-  { icon: FileText, label: "Treinos PDF", href: "/admin/treinos-pdf" },
+  { icon: Calendar, label: "Agenda Profissional", href: "/admin/agenda" },
   { icon: Video, label: "Treinos Vídeo", href: "/admin/treinos-video" },
   { icon: UtensilsCrossed, label: "Planos Alimentares", href: "/admin/planos" },
   { icon: CreditCard, label: "Pagamentos", href: "/admin/pagamentos" },
@@ -121,15 +120,14 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
       </aside>
 
       {/* Mobile toggle button */}
-      <Button
-        variant="ghost"
-        size="sm"
+      <button
         onClick={() => setIsCollapsed(false)}
-        className="fixed top-4 left-4 z-30 md:hidden bg-slate-900 text-white hover:bg-slate-800"
+        className="fixed top-4 left-4 z-30 md:hidden p-2 rounded-lg bg-slate-900/90 backdrop-blur text-white hover:bg-slate-800 transition-colors"
         data-testid="button-open-sidebar"
+        aria-label="Abrir menu"
       >
-        <Menu className="w-5 h-5" />
-      </Button>
+        <Menu className="w-6 h-6" />
+      </button>
     </>
   );
 }

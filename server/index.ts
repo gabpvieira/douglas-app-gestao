@@ -1,10 +1,26 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Handle uncaught exceptions and unhandled rejections in development
+if (process.env.NODE_ENV === 'development') {
+  process.on('uncaughtException', (error) => {
+    log(`Uncaught Exception: ${error.message}`, 'error');
+    console.error(error);
+    // Don't exit in development
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    log(`Unhandled Rejection at: ${promise}, reason: ${reason}`, 'error');
+    console.error(reason);
+    // Don't exit in development
+  });
+}
+
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ extended: false, limit: '500mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -37,14 +53,23 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Test Supabase connection
+  const { testSupabaseConnection } = await import('./supabase');
+  await testSupabaseConnection();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    log(`Error: ${message}`, 'error');
     res.status(status).json({ message });
-    throw err;
+    
+    // Don't throw in development - let the server continue running
+    if (app.get("env") !== "development") {
+      throw err;
+    }
   });
 
   // importantly only setup vite in development and after
@@ -57,14 +82,13 @@ app.use((req, res, next) => {
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
+  // Other ports are firewalled. Default to 3174 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
+  const port = parseInt(process.env.PORT || '3174', 10);
   server.listen({
     port,
-    host: "0.0.0.0",
-    reusePort: true,
+    host: "127.0.0.1",
   }, () => {
     log(`serving on port ${port}`);
   });
