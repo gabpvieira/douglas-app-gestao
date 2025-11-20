@@ -12,17 +12,18 @@ Para o deploy funcionar corretamente no Vercel, você precisa configurar as segu
 
 ### 2. Adicione as Seguintes Variáveis
 
-#### Variáveis do Supabase (OBRIGATÓRIAS)
+#### ⚠️ IMPORTANTE: Todas as 3 variáveis são OBRIGATÓRIAS
+
 ```
 VITE_SUPABASE_URL=https://cbdonvzifbkayrvnlskp.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZG9udnppZmJrYXlydm5sc2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM0MTg4MDAsImV4cCI6MjA3ODk5NDgwMH0.tydBDG5Ojgly6tPd4uPcG2fbtoaM26nUFK9NK2rw5V8
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZG9udnppZmJrYXlydm5sc2twIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzQxODgwMCwiZXhwIjoyMDc4OTk0ODAwfQ.giFCZ278wp_4sOopvpAmiNYauI0kNiF3yYpVcMZc2x4
 ```
 
-#### Variáveis do Backend (se necessário)
-```
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNiZG9udnppZmJrYXlydm5sc2twIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzQxODgwMCwiZXhwIjoyMDc4OTk0ODAwfQ.giFCZ278wp_4sOopvpAmiNYauI0kNiF3yYpVcMZc2x4
-NODE_ENV=production
-```
+**Explicação:**
+- `VITE_SUPABASE_URL`: URL do projeto Supabase (usado no frontend)
+- `VITE_SUPABASE_ANON_KEY`: Chave pública (usado no frontend)
+- `SUPABASE_SERVICE_ROLE_KEY`: Chave privada (usado nas Serverless Functions) ⚠️ CRÍTICO
 
 ### 3. Ambiente
 Para cada variável, selecione os ambientes:
