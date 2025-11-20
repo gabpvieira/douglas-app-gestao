@@ -35,8 +35,8 @@ export function useDashboardStats() {
       const { data: pagamentos, error: pagamentosError } = await supabase
         .from('pagamentos')
         .select('*')
-        .gte('createdAt', primeiroDiaMes)
-        .lte('createdAt', ultimoDiaMes);
+        .gte('created_at', primeiroDiaMes)
+        .lte('created_at', ultimoDiaMes);
 
       if (pagamentosError) {
         console.error('Erro ao buscar pagamentos:', pagamentosError);

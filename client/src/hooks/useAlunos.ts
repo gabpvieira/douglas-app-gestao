@@ -34,7 +34,7 @@ export function useAlunos() {
         .from('users_profile')
         .select('*')
         .eq('tipo', 'aluno')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Erro ao buscar alunos:', error);
