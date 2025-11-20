@@ -4,17 +4,25 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://cbdonvzifbkayr
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 if (!supabaseAnonKey) {
-  console.warn('⚠️  VITE_SUPABASE_ANON_KEY not found in environment variables');
+  console.error('❌ ERRO: VITE_SUPABASE_ANON_KEY não encontrada nas variáveis de ambiente!');
+  console.error('📝 Configure as variáveis de ambiente no Vercel:');
+  console.error('   VITE_SUPABASE_URL');
+  console.error('   VITE_SUPABASE_ANON_KEY');
+  console.error('📖 Veja VERCEL_SETUP.md para instruções detalhadas');
 }
 
 // Create Supabase client for frontend
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
+export const supabase = createClient(
+  supabaseUrl, 
+  supabaseAnonKey || 'placeholder-key-configure-env-vars',
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
   }
-});
+);
 
 // Helper para verificar se usuário está autenticado
 export async function getCurrentUser() {
