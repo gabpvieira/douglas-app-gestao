@@ -30,11 +30,9 @@ export function usePlanosAlimentares(alunoId: string) {
   return useQuery<PlanoAlimentar[]>({
     queryKey: ['planos-alimentares', alunoId],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/planos-alimentares/${alunoId}`);
-      if (!response.ok) {
-        throw new Error('Falha ao buscar planos alimentares');
-      }
-      return response.json();
+      // TODO: Implementar com Supabase
+      console.warn('usePlanosAlimentares: Retornando array vazio temporariamente');
+      return [];
     },
     enabled: !!alunoId
   });

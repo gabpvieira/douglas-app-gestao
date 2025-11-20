@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface TreinoVideo {
   id: string;
@@ -33,15 +34,23 @@ export function useTreinosVideo(objetivo?: string) {
   return useQuery<TreinoVideo[]>({
     queryKey: ['treinos-video', objetivo],
     queryFn: async () => {
-      const url = objetivo 
-        ? `/api/treinos-video?objetivo=${encodeURIComponent(objetivo)}`
-        : '/api/treinos-video';
-      
-      const response = await fetch(url);
-      if (!response.ok) {
+      let query = supabase
+        .from('treinos_video')
+        .select('*')
+        .order('createdAt', { ascending: false });
+
+      if (objetivo) {
+        query = query.eq('objetivo', objetivo);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Erro ao buscar vídeos:', error);
         throw new Error('Falha ao buscar vídeos');
       }
-      return response.json();
+
+      return data || [];
     }
   });
 }

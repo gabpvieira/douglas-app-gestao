@@ -24,15 +24,9 @@ export function usePagamentos(assinaturaId?: string) {
   return useQuery<Pagamento[]>({
     queryKey: ['pagamentos', assinaturaId],
     queryFn: async () => {
-      const url = assinaturaId
-        ? `/api/admin/pagamentos?assinaturaId=${assinaturaId}`
-        : '/api/admin/pagamentos';
-      
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Falha ao buscar pagamentos');
-      }
-      return response.json();
+      // TODO: Implementar com Supabase
+      console.warn('usePagamentos: Retornando array vazio temporariamente');
+      return [];
     }
   });
 }
