@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface Aluno {
   id: string;
@@ -29,11 +30,18 @@ export function useAlunos() {
   return useQuery<Aluno[]>({
     queryKey: ['alunos'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/students');
-      if (!response.ok) {
+      const { data, error } = await supabase
+        .from('users_profile')
+        .select('*')
+        .eq('tipo', 'aluno')
+        .order('createdAt', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao buscar alunos:', error);
         throw new Error('Falha ao buscar alunos');
       }
-      return response.json();
+
+      return data || [];
     }
   });
 }
@@ -45,18 +53,21 @@ export function useCreateAluno() {
 
   return useMutation({
     mutationFn: async (data: CreateAlunoData) => {
-      const response = await fetch('/api/admin/students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const { data: newAluno, error } = await supabase
+        .from('users_profile')
+        .insert([{
+          ...data,
+          tipo: 'aluno'
+        }])
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao criar aluno');
+      if (error) {
+        console.error('Erro ao criar aluno:', error);
+        throw new Error('Falha ao criar aluno');
       }
 
-      return response.json();
+      return newAluno;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alunos'] });
@@ -82,18 +93,19 @@ export function useUpdateAluno() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<CreateAlunoData> }) => {
-      const response = await fetch(`/api/admin/students/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const { data: updatedAluno, error } = await supabase
+        .from('users_profile')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao atualizar aluno');
+      if (error) {
+        console.error('Erro ao atualizar aluno:', error);
+        throw new Error('Falha ao atualizar aluno');
       }
 
-      return response.json();
+      return updatedAluno;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alunos'] });
@@ -119,16 +131,17 @@ export function useDeleteAluno() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/students/${id}`, {
-        method: 'DELETE'
-      });
+      const { error } = await supabase
+        .from('users_profile')
+        .delete()
+        .eq('id', id);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao deletar aluno');
+      if (error) {
+        console.error('Erro ao deletar aluno:', error);
+        throw new Error('Falha ao deletar aluno');
       }
 
-      return response.json();
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alunos'] });
