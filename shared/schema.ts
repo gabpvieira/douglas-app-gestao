@@ -48,25 +48,40 @@ export const insertAlunoSchema = createInsertSchema(alunos).omit({
   updatedAt: true,
 });
 
-// Tabela para blocos de horários disponíveis
+// Tabela para blocos de horários disponíveis (DEPRECATED - mantida para compatibilidade)
 export const blocosHorarios = pgTable("blocos_horarios", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  diaSemana: integer("dia_semana").notNull(), // 0-6 (domingo a sábado)
-  horaInicio: text("hora_inicio").notNull(), // formato HH:MM
-  horaFim: text("hora_fim").notNull(), // formato HH:MM
-  duracao: integer("duracao").notNull(), // duração em minutos
-  ativo: text("ativo").notNull().default("true"), // true/false
+  diaSemana: integer("dia_semana").notNull(),
+  horaInicio: text("hora_inicio").notNull(),
+  horaFim: text("hora_fim").notNull(),
+  duracao: integer("duracao").notNull(),
+  ativo: text("ativo").notNull().default("true"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Tabela para agendamentos
-export const agendamentos = pgTable("agendamentos", {
+// Tabela para disponibilidade semanal do profissional
+export const disponibilidadeSemanal = pgTable("disponibilidade_semanal", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  diaSemana: integer("dia_semana").notNull(), // 0-6 (domingo a sábado)
+  horaInicio: text("hora_inicio").notNull(), // formato HH:MM
+  horaFim: text("hora_fim").notNull(), // formato HH:MM
+  duracaoAtendimento: integer("duracao_atendimento").notNull(), // duração em minutos
+  ativo: text("ativo").notNull().default("true"),
+  tipo: text("tipo").notNull().default("presencial"), // presencial, online
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela para agendamentos presenciais (NOVA ESTRUTURA)
+export const agendamentosPresenciais = pgTable("agendamentos_presenciais", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   alunoId: varchar("aluno_id").notNull().references(() => alunos.id),
-  blocoHorarioId: varchar("bloco_horario_id").notNull().references(() => blocosHorarios.id),
   dataAgendamento: date("data_agendamento").notNull(),
-  status: text("status").notNull().default("agendado"), // agendado, cancelado, concluido
+  horaInicio: text("hora_inicio").notNull(),
+  horaFim: text("hora_fim").notNull(),
+  status: text("status").notNull().default("agendado"), // agendado, confirmado, cancelado, concluido
+  tipo: text("tipo").notNull().default("presencial"), // presencial, online
   observacoes: text("observacoes"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
@@ -89,7 +104,13 @@ export const insertBlocoHorarioSchema = createInsertSchema(blocosHorarios).omit(
   updatedAt: true,
 });
 
-export const insertAgendamentoSchema = createInsertSchema(agendamentos).omit({
+export const insertDisponibilidadeSemanalSchema = createInsertSchema(disponibilidadeSemanal).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAgendamentoPresencialSchema = createInsertSchema(agendamentosPresenciais).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -109,8 +130,10 @@ export type InsertAluno = z.infer<typeof insertAlunoSchema>;
 export type Aluno = typeof alunos.$inferSelect;
 export type InsertBlocoHorario = z.infer<typeof insertBlocoHorarioSchema>;
 export type BlocoHorario = typeof blocosHorarios.$inferSelect;
-export type InsertAgendamento = z.infer<typeof insertAgendamentoSchema>;
-export type Agendamento = typeof agendamentos.$inferSelect;
+export type InsertDisponibilidadeSemanal = z.infer<typeof insertDisponibilidadeSemanalSchema>;
+export type DisponibilidadeSemanal = typeof disponibilidadeSemanal.$inferSelect;
+export type InsertAgendamentoPresencial = z.infer<typeof insertAgendamentoPresencialSchema>;
+export type AgendamentoPresencial = typeof agendamentosPresenciais.$inferSelect;
 export type InsertExcecaoDispo = z.infer<typeof insertExcecaoDispoSchema>;
 export type ExcecaoDispo = typeof excecoesDispo.$inferSelect;
 

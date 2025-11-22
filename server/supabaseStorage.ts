@@ -300,12 +300,12 @@ export class SupabaseStorage implements IStorage {
   }
 
   // ============================================
-  // AGENDAMENTO METHODS
+  // AGENDAMENTO METHODS (usando agendamentos_presenciais)
   // ============================================
 
   async getAgendamento(id: string): Promise<Agendamento | undefined> {
     const { data, error } = await supabase
-      .from('agendamentos')
+      .from('agendamentos_presenciais')
       .select('*')
       .eq('id', id)
       .single();
@@ -319,7 +319,7 @@ export class SupabaseStorage implements IStorage {
 
   async getAllAgendamentos(): Promise<Agendamento[]> {
     const { data, error } = await supabase
-      .from('agendamentos')
+      .from('agendamentos_presenciais')
       .select('*')
       .order('data_agendamento', { ascending: false });
     
@@ -333,7 +333,7 @@ export class SupabaseStorage implements IStorage {
   async getAgendamentosByData(data: Date): Promise<Agendamento[]> {
     const dataStr = data.toISOString().split('T')[0];
     const { data: agendamentos, error } = await supabase
-      .from('agendamentos')
+      .from('agendamentos_presenciais')
       .select('*')
       .eq('data_agendamento', dataStr);
     
@@ -346,7 +346,7 @@ export class SupabaseStorage implements IStorage {
 
   async getAgendamentosByAluno(alunoId: string): Promise<Agendamento[]> {
     const { data, error } = await supabase
-      .from('agendamentos')
+      .from('agendamentos_presenciais')
       .select('*')
       .eq('aluno_id', alunoId)
       .order('data_agendamento', { ascending: false });
@@ -360,7 +360,7 @@ export class SupabaseStorage implements IStorage {
 
   async createAgendamento(insertAgendamento: InsertAgendamento): Promise<Agendamento> {
     const { data, error } = await supabase
-      .from('agendamentos')
+      .from('agendamentos_presenciais')
       .insert(insertAgendamento)
       .select()
       .single();
@@ -371,7 +371,7 @@ export class SupabaseStorage implements IStorage {
 
   async updateAgendamento(id: string, updateData: Partial<InsertAgendamento>): Promise<Agendamento | undefined> {
     const { data, error } = await supabase
-      .from('agendamentos')
+      .from('agendamentos_presenciais')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -386,7 +386,7 @@ export class SupabaseStorage implements IStorage {
 
   async deleteAgendamento(id: string): Promise<boolean> {
     const { error } = await supabase
-      .from('agendamentos')
+      .from('agendamentos_presenciais')
       .delete()
       .eq('id', id);
     

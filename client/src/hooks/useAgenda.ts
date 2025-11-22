@@ -71,20 +71,19 @@ export function useBlocosHorarios() {
   });
 }
 
-// Hook para buscar agendamentos
+// Hook para buscar agendamentos (usando agendamentos_presenciais)
 export function useAgendamentos(dataInicio?: string, dataFim?: string) {
   return useQuery<Agendamento[]>({
     queryKey: ['agendamentos', dataInicio, dataFim],
     queryFn: async () => {
       let query = supabase
-        .from('agendamentos')
+        .from('agendamentos_presenciais')
         .select(`
           *,
           alunos!inner(
             id,
             users_profile(nome, email)
-          ),
-          blocos_horarios(*)
+          )
         `)
         .order('data_agendamento', { ascending: true });
       
@@ -105,26 +104,19 @@ export function useAgendamentos(dataInicio?: string, dataFim?: string) {
       return (data || []).map((item: any) => ({
         id: item.id,
         alunoId: item.aluno_id,
-        blocoHorarioId: item.bloco_horario_id,
+        blocoHorarioId: null, // agendamentos_presenciais não usa blocos
         dataAgendamento: item.data_agendamento,
         status: item.status,
         observacoes: item.observacoes,
         createdAt: item.created_at,
         updatedAt: item.updated_at,
+        horaInicio: item.hora_inicio,
+        horaFim: item.hora_fim,
+        tipo: item.tipo,
         aluno: item.alunos?.users_profile ? {
           id: item.alunos.id,
           nome: item.alunos.users_profile.nome,
           email: item.alunos.users_profile.email
-        } : undefined,
-        blocoHorario: item.blocos_horarios ? {
-          id: item.blocos_horarios.id,
-          diaSemana: item.blocos_horarios.dia_semana,
-          horaInicio: item.blocos_horarios.hora_inicio,
-          horaFim: item.blocos_horarios.hora_fim,
-          duracao: item.blocos_horarios.duracao,
-          ativo: item.blocos_horarios.ativo,
-          createdAt: item.blocos_horarios.created_at,
-          updatedAt: item.blocos_horarios.updated_at
         } : undefined
       }));
     }
@@ -195,7 +187,7 @@ export function useCreateBlocoHorario() {
   });
 }
 
-// Hook para criar agendamento
+// Hook para criar agendamento (usando agendamentos_presenciais)
 export function useCreateAgendamento() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -203,16 +195,20 @@ export function useCreateAgendamento() {
   return useMutation({
     mutationFn: async (data: {
       alunoId: string;
-      blocoHorarioId: string;
       dataAgendamento: string;
+      horaInicio: string;
+      horaFim: string;
+      tipo?: string;
       observacoes?: string;
     }) => {
       const { data: agendamento, error } = await supabase
-        .from('agendamentos')
+        .from('agendamentos_presenciais')
         .insert([{
           aluno_id: data.alunoId,
-          bloco_horario_id: data.blocoHorarioId,
           data_agendamento: data.dataAgendamento,
+          hora_inicio: data.horaInicio,
+          hora_fim: data.horaFim,
+          tipo: data.tipo || 'presencial',
           observacoes: data.observacoes || null,
           status: 'agendado'
         }])
@@ -236,7 +232,7 @@ export function useCreateAgendamento() {
   });
 }
 
-// Hook para atualizar status do agendamento
+// Hook para atualizar status do agendamento (usando agendamentos_presenciais)
 export function useUpdateAgendamento() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -248,7 +244,7 @@ export function useUpdateAgendamento() {
       if (observacoes !== undefined) updateData.observacoes = observacoes;
 
       const { data, error } = await supabase
-        .from('agendamentos')
+        .from('agendamentos_presenciais')
         .update(updateData)
         .eq('id', id)
         .select()
@@ -271,7 +267,7 @@ export function useUpdateAgendamento() {
   });
 }
 
-// Hook para deletar agendamento
+// Hook para deletar agendamento (usando agendamentos_presenciais)
 export function useDeleteAgendamento() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -279,7 +275,7 @@ export function useDeleteAgendamento() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('agendamentos')
+        .from('agendamentos_presenciais')
         .delete()
         .eq('id', id);
       
