@@ -8,12 +8,16 @@ import type {
   InsertAluno,
   BlocoHorario,
   InsertBlocoHorario,
-  Agendamento,
-  InsertAgendamento,
+  AgendamentoPresencial,
+  InsertAgendamentoPresencial,
   ExcecaoDispo,
   InsertExcecaoDispo
 } from '@shared/schema';
 import type { IStorage } from './storage';
+
+// Alias para compatibilidade
+type Agendamento = AgendamentoPresencial;
+type InsertAgendamento = InsertAgendamentoPresencial;
 
 export class SupabaseStorage implements IStorage {
   // ============================================

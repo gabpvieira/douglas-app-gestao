@@ -15,7 +15,7 @@ import {
   insertUserProfileSchema, 
   insertAlunoSchema,
   insertBlocoHorarioSchema,
-  insertAgendamentoSchema,
+  insertAgendamentoPresencialSchema,
   insertExcecaoDispoSchema
 } from "@shared/schema";
 import { z } from "zod";
@@ -367,18 +367,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/agendamentos", async (req, res) => {
     try {
-      const validatedData = insertAgendamentoSchema.parse(req.body);
+      const validatedData = insertAgendamentoPresencialSchema.parse(req.body);
       
       // Check if aluno exists
       const aluno = await storage.getAluno(validatedData.alunoId);
       if (!aluno) {
         return res.status(400).json({ error: "Aluno não encontrado" });
-      }
-
-      // Check if bloco horario exists
-      const bloco = await storage.getBlocoHorario(validatedData.blocoHorarioId);
-      if (!bloco) {
-        return res.status(400).json({ error: "Bloco de horário não encontrado" });
       }
 
       const agendamento = await storage.createAgendamento(validatedData);
@@ -397,7 +391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/admin/agendamentos/:id", async (req, res) => {
     try {
-      const validatedData = insertAgendamentoSchema.partial().parse(req.body);
+      const validatedData = insertAgendamentoPresencialSchema.partial().parse(req.body);
       const agendamento = await storage.updateAgendamento(req.params.id, validatedData);
       
       if (!agendamento) {

@@ -7,12 +7,16 @@ import {
   type InsertAluno,
   type BlocoHorario,
   type InsertBlocoHorario,
-  type Agendamento,
-  type InsertAgendamento,
+  type AgendamentoPresencial,
+  type InsertAgendamentoPresencial,
   type ExcecaoDispo,
   type InsertExcecaoDispo
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+
+// Alias para compatibilidade
+type Agendamento = AgendamentoPresencial;
+type InsertAgendamento = InsertAgendamentoPresencial;
 
 // modify the interface with any CRUD methods
 // you might need
