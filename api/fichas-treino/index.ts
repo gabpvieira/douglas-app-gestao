@@ -2,6 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabaseAdmin } from '../_lib/supabase';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('🔍 [Fichas API] Iniciando requisição:', req.method);
+  console.log('🔍 [Fichas API] SUPABASE_URL:', process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+  console.log('🔍 [Fichas API] Service Key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,9 +18,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const supabase = getSupabaseAdmin();
+    console.log('✅ [Fichas API] Supabase client criado');
 
     // GET - Listar todas as fichas
     if (req.method === 'GET') {
+      console.log('🔍 [Fichas API] Buscando fichas...');
+      
       const { data: fichas, error } = await supabase
         .from('fichas_treino')
         .select(`
@@ -25,11 +32,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `)
         .order('created_at', { ascending: false });
 
+      console.log('🔍 [Fichas API] Resultado:', { 
+        fichasCount: fichas?.length || 0, 
+        hasError: !!error,
+        errorMessage: error?.message,
+        errorDetails: error?.details
+      });
+
       if (error) {
-        console.error('Error fetching fichas:', error);
+        console.error('❌ [Fichas API] Erro ao buscar fichas:', error);
         throw error;
       }
       
+      console.log('✅ [Fichas API] Retornando', fichas?.length || 0, 'fichas');
       return res.status(200).json(fichas || []);
     }
 
