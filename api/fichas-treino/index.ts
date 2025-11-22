@@ -1,54 +1,36 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '../_lib/supabase';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,PUT,DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   try {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase credentials');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabaseAdmin();
 
     // GET - Listar todas as fichas
     if (req.method === 'GET') {
       const { data: fichas, error } = await supabase
         .from('fichas_treino')
-        .select('*')
+        .select(`
+          *,
+          exercicios:exercicios_ficha(*)
+        `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching fichas:', error);
+        throw error;
+      }
       
-      // Buscar exercícios para cada ficha
-      const fichasComExercicios = await Promise.all(
-        (fichas || []).map(async (ficha) => {
-          const { data: exercicios } = await supabase
-            .from('exercicios_ficha')
-            .select('*')
-            .eq('ficha_id', ficha.id)
-            .order('ordem', { ascending: true });
-          
-          return {
-            ...ficha,
-            exercicios: exercicios || []
-          };
-        })
-      );
-      
-      return res.status(200).json(fichasComExercicios);
+      return res.status(200).json(fichas || []);
     }
 
     // POST - Criar nova ficha
@@ -62,7 +44,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select()
         .single();
       
-      if (fichaError) throw fichaError;
+      if (fichaError) {
+        console.error('Error creating ficha:', fichaError);
+        throw fichaError;
+      }
       
       // Criar exercícios se fornecidos
       let exerciciosCriados = [];
@@ -78,7 +63,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .insert(exerciciosComFichaId)
           .select();
         
-        if (exError) throw exError;
+        if (exError) {
+          console.error('Error creating exercicios:', exError);
+          throw exError;
+        }
         exerciciosCriados = exData || [];
       }
       
@@ -88,6 +76,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
     console.error('Error in fichas-treino API:', error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ 
+      error: error.message || 'Internal server error',
+      details: error.details || null,
+      hint: error.hint || null
+    });
   }
 }

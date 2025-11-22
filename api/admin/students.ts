@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '../_lib/supabase';
 
 export default async function handler(
   req: VercelRequest,
@@ -7,15 +7,14 @@ export default async function handler(
 ) {
   console.log('🔵 [Students API] Request received:', {
     method: req.method,
-    url: req.url,
-    headers: req.headers
+    url: req.url
   });
 
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
   if (req.method === 'OPTIONS') {
     console.log('✅ [Students API] OPTIONS request handled');
@@ -23,29 +22,7 @@ export default async function handler(
   }
 
   try {
-    // Verificar variáveis de ambiente
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    console.log('🔑 [Students API] Environment check:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseKey,
-      urlValue: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'MISSING'
-    });
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ [Students API] Missing environment variables');
-      return res.status(500).json({ 
-        error: 'Server configuration error',
-        details: 'Missing Supabase credentials',
-        debug: {
-          hasUrl: !!supabaseUrl,
-          hasKey: !!supabaseKey
-        }
-      });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabaseAdmin();
     console.log('✅ [Students API] Supabase client created');
 
     if (req.method === 'GET') {
