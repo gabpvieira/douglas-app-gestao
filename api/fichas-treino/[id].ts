@@ -64,9 +64,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       
       // Se exercícios foram fornecidos, atualizar
-      if (exercicios) {
+      if (exercicios && exercicios.length > 0) {
         // Remover exercícios antigos
         await supabase.from('exercicios_ficha').delete().eq('ficha_id', id);
         
         // Inserir novos exercícios
-        i
+        const exerciciosComFichaId = exercicios.map((ex: any, index: number) => ({
+          ...ex,
+          ficha_id: id,
+          ordem: index
+        }));
+        
+        const { error: exerciciosError } = await supabase
+          .from('exercicios_ficha')
+          .insert(exerciciosComFichaId);
+        
+        if (exerciciosError) throw exerciciosError;
+      }
+      
+      // Buscar ficha atualizada com exercícios
+      const { data: exerciciosAtualizados } = await supabase
+        .from('exercicios_ficha')
+        .select('*')
+        .eq('ficha_id', id)
+        .order('ordem', { ascending: true });
+      
+      return res.status(200).json({ 
+        ...fichaAtualizada, 
+        exercicios: exerciciosAtualizados || [] 
+      });
+    }
+
+    // DELETE - Remover ficha
+    if (req.method === 'DELETE') {
+      // Remover exercícios primeiro
+      await supabase.from('exercicios_ficha').delete().eq('ficha_id', id);
+      
+      // Remover ficha
+      const { error } = await supabase
+        .from('fichas_treino')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      return res.status(204).end();
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (error: any) {
+    console.error('Fichas Treino [id] API error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}

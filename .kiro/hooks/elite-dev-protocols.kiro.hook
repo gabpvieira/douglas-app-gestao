@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Elite Dev Quality Gate",
+  "description": "Enforces 5 strict protocols: rigorous testing with MCP tools, concise reporting without bloat, deep context analysis, ironclad security scanning, and UI/UX responsiveness validation on every file edit",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "client/src/**/*.tsx",
+      "client/src/**/*.ts",
+      "server/**/*.ts",
+      "api/**/*.ts",
+      "shared/**/*.ts"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A file has been edited. Apply the 5 Elite Developer Protocols:\n\n1. RIGOROUS TESTING & MCP UTILIZATION:\n   - Analyze the change and determine appropriate tests\n   - Run terminal commands to validate (npm run check, build tests, etc.)\n   - Use available MCP tools (Snyk for security, Supabase for DB validation)\n   - If errors occur, fix and retry automatically\n\n2. CONCISE REPORTING:\n   - Provide SHORT bullet-point summary only\n   - Format: \"Fixed [Issue]. Verified via [Test Command]. Status: [Success].\"\n   - DO NOT create new markdown documentation files\n\n3. DEEP CONTEXT ANALYSIS:\n   - Identify Context: Where in the codebase?\n   - Locate Origin: What caused this change?\n   - Propose Correction: Is this change correct and permanent?\n\n4. IRONCLAD SECURITY:\n   - Scan for hardcoded secrets, API keys, credentials\n   - If found, STOP and refactor to use .env variables\n   - Use Security MCP tools if available\n\n5. UI/UX MASTERY & RESPONSIVENESS:\n   - For UI changes: verify responsive behavior (mobile 320px+, tablet, desktop)\n   - Check for visual bugs (overflow, misalignment, z-index issues)\n   - Ensure Tailwind/Flexbox/Grid best practices\n\nAnalyze the edited file and apply these protocols. Report findings concisely."
+  }
+}
