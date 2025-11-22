@@ -20,6 +20,7 @@ interface UploadVideoData {
   descricao?: string;
   duracao?: number;
   file: File;
+  thumbnailFile?: File;
 }
 
 interface UpdateVideoData {
@@ -89,6 +90,7 @@ export function useUploadTreinoVideo() {
       
       const formData = new FormData();
       formData.append('file', data.file);
+      if (data.thumbnailFile) formData.append('thumbnail', data.thumbnailFile);
       formData.append('nome', data.nome);
       if (data.objetivo) formData.append('objetivo', data.objetivo);
       if (data.descricao) formData.append('descricao', data.descricao);
@@ -146,7 +148,7 @@ export function useUploadTreinoVideo() {
   });
 }
 
-// Atualizar vídeo
+// Atualizar vídeo (sem substituir arquivo)
 export function useUpdateTreinoVideo() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -191,6 +193,76 @@ export function useUpdateTreinoVideo() {
       toast({
         title: 'Sucesso!',
         description: 'Vídeo atualizado com sucesso'
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+}
+
+// Substituir arquivo de vídeo
+export function useReplaceVideoFile() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UploadVideoData }) => {
+      console.group('🌐 REQUISIÇÃO HTTP - SUBSTITUIR VÍDEO');
+      console.log('🆔 ID do vídeo:', id);
+      
+      const formData = new FormData();
+      formData.append('file', data.file);
+      if (data.thumbnailFile) formData.append('thumbnail', data.thumbnailFile);
+      formData.append('nome', data.nome);
+      if (data.objetivo) formData.append('objetivo', data.objetivo);
+      if (data.descricao) formData.append('descricao', data.descricao);
+      if (data.duracao) formData.append('duracao', data.duracao.toString());
+
+      console.log('📦 FormData preparado:', {
+        arquivo: data.file.name,
+        tamanho: `${(data.file.size / (1024 * 1024)).toFixed(2)} MB`,
+        nome: data.nome,
+        temThumbnail: !!data.thumbnailFile
+      });
+      
+      console.log('🚀 Enviando requisição POST para substituir...');
+      const requestStart = Date.now();
+      
+      const response = await fetch(`/api/admin/treinos-video/${id}/replace`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const requestTime = ((Date.now() - requestStart) / 1000).toFixed(2);
+      console.log(`📡 Resposta recebida em ${requestTime}s:`, {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+        console.error('❌ ERRO NA RESPOSTA:', error);
+        console.groupEnd();
+        throw new Error(error.error || error.details || 'Falha ao substituir vídeo');
+      }
+
+      const result = await response.json();
+      console.log('✅ SUCESSO! Vídeo substituído:', result);
+      console.groupEnd();
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['treinos-video'] });
+      queryClient.invalidateQueries({ queryKey: ['treino-video', variables.id] });
+      toast({
+        title: 'Sucesso!',
+        description: 'Vídeo substituído com sucesso'
       });
     },
     onError: (error: Error) => {

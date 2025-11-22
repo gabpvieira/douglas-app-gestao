@@ -74,3 +74,19 @@ export const uploadImage = multer({
     }
   }
 });
+
+// Upload de vídeo + thumbnail
+export const uploadVideoWithThumbnail = multer({
+  storage,
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
+  fileFilter: (req, file, cb) => {
+    const videoMimes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/mpeg', 'video/webm'];
+    const imageMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    
+    if (videoMimes.includes(file.mimetype) || imageMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas vídeos e imagens são permitidos'));
+    }
+  }
+});

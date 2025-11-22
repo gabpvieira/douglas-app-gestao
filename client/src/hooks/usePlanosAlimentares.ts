@@ -7,6 +7,7 @@ interface PlanoAlimentar {
   titulo: string;
   conteudoHtml: string;
   observacoes: string | null;
+  dadosJson?: any;
   dataCriacao: string;
   createdAt: string;
   updatedAt: string;
@@ -17,12 +18,16 @@ interface CreatePlanoData {
   titulo: string;
   conteudoHtml: string;
   observacoes?: string;
+  dadosJson?: any;
+  refeicoes?: any[];
 }
 
 interface UpdatePlanoData {
   titulo?: string;
   conteudoHtml?: string;
   observacoes?: string;
+  dadosJson?: any;
+  refeicoes?: any[];
 }
 
 // Listar planos de um aluno (Admin)

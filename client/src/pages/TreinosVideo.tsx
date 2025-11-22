@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Video, Users, Clock, Search, Filter } from 'lucide-react';
 import { TreinoVideoModal } from '@/components/TreinoVideoModal';
 import { TreinoVideosList } from '@/components/TreinoVideosList';
-import { useTreinosVideo, useDeleteTreinoVideo, useUpdateTreinoVideo, useUploadTreinoVideo } from '@/hooks/useTreinosVideo';
+import { VideoPlayerModal } from '@/components/VideoPlayerModal';
+import { useTreinosVideo, useDeleteTreinoVideo, useUpdateTreinoVideo, useUploadTreinoVideo, useReplaceVideoFile } from '@/hooks/useTreinosVideo';
 import { useAlunos } from '@/hooks/useAlunos';
 import PageHeader from '@/components/PageHeader';
 
@@ -34,7 +35,9 @@ interface TreinoVideo {
 
 export function TreinosVideo() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [treinoEditando, setTreinoEditando] = useState<TreinoVideo | null>(null);
+  const [treinoVisualizando, setTreinoVisualizando] = useState<TreinoVideo | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
   const { data: videosSupabase = [], isLoading: loadingTreinos, refetch } = useTreinosVideo();
@@ -42,21 +45,30 @@ export function TreinosVideo() {
   const deleteTreino = useDeleteTreinoVideo();
   const updateTreino = useUpdateTreinoVideo();
   const uploadVideo = useUploadTreinoVideo();
+  const replaceVideo = useReplaceVideoFile();
   
-  const treinos: TreinoVideo[] = videosSupabase.map(video => ({
-    id: video.id,
-    titulo: video.nome,
-    descricao: video.descricao || '',
-    divisaoMuscular: video.objetivo || '',
-    nivel: 'intermediario' as const,
-    duracao: video.duracao || 0,
-    videoUrl: video.urlVideo,
-    thumbnail: video.thumbnailUrl || undefined,
-    alunosComAcesso: [],
-    dataCriacao: new Date(video.dataUpload),
-    ativo: true,
-    tags: []
-  }));
+  const treinos: TreinoVideo[] = videosSupabase.map(video => {
+    console.log('📹 Vídeo do Supabase:', {
+      id: video.id,
+      nome: video.nome,
+      thumbnailUrl: video.thumbnailUrl
+    });
+    
+    return {
+      id: video.id,
+      titulo: video.nome,
+      descricao: video.descricao || '',
+      divisaoMuscular: video.objetivo || '',
+      nivel: 'intermediario' as const,
+      duracao: video.duracao || 0,
+      videoUrl: video.urlVideo,
+      thumbnail: video.thumbnailUrl || undefined,
+      alunosComAcesso: [],
+      dataCriacao: new Date(video.dataUpload),
+      ativo: true,
+      tags: []
+    };
+  });
   
   const alunos: Aluno[] = alunosSupabase.map(aluno => ({
     id: aluno.id,
@@ -82,16 +94,33 @@ export function TreinosVideo() {
   const handleSalvarTreino = async (treinoData: Partial<TreinoVideo>) => {
     try {
       if (treinoEditando) {
-        await updateTreino.mutateAsync({
-          id: treinoEditando.id,
-          data: {
-            nome: treinoData.titulo,
-            objetivo: treinoData.divisaoMuscular,
-            descricao: treinoData.descricao,
-            duracao: treinoData.duracao
-          }
-        });
+        // Se tem arquivo novo, substituir o vídeo
+        if (treinoData.videoFile) {
+          await replaceVideo.mutateAsync({
+            id: treinoEditando.id,
+            data: {
+              nome: treinoData.titulo || treinoEditando.titulo,
+              objetivo: treinoData.divisaoMuscular,
+              descricao: treinoData.descricao,
+              duracao: treinoData.duracao,
+              file: treinoData.videoFile,
+              thumbnailFile: treinoData.thumbnailFile
+            }
+          });
+        } else {
+          // Apenas atualizar metadados
+          await updateTreino.mutateAsync({
+            id: treinoEditando.id,
+            data: {
+              nome: treinoData.titulo,
+              objetivo: treinoData.divisaoMuscular,
+              descricao: treinoData.descricao,
+              duracao: treinoData.duracao
+            }
+          });
+        }
       } else {
+        // Novo vídeo
         if (!treinoData.videoFile) return;
         
         await uploadVideo.mutateAsync({
@@ -99,7 +128,8 @@ export function TreinosVideo() {
           objetivo: treinoData.divisaoMuscular,
           descricao: treinoData.descricao,
           duracao: treinoData.duracao,
-          file: treinoData.videoFile
+          file: treinoData.videoFile,
+          thumbnailFile: treinoData.thumbnailFile
         });
       }
       
@@ -126,11 +156,32 @@ export function TreinosVideo() {
     console.log('Gerenciar acesso:', treinoId, alunosIds);
   };
 
+  const handleVerVideo = (treino: TreinoVideo) => {
+    setTreinoVisualizando(treino);
+    setIsPlayerOpen(true);
+  };
+
+  const formatarDuracaoTotal = (segundosTotais: number) => {
+    const horas = Math.floor(segundosTotais / 3600);
+    const minutos = Math.floor((segundosTotais % 3600) / 60);
+    const segundos = segundosTotais % 60;
+    
+    if (horas > 0) {
+      return `${horas}h ${minutos}min`;
+    }
+    
+    if (minutos > 0) {
+      return segundos > 0 ? `${minutos}min ${segundos}s` : `${minutos}min`;
+    }
+    
+    return `${segundos}s`;
+  };
+
   const totalTreinos = treinos.length;
   const treinosAtivos = treinos.length;
   const totalAlunosComAcesso = alunos.length;
   const duracaoTotal = treinos.reduce((acc, t) => acc + (t.duracao || 0), 0);
-  const loading = loadingTreinos || loadingAlunos;
+  const loading = loadingTreinos || loadingAlunos || uploadVideo.isPending || updateTreino.isPending || replaceVideo.isPending;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
@@ -187,7 +238,7 @@ export function TreinosVideo() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm text-gray-400">Duração Total</p>
-                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{duracaoTotal} min</p>
+                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{formatarDuracaoTotal(duracaoTotal)}</p>
                 <p className="text-[10px] sm:text-sm text-gray-400 mt-1">
                   tempo total de vídeos
                 </p>
@@ -261,12 +312,13 @@ export function TreinosVideo() {
                 onExcluirTreino={handleExcluirTreino}
                 onToggleAtivo={handleToggleAtivo}
                 onGerenciarAcesso={handleGerenciarAcesso}
+                onVerVideo={handleVerVideo}
               />
             )}
           </CardContent>
         </Card>
 
-        {/* Modal */}
+        {/* Modal de Edição */}
         <TreinoVideoModal
           isOpen={isModalOpen}
           onClose={() => {
@@ -275,9 +327,25 @@ export function TreinosVideo() {
           }}
           onSave={handleSalvarTreino}
           treino={treinoEditando}
-          alunos={alunos}
-          loading={uploadVideo.isPending || updateTreino.isPending}
+          loading={uploadVideo.isPending || updateTreino.isPending || replaceVideo.isPending}
         />
+
+        {/* Modal de Visualização */}
+        {treinoVisualizando && (
+          <VideoPlayerModal
+            isOpen={isPlayerOpen}
+            onClose={() => {
+              setIsPlayerOpen(false);
+              setTreinoVisualizando(null);
+            }}
+            videoId={treinoVisualizando.id}
+            videoTitle={treinoVisualizando.titulo}
+            videoDescription={treinoVisualizando.descricao}
+            videoDuration={treinoVisualizando.duracao}
+            videoObjective={treinoVisualizando.divisaoMuscular}
+            videoDate={treinoVisualizando.dataCriacao.toISOString()}
+          />
+        )}
       </div>
     </div>
   );

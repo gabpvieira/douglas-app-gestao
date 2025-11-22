@@ -108,24 +108,49 @@ export default function PlanosAlimentares() {
     ativo: aluno.status === 'ativo'
   }));
   
-  const planosAdaptados: PlanoAlimentar[] = planosSupabase.map(plano => ({
-    id: plano.id,
-    nome: plano.titulo,
-    descricao: plano.conteudoHtml?.substring(0, 150) + '...' || 'Sem descrição',
-    objetivo: 'manutencao' as const,
-    calorias: 2000,
-    proteinas: 150,
-    carboidratos: 250,
-    gorduras: 70,
-    categoria: 'basico' as const,
-    restricoes: [],
-    observacoes: plano.observacoes,
-    refeicoes: [],
-    alunosAtribuidos: [plano.alunoId],
-    criadoEm: plano.dataCriacao?.split('T')[0] || '',
-    atualizadoEm: plano.updatedAt?.split('T')[0] || '',
-    ativo: true
-  }));
+  const planosAdaptados: PlanoAlimentar[] = planosSupabase.map(plano => {
+    // Se tiver dados estruturados, usar eles; senão, usar valores padrão
+    const dadosJson = plano.dadosJson || {};
+    
+    // Usar refeições do banco se disponíveis, senão usar do dadosJson
+    const refeicoes = plano.refeicoes || dadosJson.refeicoes || [];
+    
+    // Calcular macros totais das refeições
+    let totalCalorias = 0;
+    let totalProteinas = 0;
+    let totalCarboidratos = 0;
+    let totalGorduras = 0;
+    
+    refeicoes.forEach((ref: any) => {
+      if (ref.alimentos && Array.isArray(ref.alimentos)) {
+        ref.alimentos.forEach((alim: any) => {
+          totalCalorias += alim.calorias || 0;
+          totalProteinas += alim.proteinas || 0;
+          totalCarboidratos += alim.carboidratos || 0;
+          totalGorduras += alim.gorduras || 0;
+        });
+      }
+    });
+    
+    return {
+      id: plano.id,
+      nome: plano.titulo,
+      descricao: dadosJson.descricao || plano.conteudoHtml?.substring(0, 150) + '...' || 'Sem descrição',
+      objetivo: dadosJson.objetivo || 'manutencao' as const,
+      calorias: totalCalorias > 0 ? Math.round(totalCalorias) : (dadosJson.calorias || 2000),
+      proteinas: totalProteinas > 0 ? Math.round(totalProteinas) : (dadosJson.proteinas || 150),
+      carboidratos: totalCarboidratos > 0 ? Math.round(totalCarboidratos) : (dadosJson.carboidratos || 250),
+      gorduras: totalGorduras > 0 ? Math.round(totalGorduras) : (dadosJson.gorduras || 70),
+      categoria: dadosJson.categoria || 'basico' as const,
+      restricoes: dadosJson.restricoes || [],
+      observacoes: plano.observacoes,
+      refeicoes: refeicoes,
+      alunosAtribuidos: [plano.alunoId],
+      criadoEm: plano.dataCriacao?.split('T')[0] || '',
+      atualizadoEm: plano.updatedAt?.split('T')[0] || '',
+      ativo: true
+    };
+  });
 
   const planos = planosAdaptados;
 
@@ -141,21 +166,63 @@ export default function PlanosAlimentares() {
 
   const handleSalvarPlano = async (planoData: Omit<PlanoAlimentar, 'id' | 'criadoEm' | 'atualizadoEm'>) => {
     try {
-      const conteudoHtml = planoData.refeicoes.map(ref => `
-        <h2>${ref.nome} (${ref.horario})</h2>
-        <ul>
-          ${ref.alimentos.map(alimento => `<li>${alimento.quantidade}${alimento.unidade} de ${alimento.nome}</li>`).join('')}
-        </ul>
-      `).join('');
+      // Gerar conteúdo formatado em texto simples
+      let conteudoTexto = `🎯 OBJETIVO: ${planoData.objetivo.replace('_', ' ').toUpperCase()}\n\n`;
+      conteudoTexto += `📊 MACROS DIÁRIOS\n`;
+      conteudoTexto += `Calorias: ${planoData.calorias} kcal\n`;
+      conteudoTexto += `Proteínas: ${planoData.proteinas}g\n`;
+      conteudoTexto += `Carboidratos: ${planoData.carboidratos}g\n`;
+      conteudoTexto += `Gorduras: ${planoData.gorduras}g\n\n`;
+      
+      if (planoData.refeicoes && planoData.refeicoes.length > 0) {
+        planoData.refeicoes.forEach(ref => {
+          conteudoTexto += `${ref.nome.toUpperCase()} (${ref.horario} - ${Math.round(ref.calorias)} kcal)\n`;
+          ref.alimentos.forEach(alimento => {
+            conteudoTexto += `• ${alimento.quantidade}${alimento.unidade} de ${alimento.nome}\n`;
+          });
+          if (ref.observacoes) {
+            conteudoTexto += `Obs: ${ref.observacoes}\n`;
+          }
+          conteudoTexto += `\n`;
+        });
+      } else {
+        conteudoTexto += planoData.descricao || 'Plano alimentar sem refeições detalhadas.';
+      }
+      
+      if (planoData.restricoes && planoData.restricoes.length > 0) {
+        conteudoTexto += `\n⚠️ RESTRIÇÕES ALIMENTARES\n`;
+        planoData.restricoes.forEach(restricao => {
+          conteudoTexto += `• ${restricao}\n`;
+        });
+      }
+      
+      // Preparar dados estruturados para salvar no banco
+      const dadosJson = {
+        objetivo: planoData.objetivo,
+        categoria: planoData.categoria,
+        calorias: planoData.calorias,
+        proteinas: planoData.proteinas,
+        carboidratos: planoData.carboidratos,
+        gorduras: planoData.gorduras,
+        restricoes: planoData.restricoes,
+        descricao: planoData.descricao
+      };
       
       if (planoEditando) {
         await updatePlano.mutateAsync({
           id: planoEditando.id,
           data: {
             titulo: planoData.nome,
-            conteudoHtml: conteudoHtml || planoData.descricao,
-            observacoes: planoData.observacoes
+            conteudoHtml: conteudoTexto,
+            observacoes: planoData.observacoes,
+            dadosJson: dadosJson,
+            refeicoes: planoData.refeicoes
           }
+        });
+        
+        toast({
+          title: 'Sucesso',
+          description: 'Plano alimentar atualizado com sucesso!',
         });
         
         const response = await fetch('/api/admin/planos-alimentares/all');
@@ -176,8 +243,15 @@ export default function PlanosAlimentares() {
         await createPlano.mutateAsync({
           alunoId: planoData.alunosAtribuidos[0],
           titulo: planoData.nome,
-          conteudoHtml: conteudoHtml || planoData.descricao,
-          observacoes: planoData.observacoes
+          conteudoHtml: conteudoTexto,
+          observacoes: planoData.observacoes,
+          dadosJson: dadosJson,
+          refeicoes: planoData.refeicoes
+        });
+        
+        toast({
+          title: 'Sucesso',
+          description: 'Plano alimentar criado com sucesso!',
         });
         
         const response = await fetch('/api/admin/planos-alimentares/all');
@@ -189,6 +263,11 @@ export default function PlanosAlimentares() {
       setIsModalOpen(false);
     } catch (error) {
       console.error('Erro ao salvar plano:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao salvar plano alimentar. Tente novamente.',
+        variant: 'destructive'
+      });
     }
   };
 

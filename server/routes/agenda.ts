@@ -145,14 +145,18 @@ export function registerAgendaRoutes(app: Express) {
     try {
       const { dataInicio, dataFim } = req.query;
 
+      console.log('📅 Buscando agendamentos presenciais...', { dataInicio, dataFim });
+
       let query = supabase
-        .from('agendamentos')
+        .from('agendamentos_presenciais')
         .select(`
           id,
           aluno_id,
-          bloco_horario_id,
           data_agendamento,
+          hora_inicio,
+          hora_fim,
           status,
+          tipo,
           observacoes,
           created_at,
           updated_at,
@@ -162,17 +166,10 @@ export function registerAgendaRoutes(app: Express) {
               nome,
               email
             )
-          ),
-          blocos_horarios (
-            id,
-            dia_semana,
-            hora_inicio,
-            hora_fim,
-            duracao,
-            ativo
           )
         `)
-        .order('data_agendamento', { ascending: true });
+        .order('data_agendamento', { ascending: true })
+        .order('hora_inicio', { ascending: true });
 
       if (dataInicio) {
         query = query.gte('data_agendamento', dataInicio);
@@ -183,12 +180,17 @@ export function registerAgendaRoutes(app: Express) {
 
       const { data: agendamentos, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao buscar agendamentos:', error);
+        throw error;
+      }
+
+      console.log(`✅ ${agendamentos?.length || 0} agendamentos encontrados`);
 
       const agendamentosFormatted = agendamentos.map((a: any) => ({
         id: a.id,
         alunoId: a.aluno_id,
-        blocoHorarioId: a.bloco_horario_id,
+        blocoHorarioId: null, // agendamentos_presenciais não usa blocos
         dataAgendamento: a.data_agendamento,
         status: a.status,
         observacoes: a.observacoes,
@@ -199,19 +201,19 @@ export function registerAgendaRoutes(app: Express) {
           nome: a.alunos.users_profile?.nome || 'N/A',
           email: a.alunos.users_profile?.email || 'N/A'
         } : undefined,
-        blocoHorario: a.blocos_horarios ? {
-          id: a.blocos_horarios.id,
-          diaSemana: a.blocos_horarios.dia_semana,
-          horaInicio: a.blocos_horarios.hora_inicio,
-          horaFim: a.blocos_horarios.hora_fim,
-          duracao: a.blocos_horarios.duracao,
-          ativo: a.blocos_horarios.ativo
-        } : undefined
+        blocoHorario: {
+          id: null,
+          diaSemana: new Date(a.data_agendamento).getDay(),
+          horaInicio: a.hora_inicio,
+          horaFim: a.hora_fim,
+          duracao: 60,
+          ativo: true
+        }
       }));
 
       res.json(agendamentosFormatted);
     } catch (error: any) {
-      console.error('Error fetching agendamentos:', error);
+      console.error('❌ Error fetching agendamentos:', error);
       res.status(500).json({ error: 'Falha ao buscar agendamentos' });
     }
   });
@@ -269,30 +271,47 @@ export function registerAgendaRoutes(app: Express) {
       const { id } = req.params;
       const { status, observacoes } = req.body;
 
+      console.log('📝 Atualizando agendamento:', id, { status, observacoes });
+
       const updateData: any = {};
       if (status) updateData.status = status;
       if (observacoes !== undefined) updateData.observacoes = observacoes;
 
       const { data: agendamento, error } = await supabase
-        .from('agendamentos')
+        .from('agendamentos_presenciais')
         .update(updateData)
         .eq('id', id)
-        .select()
+        .select(`
+          id,
+          aluno_id,
+          data_agendamento,
+          hora_inicio,
+          hora_fim,
+          status,
+          tipo,
+          observacoes,
+          updated_at
+        `)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro ao atualizar:', error);
+        throw error;
+      }
+
+      console.log('✅ Agendamento atualizado com sucesso');
 
       res.json({
         id: agendamento.id,
         alunoId: agendamento.aluno_id,
-        blocoHorarioId: agendamento.bloco_horario_id,
+        blocoHorarioId: null,
         dataAgendamento: agendamento.data_agendamento,
         status: agendamento.status,
         observacoes: agendamento.observacoes,
         updatedAt: agendamento.updated_at
       });
     } catch (error: any) {
-      console.error('Error updating agendamento:', error);
+      console.error('❌ Error updating agendamento:', error);
       res.status(500).json({ error: 'Falha ao atualizar agendamento' });
     }
   });
@@ -302,8 +321,10 @@ export function registerAgendaRoutes(app: Express) {
     try {
       const { id } = req.params;
 
+      console.log('🗑️ Deletando agendamento:', id);
+
       const { error } = await supabase
-        .from('agendamentos')
+        .from('agendamentos_presenciais')
         .delete()
         .eq('id', id);
 

@@ -10,6 +10,7 @@ import { registerEvolucoesRoutes } from "./routes/evolucoes";
 import { registerAssinaturasRoutes } from "./routes/assinaturas";
 import { registerPagamentosRoutes } from "./routes/pagamentos";
 import { registerAgendaRoutes } from "./routes/agenda";
+import { registerFichasTreinoRoutes } from "./routes/fichasTreino";
 import { 
   insertUserProfileSchema, 
   insertAlunoSchema,
@@ -39,6 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAssinaturasRoutes(app);
   registerPagamentosRoutes(app);
   registerAgendaRoutes(app);
+  registerFichasTreinoRoutes(app);
   
   // Admin routes for student management
   app.get("/api/admin/students", async (req, res) => {

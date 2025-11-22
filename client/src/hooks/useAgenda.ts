@@ -149,11 +149,11 @@ export function useUpdateAgendamento() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, observacoes }: { id: string; status?: string; observacoes?: string }) => {
       const response = await fetch(`/api/admin/agendamentos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status, observacoes })
       });
       if (!response.ok) {
         const error = await response.json();

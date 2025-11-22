@@ -1,19 +1,30 @@
 import type { Express } from "express";
-import { uploadVideo } from "../upload";
+import { uploadVideo, uploadVideoWithThumbnail } from "../upload";
 import { uploadFileToStorage, getSignedUrl, deleteFileFromStorage, generateUniqueFileName } from "../storageHelper";
 import { supabase } from "../supabase";
+import { generateThumbnail, getThumbnailUrl } from "../thumbnailGenerator";
 
 export function registerTreinosVideoRoutes(app: Express) {
   
   // Upload de vídeo de treino
-  app.post("/api/admin/treinos-video/upload", uploadVideo.single('file'), async (req, res) => {
+  app.post("/api/admin/treinos-video/upload", uploadVideoWithThumbnail.fields([
+    { name: 'file', maxCount: 1 },
+    { name: 'thumbnail', maxCount: 1 }
+  ]), async (req, res) => {
     try {
       console.log('📹 Iniciando upload de vídeo...');
-      console.log('File:', req.file ? `${req.file.originalname} (${req.file.size} bytes)` : 'Nenhum arquivo');
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const videoFile = files?.['file']?.[0];
+      const thumbnailFile = files?.['thumbnail']?.[0];
+      
+      console.log('Files:', {
+        video: videoFile ? `${videoFile.originalname} (${videoFile.size} bytes)` : 'Nenhum',
+        thumbnail: thumbnailFile ? `${thumbnailFile.originalname} (${thumbnailFile.size} bytes)` : 'Nenhum'
+      });
       console.log('Body:', req.body);
 
-      if (!req.file) {
-        return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+      if (!videoFile) {
+        return res.status(400).json({ error: 'Nenhum arquivo de vídeo enviado' });
       }
 
       const { nome, objetivo, descricao, duracao } = req.body;
@@ -23,7 +34,7 @@ export function registerTreinosVideoRoutes(app: Express) {
       }
 
       // Gerar nome único para o arquivo
-      const fileName = generateUniqueFileName(req.file.originalname);
+      const fileName = generateUniqueFileName(videoFile.originalname);
       console.log('📝 Nome do arquivo gerado:', fileName);
 
       // Upload para Supabase Storage
@@ -31,10 +42,42 @@ export function registerTreinosVideoRoutes(app: Express) {
       const { path } = await uploadFileToStorage(
         'treinos-video',
         fileName,
-        req.file.buffer,
-        req.file.mimetype
+        videoFile.buffer,
+        videoFile.mimetype
       );
       console.log('✅ Upload concluído. Path:', path);
+
+      // Processar thumbnail
+      let thumbnailUrl: string;
+      
+      if (thumbnailFile) {
+        // Usar thumbnail enviada pelo cliente
+        console.log('🖼️  Usando thumbnail enviada pelo cliente...');
+        const thumbnailFileName = generateUniqueFileName(thumbnailFile.originalname);
+        const { path: thumbnailPath } = await uploadFileToStorage(
+          'treinos-video',
+          `thumbnails/${thumbnailFileName}`,
+          thumbnailFile.buffer,
+          thumbnailFile.mimetype
+        );
+        thumbnailUrl = getThumbnailUrl(thumbnailPath, process.env.VITE_SUPABASE_URL!);
+        console.log('✅ Thumbnail salva:', thumbnailUrl);
+      } else {
+        // Fallback: tentar gerar com FFmpeg
+        try {
+          console.log('🎬 Gerando thumbnail com FFmpeg...');
+          const thumbnailPath = await generateThumbnail(videoFile.buffer, fileName);
+          thumbnailUrl = getThumbnailUrl(thumbnailPath, process.env.VITE_SUPABASE_URL!);
+          console.log('✅ Thumbnail gerada:', thumbnailUrl);
+        } catch (error) {
+          console.warn('⚠️  Erro ao gerar thumbnail, usando fallback:', error);
+          // Fallback final: usar URL do vídeo
+          const { data: { publicUrl } } = supabase.storage
+            .from('treinos-video')
+            .getPublicUrl(path);
+          thumbnailUrl = publicUrl;
+        }
+      }
 
       // Salvar no banco de dados
       console.log('💾 Salvando no banco de dados...');
@@ -45,6 +88,7 @@ export function registerTreinosVideoRoutes(app: Express) {
           objetivo: objetivo || null,
           descricao: descricao || null,
           url_video: path,
+          thumbnail_url: thumbnailUrl,
           duracao: duracao ? parseInt(duracao) : null
         })
         .select()
@@ -65,6 +109,7 @@ export function registerTreinosVideoRoutes(app: Express) {
         objetivo: video.objetivo,
         descricao: video.descricao,
         urlVideo: video.url_video,
+        thumbnailUrl: video.thumbnail_url,
         duracao: video.duracao,
         dataUpload: video.data_upload,
         createdAt: video.created_at
@@ -223,7 +268,7 @@ export function registerTreinosVideoRoutes(app: Express) {
     }
   });
 
-  // Atualizar informações do vídeo
+  // Atualizar informações do vídeo (sem substituir arquivo)
   app.put("/api/admin/treinos-video/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -256,6 +301,140 @@ export function registerTreinosVideoRoutes(app: Express) {
     } catch (error: any) {
       console.error('Error updating video:', error);
       res.status(500).json({ error: 'Falha ao atualizar vídeo' });
+    }
+  });
+
+  // Substituir arquivo de vídeo
+  app.post("/api/admin/treinos-video/:id/replace", uploadVideoWithThumbnail.fields([
+    { name: 'file', maxCount: 1 },
+    { name: 'thumbnail', maxCount: 1 }
+  ]), async (req, res) => {
+    try {
+      console.log('🔄 Iniciando substituição de vídeo...');
+      const { id } = req.params;
+      const { nome, objetivo, descricao, duracao } = req.body;
+      
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const videoFile = files?.['file']?.[0];
+      const thumbnailFile = files?.['thumbnail']?.[0];
+
+      if (!videoFile) {
+        return res.status(400).json({ error: 'Nenhum arquivo de vídeo enviado' });
+      }
+
+      // Buscar vídeo existente
+      const { data: videoExistente, error: fetchError } = await supabase
+        .from('treinos_video')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !videoExistente) {
+        return res.status(404).json({ error: 'Vídeo não encontrado' });
+      }
+
+      console.log('📹 Vídeo existente encontrado:', videoExistente.nome);
+
+      // Gerar nome único para o novo arquivo
+      const fileName = generateUniqueFileName(videoFile.originalname);
+      console.log('📝 Nome do novo arquivo:', fileName);
+
+      // Upload do novo vídeo
+      console.log('☁️  Fazendo upload do novo vídeo...');
+      const { path } = await uploadFileToStorage(
+        'treinos-video',
+        fileName,
+        videoFile.buffer,
+        videoFile.mimetype
+      );
+      console.log('✅ Upload concluído. Path:', path);
+
+      // Processar thumbnail
+      let thumbnailUrl: string;
+      
+      if (thumbnailFile) {
+        // Usar thumbnail enviada pelo cliente
+        console.log('🖼️  Usando thumbnail enviada pelo cliente...');
+        const thumbnailFileName = generateUniqueFileName(thumbnailFile.originalname);
+        const { path: thumbnailPath } = await uploadFileToStorage(
+          'treinos-video',
+          `thumbnails/${thumbnailFileName}`,
+          thumbnailFile.buffer,
+          thumbnailFile.mimetype
+        );
+        thumbnailUrl = getThumbnailUrl(thumbnailPath, process.env.VITE_SUPABASE_URL!);
+        console.log('✅ Thumbnail salva:', thumbnailUrl);
+      } else {
+        // Fallback: tentar gerar com FFmpeg
+        try {
+          console.log('🎬 Gerando thumbnail com FFmpeg...');
+          const thumbnailPath = await generateThumbnail(videoFile.buffer, fileName);
+          thumbnailUrl = getThumbnailUrl(thumbnailPath, process.env.VITE_SUPABASE_URL!);
+          console.log('✅ Thumbnail gerada:', thumbnailUrl);
+        } catch (error) {
+          console.warn('⚠️  Erro ao gerar thumbnail, usando fallback:', error);
+          const { data: { publicUrl } } = supabase.storage
+            .from('treinos-video')
+            .getPublicUrl(path);
+          thumbnailUrl = publicUrl;
+        }
+      }
+
+      // Atualizar registro no banco
+      const updateData: any = {
+        url_video: path,
+        thumbnail_url: thumbnailUrl
+      };
+      
+      if (nome) updateData.nome = nome;
+      if (objetivo !== undefined) updateData.objetivo = objetivo;
+      if (descricao !== undefined) updateData.descricao = descricao;
+      if (duracao !== undefined) updateData.duracao = parseInt(duracao);
+
+      console.log('💾 Atualizando registro no banco...');
+      const { data: video, error: updateError } = await supabase
+        .from('treinos_video')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('❌ Erro ao atualizar banco:', updateError);
+        // Se falhar, deletar novo arquivo
+        await deleteFileFromStorage('treinos-video', path);
+        throw updateError;
+      }
+
+      // Deletar vídeo antigo do storage
+      console.log('🗑️  Deletando vídeo antigo...');
+      await deleteFileFromStorage('treinos-video', videoExistente.url_video);
+      
+      // Deletar thumbnail antiga se existir
+      if (videoExistente.thumbnail_url && videoExistente.thumbnail_url !== videoExistente.url_video) {
+        await deleteFileFromStorage('treinos-video', videoExistente.thumbnail_url);
+      }
+
+      console.log('✅ Vídeo substituído com sucesso!');
+
+      res.json({
+        id: video.id,
+        nome: video.nome,
+        objetivo: video.objetivo,
+        descricao: video.descricao,
+        urlVideo: video.url_video,
+        thumbnailUrl: video.thumbnail_url,
+        duracao: video.duracao,
+        dataUpload: video.data_upload,
+        updatedAt: video.updated_at
+      });
+
+    } catch (error: any) {
+      console.error('❌ Error replacing video:', error);
+      res.status(500).json({ 
+        error: 'Falha ao substituir vídeo',
+        details: error.message
+      });
     }
   });
 }

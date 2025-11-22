@@ -23,6 +23,7 @@ import { TreinosVideo } from "./pages/TreinosVideo";
 import TreinosPdfPage from "./pages/TreinosPdf";
 import PlanosAlimentares from "./pages/PlanosAlimentares";
 import PagamentosAdmin from "./pages/admin/Pagamentos";
+import FichasTreino from "./pages/admin/FichasTreino";
 import NotFound from "@/pages/not-found";
 import StudentLayoutWrapper from "./components/StudentLayoutWrapper";
 import MyWorkouts from "./pages/aluno/MyWorkouts";
@@ -82,6 +83,7 @@ function AdminLayout({ userName, onLogout }: {
           <Route path="/admin/treinos-video">
             <TreinosVideo />
           </Route>
+          <Route path="/admin/fichas-treino" component={FichasTreino} />
           <Route path="/admin/planos" component={PlanosAlimentares} />
           <Route path="/admin/planos-alimentares" component={PlanosAlimentares} />
           <Route path="/admin/pagamentos" component={PagamentosAdmin} />

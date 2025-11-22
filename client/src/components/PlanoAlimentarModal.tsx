@@ -292,14 +292,31 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
   };
 
   const handleSave = () => {
-    // Recalcular macros antes de salvar
-    calcularMacros();
+    // Calcular macros diretamente dos alimentos para garantir valores atualizados
+    let totalCalorias = 0;
+    let totalProteinas = 0;
+    let totalCarboidratos = 0;
+    let totalGorduras = 0;
+    
+    refeicoes.forEach(ref => {
+      ref.alimentos.forEach(alim => {
+        totalCalorias += alim.calorias;
+        totalProteinas += alim.proteinas;
+        totalCarboidratos += alim.carboidratos;
+        totalGorduras += alim.gorduras;
+      });
+    });
     
     const planoParaSalvar = {
       ...formData,
+      calorias: Math.round(totalCalorias),
+      proteinas: Math.round(totalProteinas),
+      carboidratos: Math.round(totalCarboidratos),
+      gorduras: Math.round(totalGorduras),
       refeicoes
     };
     
+    console.log('Salvando plano:', planoParaSalvar);
     onSave(planoParaSalvar);
   };
 
@@ -421,58 +438,85 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
       metaCarboidrato: config.carboidratos,
       metaGordura: config.gorduras
     }));
+    
+    // Mudar para a aba de refeições para mostrar o resultado
+    setActiveTab('refeicoes');
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700">
-        <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            {plano ? 'Editar Plano Alimentar' : 'Novo Plano Alimentar'}
-          </DialogTitle>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-gray-900/95 backdrop-blur border-gray-800 text-white">
+        <DialogHeader className="border-b border-gray-800 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+              <Target className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-lg font-semibold text-white">
+                {plano ? 'Editar Plano Alimentar' : 'Novo Plano Alimentar'}
+              </DialogTitle>
+              <p className="text-xs text-gray-400 line-clamp-1">
+                {plano ? 'Atualize as informações do plano' : 'Crie um novo plano personalizado'}
+              </p>
+            </div>
+          </div>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-gray-800">
-            <TabsTrigger value="informacoes" className="data-[state=active]:bg-blue-600">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-800/50 border border-gray-700 p-0.5 gap-0.5">
+            <TabsTrigger 
+              value="informacoes" 
+              className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400 text-xs py-2"
+            >
               Informações
             </TabsTrigger>
-            <TabsTrigger value="metas" className="data-[state=active]:bg-blue-600">
+            <TabsTrigger 
+              value="metas" 
+              className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400 text-xs py-2"
+            >
               Metas
             </TabsTrigger>
-            <TabsTrigger value="refeicoes" className="data-[state=active]:bg-blue-600">
+            <TabsTrigger 
+              value="refeicoes" 
+              className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400 text-xs py-2"
+            >
               Refeições
             </TabsTrigger>
-            <TabsTrigger value="atribuicoes" className="data-[state=active]:bg-blue-600">
+            <TabsTrigger 
+              value="atribuicoes" 
+              className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-400 text-xs py-2"
+            >
               Atribuições
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="informacoes" className="space-y-6 mt-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
+          <TabsContent value="informacoes" className="space-y-3 mt-3">
+            <Card className="bg-gray-800/30 border-gray-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white flex items-center gap-2 text-base">
+                  <AlertCircle className="h-4 w-4 text-blue-400" />
                   Informações Básicas
                 </CardTitle>
+                <CardDescription className="text-xs text-gray-400">
+                  Configure as informações principais do plano
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome" className="text-gray-200">Nome do Plano</Label>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="nome" className="text-gray-200 text-xs">Nome do Plano</Label>
                     <Input
                       id="nome"
                       value={formData.nome}
                       onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
                       placeholder="Ex: Plano Emagrecimento Básico"
-                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-9 text-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="objetivo" className="text-gray-200">Objetivo</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="objetivo" className="text-gray-200 text-xs">Objetivo</Label>
                     <Select value={formData.objetivo} onValueChange={(value) => setFormData(prev => ({ ...prev, objetivo: value as PlanoAlimentar['objetivo'] }))}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-9 text-sm">
                         <SelectValue placeholder="Selecione o objetivo" />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-700 border-gray-600">
@@ -485,11 +529,11 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="categoria" className="text-gray-200">Categoria</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="categoria" className="text-gray-200 text-xs">Categoria</Label>
                     <Select value={formData.categoria} onValueChange={(value) => setFormData(prev => ({ ...prev, categoria: value as PlanoAlimentar['categoria'] }))}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-9 text-sm">
                         <SelectValue placeholder="Selecione a categoria" />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-700 border-gray-600">
@@ -500,20 +544,20 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="duracao" className="text-gray-200">Duração (dias)</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="duracao" className="text-gray-200 text-xs">Duração (dias)</Label>
                     <Input
                       id="duracao"
                       type="number"
                       value={formData.duracao}
                       onChange={(e) => setFormData(prev => ({ ...prev, duracao: parseInt(e.target.value) || 30 }))}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="frequencia" className="text-gray-200">Frequência</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="frequencia" className="text-gray-200 text-xs">Frequência</Label>
                     <Select value={formData.frequencia} onValueChange={(value) => setFormData(prev => ({ ...prev, frequencia: value as 'diaria' | 'semanal' | 'personalizada' }))}>
-                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-9 text-sm">
                         <SelectValue placeholder="Selecione a frequência" />
                       </SelectTrigger>
                       <SelectContent className="bg-gray-700 border-gray-600">
@@ -525,10 +569,10 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="nivelDificuldade" className="text-gray-200">Nível de Dificuldade</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="nivelDificuldade" className="text-gray-200 text-xs">Nível de Dificuldade</Label>
                   <Select value={formData.nivelDificuldade} onValueChange={(value) => setFormData(prev => ({ ...prev, nivelDificuldade: value as 'iniciante' | 'intermediario' | 'avancado' }))}>
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-9 text-sm">
                       <SelectValue placeholder="Selecione o nível" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-700 border-gray-600">
@@ -539,59 +583,62 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="descricao" className="text-gray-200">Descrição</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="descricao" className="text-gray-200 text-xs">Descrição</Label>
                   <Textarea
                     id="descricao"
                     value={formData.descricao}
                     onChange={(e) => setFormData(prev => ({ ...prev, descricao: e.target.value }))}
                     placeholder="Descreva o plano alimentar..."
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                    rows={3}
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm"
+                    rows={2}
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="observacoes" className="text-gray-200">Observações</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="observacoes" className="text-gray-200 text-xs">Observações</Label>
                   <Textarea
                     id="observacoes"
                     value={formData.observacoes}
                     onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
                     placeholder="Observações adicionais..."
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm"
                     rows={2}
                   />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
+            <Card className="bg-gray-800/30 border-gray-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white flex items-center gap-2 text-base">
+                  <AlertCircle className="h-4 w-4 text-yellow-400" />
                   Restrições Alimentares
                 </CardTitle>
+                <CardDescription className="text-xs text-gray-400">
+                  Adicione restrições e alergias
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div className="flex gap-2">
                   <Input
                     value={novaRestricao}
                     onChange={(e) => setNovaRestricao(e.target.value)}
-                    placeholder="Ex: Lactose, Glúten, Amendoim..."
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                    placeholder="Ex: Lactose, Glúten..."
+                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-9 text-sm"
                     onKeyPress={(e) => e.key === 'Enter' && adicionarRestricao()}
                   />
-                  <Button onClick={adicionarRestricao} size="sm" className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4" />
+                  <Button onClick={adicionarRestricao} size="sm" className="bg-blue-600 hover:bg-blue-700 h-9 px-3">
+                    <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {formData.restricoes.map((restricao, index) => (
-                    <Badge key={index} variant="secondary" className="bg-red-600 text-white">
+                    <Badge key={index} variant="secondary" className="bg-red-600/20 border-red-600/30 text-red-400 text-xs">
                       {restricao}
                       <button
                         onClick={() => removerRestricao(restricao)}
-                        className="ml-2 hover:text-red-200"
+                        className="ml-1.5 hover:text-red-200"
                       >
                         ×
                       </button>
@@ -601,17 +648,20 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
+            <Card className="bg-gray-800/30 border-gray-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white flex items-center gap-2 text-base">
+                  <Zap className="h-4 w-4 text-green-400" />
                   Suplementação
                 </CardTitle>
+                <CardDescription className="text-xs text-gray-400">
+                  Adicione suplementos recomendados
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div className="flex gap-2">
                   <Select value={novoSuplemento} onValueChange={setNovoSuplemento}>
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white h-9 text-sm">
                       <SelectValue placeholder="Selecione um suplemento" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-700 border-gray-600">
@@ -622,17 +672,17 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button onClick={adicionarSuplemento} size="sm" className="bg-green-600 hover:bg-green-700">
-                    <Plus className="h-4 w-4" />
+                  <Button onClick={adicionarSuplemento} size="sm" className="bg-green-600 hover:bg-green-700 h-9 px-3">
+                    <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {formData.suplementacao.map((suplemento, index) => (
-                    <Badge key={index} variant="secondary" className="bg-green-600 text-white">
+                    <Badge key={index} variant="secondary" className="bg-green-600/20 border-green-600/30 text-green-400 text-xs">
                       {suplemento}
                       <button
                         onClick={() => removerSuplemento(suplemento)}
-                        className="ml-2 hover:text-green-200"
+                        className="ml-1.5 hover:text-green-200"
                       >
                         ×
                       </button>
@@ -643,152 +693,152 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
             </Card>
           </TabsContent>
 
-          <TabsContent value="metas" className="space-y-6 mt-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Target className="h-5 w-5" />
+          <TabsContent value="metas" className="space-y-3 mt-3">
+            <Card className="bg-gray-800/30 border-gray-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white flex items-center gap-2 text-base">
+                  <Target className="h-4 w-4 text-blue-400" />
                   Metas Nutricionais
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-xs text-gray-400">
                   Defina as metas diárias de macronutrientes
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="metaCalorica" className="text-gray-200">Calorias (kcal)</Label>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="metaCalorica" className="text-gray-200 text-xs">Calorias (kcal)</Label>
                     <Input
                       id="metaCalorica"
                       type="number"
                       value={formData.metaCalorica}
                       onChange={(e) => setFormData(prev => ({ ...prev, metaCalorica: parseInt(e.target.value) || 0 }))}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="metaProteina" className="text-gray-200">Proteínas (g)</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="metaProteina" className="text-gray-200 text-xs">Proteínas (g)</Label>
                     <Input
                       id="metaProteina"
                       type="number"
                       value={formData.metaProteina}
                       onChange={(e) => setFormData(prev => ({ ...prev, metaProteina: parseInt(e.target.value) || 0 }))}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="metaCarboidrato" className="text-gray-200">Carboidratos (g)</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="metaCarboidrato" className="text-gray-200 text-xs">Carboidratos (g)</Label>
                     <Input
                       id="metaCarboidrato"
                       type="number"
                       value={formData.metaCarboidrato}
                       onChange={(e) => setFormData(prev => ({ ...prev, metaCarboidrato: parseInt(e.target.value) || 0 }))}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="metaGordura" className="text-gray-200">Gorduras (g)</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="metaGordura" className="text-gray-200 text-xs">Gorduras (g)</Label>
                     <Input
                       id="metaGordura"
                       type="number"
                       value={formData.metaGordura}
                       onChange={(e) => setFormData(prev => ({ ...prev, metaGordura: parseInt(e.target.value) || 0 }))}
-                      className="bg-gray-700 border-gray-600 text-white"
+                      className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
                     />
                   </div>
                 </div>
 
-                <Separator className="bg-gray-600" />
+                <Separator className="bg-gray-700" />
 
-                <div className="space-y-2">
-                  <Label htmlFor="hidratacao" className="text-gray-200">Meta de Hidratação (litros/dia)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="hidratacao" className="text-gray-200 text-xs">Meta de Hidratação (litros/dia)</Label>
                   <Input
                     id="hidratacao"
                     type="number"
                     step="0.1"
                     value={formData.hidratacao}
                     onChange={(e) => setFormData(prev => ({ ...prev, hidratacao: parseFloat(e.target.value) || 0 }))}
-                    className="bg-gray-700 border-gray-600 text-white"
+                    className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-700 rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-gray-700/50 rounded-lg border border-gray-700">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-400">{formData.calorias}</div>
-                    <div className="text-sm text-gray-400">Calorias Atuais</div>
+                    <div className="text-lg font-bold text-blue-400">{formData.calorias}</div>
+                    <div className="text-[10px] text-gray-400 uppercase tracking-wide">Calorias Atuais</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-400">{formData.proteinas}g</div>
-                    <div className="text-sm text-gray-400">Proteínas Atuais</div>
+                    <div className="text-lg font-bold text-green-400">{formData.proteinas}g</div>
+                    <div className="text-[10px] text-gray-400 uppercase tracking-wide">Proteínas Atuais</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-yellow-400">{formData.carboidratos}g</div>
-                    <div className="text-sm text-gray-400">Carboidratos Atuais</div>
+                    <div className="text-lg font-bold text-yellow-400">{formData.carboidratos}g</div>
+                    <div className="text-[10px] text-gray-400 uppercase tracking-wide">Carboidratos Atuais</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-red-400">{formData.gorduras}g</div>
-                    <div className="text-sm text-gray-400">Gorduras Atuais</div>
+                    <div className="text-lg font-bold text-red-400">{formData.gorduras}g</div>
+                    <div className="text-[10px] text-gray-400 uppercase tracking-wide">Gorduras Atuais</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="refeicoes" className="space-y-6 mt-6">
+          <TabsContent value="refeicoes" className="space-y-3 mt-3">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-white">Refeições do Plano</h3>
+              <h3 className="text-base font-semibold text-white">Refeições do Plano</h3>
               <div className="flex gap-2">
-                <Button onClick={gerarPlanoAutomatico} variant="outline" className="border-gray-600 text-gray-200 hover:bg-gray-700">
-                  <Calculator className="h-4 w-4 mr-2" />
+                <Button onClick={gerarPlanoAutomatico} variant="outline" className="border-gray-600 text-gray-200 hover:bg-gray-700 h-9 text-xs">
+                  <Calculator className="h-3.5 w-3.5 mr-1.5" />
                   Gerar Automático
                 </Button>
-                <Button onClick={adicionarRefeicao} className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button onClick={adicionarRefeicao} className="bg-blue-600 hover:bg-blue-700 h-9 text-xs">
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
                   Nova Refeição
                 </Button>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {refeicoes.map((refeicao) => (
-                <Card key={refeicao.id} className="bg-gray-800 border-gray-700">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-gray-200">Nome da Refeição</Label>
+                <Card key={refeicao.id} className="bg-gray-800/30 border-gray-700">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-gray-200 text-xs">Nome da Refeição</Label>
                           <Input
                             value={refeicao.nome}
                             onChange={(e) => atualizarRefeicao(refeicao.id, 'nome', e.target.value)}
                             placeholder="Ex: Café da Manhã"
-                            className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                            className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-9 text-sm"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-gray-200">Horário</Label>
+                        <div className="space-y-1.5">
+                          <Label className="text-gray-200 text-xs">Horário</Label>
                           <Input
                             type="time"
                             value={refeicao.horario}
                             onChange={(e) => atualizarRefeicao(refeicao.id, 'horario', e.target.value)}
-                            className="bg-gray-700 border-gray-600 text-white"
+                            className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label className="text-gray-200">Calorias</Label>
+                        <div className="space-y-1.5">
+                          <Label className="text-gray-200 text-xs">Calorias</Label>
                           <div className="flex items-center gap-2">
                             <Input
                               type="number"
                               value={refeicao.calorias}
                               onChange={(e) => atualizarRefeicao(refeicao.id, 'calorias', parseInt(e.target.value) || 0)}
-                              className="bg-gray-700 border-gray-600 text-white"
+                              className="bg-gray-700 border-gray-600 text-white h-9 text-sm"
                             />
                             <Button
                               onClick={() => calcularCaloriasRefeicao(refeicao.id)}
                               size="sm"
                               variant="outline"
-                              className="border-gray-600 text-gray-200 hover:bg-gray-700"
+                              className="border-gray-600 text-gray-200 hover:bg-gray-700 h-9 w-9 p-0"
                             >
-                              <Calculator className="h-4 w-4" />
+                              <Calculator className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
@@ -797,21 +847,21 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                         onClick={() => removerRefeicao(refeicao.id)}
                         variant="outline"
                         size="sm"
-                        className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white ml-4"
+                        className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white h-9 w-9 p-0"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-medium text-gray-200">Alimentos</h4>
+                      <h4 className="font-medium text-gray-200 text-sm">Alimentos</h4>
                       <Button
                         onClick={() => adicionarAlimento(refeicao.id)}
                         size="sm"
-                        className="bg-green-600 hover:bg-green-700"
+                        className="bg-green-600 hover:bg-green-700 h-8 text-xs"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus className="h-3.5 w-3.5 mr-1.5" />
                         Adicionar Alimento
                       </Button>
                     </div>
@@ -884,13 +934,13 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                       ))}
                     </div>
 
-                    <div className="space-y-2">
-                      <Label className="text-gray-200">Observações da Refeição</Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-gray-200 text-xs">Observações da Refeição</Label>
                       <Textarea
                         value={refeicao.observacoes}
                         onChange={(e) => atualizarRefeicao(refeicao.id, 'observacoes', e.target.value)}
                         placeholder="Observações sobre esta refeição..."
-                        className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                        className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm"
                         rows={2}
                       />
                     </div>
@@ -913,21 +963,21 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
             )}
           </TabsContent>
 
-          <TabsContent value="atribuicoes" className="space-y-6 mt-6">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+          <TabsContent value="atribuicoes" className="space-y-3 mt-3">
+            <Card className="bg-gray-800/30 border-gray-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white flex items-center gap-2 text-base">
+                  <Users className="h-4 w-4 text-purple-400" />
                   Atribuir Plano aos Alunos
                 </CardTitle>
-                <CardDescription className="text-gray-400">
-                  Selecione os alunos que receberão este plano alimentar
+                <CardDescription className="text-xs text-gray-400">
+                  Selecione os alunos que receberão este plano
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {alunos.map((aluno) => (
-                    <div key={aluno.id} className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg">
+                    <div key={aluno.id} className="flex items-center space-x-2 p-2.5 bg-gray-700/50 rounded-lg border border-gray-700">
                       <Checkbox
                         id={`aluno-${aluno.id}`}
                         checked={formData.alunosAtribuidos.includes(aluno.id)}
@@ -946,13 +996,13 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                         }}
                         className="border-gray-500"
                       />
-                      <div className="flex-1">
-                        <Label htmlFor={`aluno-${aluno.id}`} className="text-white font-medium cursor-pointer">
+                      <div className="flex-1 min-w-0">
+                        <Label htmlFor={`aluno-${aluno.id}`} className="text-white font-medium cursor-pointer text-sm line-clamp-1">
                           {aluno.nome}
                         </Label>
-                        <p className="text-sm text-gray-400">{aluno.email}</p>
+                        <p className="text-xs text-gray-400 line-clamp-1">{aluno.email}</p>
                       </div>
-                      <Badge variant="outline" className="border-gray-500 text-gray-300">
+                      <Badge variant="outline" className="border-gray-500 text-gray-300 text-[10px] flex-shrink-0">
                         {aluno.objetivo}
                       </Badge>
                     </div>
@@ -960,27 +1010,27 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                 </div>
 
                 {alunos.length === 0 && (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-400">Nenhum aluno cadastrado</p>
+                  <div className="text-center py-6">
+                    <Users className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-400 text-sm">Nenhum aluno cadastrado</p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white">Status do Plano</CardTitle>
+            <Card className="bg-gray-800/30 border-gray-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white text-base">Status do Plano</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
                   <Checkbox
                     id="ativo"
                     checked={formData.ativo}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, ativo: !!checked }))}
                     className="border-gray-500"
                   />
-                  <Label htmlFor="ativo" className="text-white cursor-pointer">
+                  <Label htmlFor="ativo" className="text-white cursor-pointer text-sm">
                     Plano ativo (visível para os alunos)
                   </Label>
                 </div>
@@ -989,13 +1039,22 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="mt-6">
-          <Button onClick={onClose} variant="outline" className="border-gray-600 text-gray-200 hover:bg-gray-700">
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-            {plano ? 'Atualizar Plano' : 'Criar Plano'}
-          </Button>
+        <DialogFooter className="mt-4 border-t border-gray-800 pt-3">
+          <div className="flex justify-between items-center w-full gap-2">
+            <Button 
+              onClick={onClose} 
+              variant="outline" 
+              className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white h-9 text-sm"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-9 text-sm"
+            >
+              {plano ? 'Atualizar Plano' : 'Criar Plano'}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -6,6 +6,7 @@ import {
   UtensilsCrossed, 
   CreditCard, 
   Calendar,
+  Dumbbell,
   LogOut,
   Menu,
   X
@@ -23,6 +24,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
   { icon: Users, label: "Alunos", href: "/admin/alunos" },
   { icon: Calendar, label: "Agenda Profissional", href: "/admin/agenda" },
+  { icon: Dumbbell, label: "Fichas de Treino", href: "/admin/fichas-treino" },
   { icon: Video, label: "Treinos Vídeo", href: "/admin/treinos-video" },
   { icon: UtensilsCrossed, label: "Planos Alimentares", href: "/admin/planos" },
   { icon: CreditCard, label: "Pagamentos", href: "/admin/pagamentos" },

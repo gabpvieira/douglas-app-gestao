@@ -113,3 +113,108 @@ export type InsertAgendamento = z.infer<typeof insertAgendamentoSchema>;
 export type Agendamento = typeof agendamentos.$inferSelect;
 export type InsertExcecaoDispo = z.infer<typeof insertExcecaoDispoSchema>;
 export type ExcecaoDispo = typeof excecoesDispo.$inferSelect;
+
+// Tabela para fichas de treino
+export const fichasTreino = pgTable("fichas_treino", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nome: text("nome").notNull(),
+  descricao: text("descricao"),
+  objetivo: text("objetivo"), // hipertrofia, emagrecimento, força, etc
+  nivel: text("nivel").notNull(), // iniciante, intermediario, avancado
+  duracaoSemanas: integer("duracao_semanas").notNull().default(4),
+  ativo: text("ativo").notNull().default("true"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela para exercícios da ficha
+export const exerciciosFicha = pgTable("exercicios_ficha", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fichaId: varchar("ficha_id").notNull().references(() => fichasTreino.id, { onDelete: 'cascade' }),
+  videoId: varchar("video_id"), // referência ao vídeo de treino (opcional)
+  nome: text("nome").notNull(),
+  grupoMuscular: text("grupo_muscular").notNull(),
+  ordem: integer("ordem").notNull(), // ordem de execução
+  series: integer("series").notNull(),
+  repeticoes: text("repeticoes").notNull(), // pode ser "12" ou "10-12" ou "até falha"
+  descanso: integer("descanso").notNull(), // em segundos
+  observacoes: text("observacoes"),
+  tecnica: text("tecnica"), // drop set, bi-set, super set, etc
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela para atribuição de fichas aos alunos
+export const fichasAlunos = pgTable("fichas_alunos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fichaId: varchar("ficha_id").notNull().references(() => fichasTreino.id, { onDelete: 'cascade' }),
+  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  dataInicio: date("data_inicio").notNull(),
+  dataFim: date("data_fim"),
+  status: text("status").notNull().default("ativo"), // ativo, concluido, pausado
+  observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela para registro de treinos realizados
+export const treinosRealizados = pgTable("treinos_realizados", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fichaAlunoId: varchar("ficha_aluno_id").notNull().references(() => fichasAlunos.id, { onDelete: 'cascade' }),
+  exercicioId: varchar("exercicio_id").notNull().references(() => exerciciosFicha.id),
+  dataRealizacao: timestamp("data_realizacao").notNull(),
+  seriesRealizadas: integer("series_realizadas").notNull(),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela para séries individuais realizadas
+export const seriesRealizadas = pgTable("series_realizadas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  treinoRealizadoId: varchar("treino_realizado_id").notNull().references(() => treinosRealizados.id, { onDelete: 'cascade' }),
+  numeroSerie: integer("numero_serie").notNull(),
+  carga: text("carga").notNull(), // peso em kg
+  repeticoes: integer("repeticoes").notNull(),
+  concluida: text("concluida").notNull().default("true"),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertFichaTreinoSchema = createInsertSchema(fichasTreino).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertExercicioFichaSchema = createInsertSchema(exerciciosFicha).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFichaAlunoSchema = createInsertSchema(fichasAlunos).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTreinoRealizadoSchema = createInsertSchema(treinosRealizados).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSerieRealizadaSchema = createInsertSchema(seriesRealizadas).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertFichaTreino = z.infer<typeof insertFichaTreinoSchema>;
+export type FichaTreino = typeof fichasTreino.$inferSelect;
+export type InsertExercicioFicha = z.infer<typeof insertExercicioFichaSchema>;
+export type ExercicioFicha = typeof exerciciosFicha.$inferSelect;
+export type InsertFichaAluno = z.infer<typeof insertFichaAlunoSchema>;
+export type FichaAluno = typeof fichasAlunos.$inferSelect;
+export type InsertTreinoRealizado = z.infer<typeof insertTreinoRealizadoSchema>;
+export type TreinoRealizado = typeof treinosRealizados.$inferSelect;
+export type InsertSerieRealizada = z.infer<typeof insertSerieRealizadaSchema>;
+export type SerieRealizada = typeof seriesRealizadas.$inferSelect;
