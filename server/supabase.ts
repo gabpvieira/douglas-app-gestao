@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase configuration
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://cbdonvzifbkayrvnlskp.supabase.co';
+// Backend usa SUPABASE_URL (sem VITE_), frontend usa VITE_SUPABASE_URL
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://cbdonvzifbkayrvnlskp.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 if (!supabaseServiceKey) {

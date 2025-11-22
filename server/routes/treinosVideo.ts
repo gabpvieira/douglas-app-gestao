@@ -4,6 +4,9 @@ import { uploadFileToStorage, getSignedUrl, deleteFileFromStorage, generateUniqu
 import { supabase } from "../supabase";
 import { generateThumbnail, getThumbnailUrl } from "../thumbnailGenerator";
 
+// Helper para obter URL do Supabase (backend usa SUPABASE_URL, fallback para VITE_SUPABASE_URL)
+const getSupabaseUrl = () => process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://cbdonvzifbkayrvnlskp.supabase.co';
+
 export function registerTreinosVideoRoutes(app: Express) {
   
   // Upload de vídeo de treino
@@ -49,6 +52,7 @@ export function registerTreinosVideoRoutes(app: Express) {
 
       // Processar thumbnail
       let thumbnailUrl: string;
+      const supabaseUrl = getSupabaseUrl();
       
       if (thumbnailFile) {
         // Usar thumbnail enviada pelo cliente
@@ -60,14 +64,14 @@ export function registerTreinosVideoRoutes(app: Express) {
           thumbnailFile.buffer,
           thumbnailFile.mimetype
         );
-        thumbnailUrl = getThumbnailUrl(thumbnailPath, process.env.VITE_SUPABASE_URL!);
+        thumbnailUrl = getThumbnailUrl(thumbnailPath, supabaseUrl);
         console.log('✅ Thumbnail salva:', thumbnailUrl);
       } else {
         // Fallback: tentar gerar com FFmpeg
         try {
           console.log('🎬 Gerando thumbnail com FFmpeg...');
           const thumbnailPath = await generateThumbnail(videoFile.buffer, fileName);
-          thumbnailUrl = getThumbnailUrl(thumbnailPath, process.env.VITE_SUPABASE_URL!);
+          thumbnailUrl = getThumbnailUrl(thumbnailPath, supabaseUrl);
           console.log('✅ Thumbnail gerada:', thumbnailUrl);
         } catch (error) {
           console.warn('⚠️  Erro ao gerar thumbnail, usando fallback:', error);
@@ -351,6 +355,7 @@ export function registerTreinosVideoRoutes(app: Express) {
 
       // Processar thumbnail
       let thumbnailUrl: string;
+      const supabaseUrl = getSupabaseUrl();
       
       if (thumbnailFile) {
         // Usar thumbnail enviada pelo cliente
@@ -362,14 +367,14 @@ export function registerTreinosVideoRoutes(app: Express) {
           thumbnailFile.buffer,
           thumbnailFile.mimetype
         );
-        thumbnailUrl = getThumbnailUrl(thumbnailPath, process.env.VITE_SUPABASE_URL!);
+        thumbnailUrl = getThumbnailUrl(thumbnailPath, supabaseUrl);
         console.log('✅ Thumbnail salva:', thumbnailUrl);
       } else {
         // Fallback: tentar gerar com FFmpeg
         try {
           console.log('🎬 Gerando thumbnail com FFmpeg...');
           const thumbnailPath = await generateThumbnail(videoFile.buffer, fileName);
-          thumbnailUrl = getThumbnailUrl(thumbnailPath, process.env.VITE_SUPABASE_URL!);
+          thumbnailUrl = getThumbnailUrl(thumbnailPath, supabaseUrl);
           console.log('✅ Thumbnail gerada:', thumbnailUrl);
         } catch (error) {
           console.warn('⚠️  Erro ao gerar thumbnail, usando fallback:', error);
