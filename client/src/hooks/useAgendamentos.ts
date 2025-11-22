@@ -35,9 +35,17 @@ export function useAgendamentos(data?: string, alunoId?: string) {
   return useQuery<Agendamento[]>({
     queryKey: ['agendamentos', data, alunoId],
     queryFn: async () => {
-      // TODO: Implementar com Supabase
-      console.warn('useAgendamentos: Retornando array vazio temporariamente');
-      return [];
+      let url = '/api/admin/agendamentos';
+      const params = new URLSearchParams();
+      if (data) params.append('data', data);
+      if (alunoId) params.append('alunoId', alunoId);
+      if (params.toString()) url += `?${params.toString()}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Falha ao buscar agendamentos');
+      }
+      return response.json();
     }
   });
 }
