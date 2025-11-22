@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface Evolucao {
   id: string;
@@ -52,15 +53,37 @@ export function useEvolucao(alunoId: string | null, limit?: number) {
     queryFn: async () => {
       if (!alunoId) return [];
       
-      const url = limit 
-        ? `/api/aluno/evolucao?alunoId=${alunoId}&limit=${limit}`
-        : `/api/aluno/evolucao?alunoId=${alunoId}`;
+      let query = supabase
+        .from('evolucoes')
+        .select('*')
+        .eq('aluno_id', alunoId)
+        .order('data', { ascending: false });
       
-      const response = await fetch(url);
-      if (!response.ok) {
+      if (limit) {
+        query = query.limit(limit);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('❌ Erro ao buscar evolução:', error);
         throw new Error('Falha ao buscar evolução');
       }
-      return response.json();
+      
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        data: item.data,
+        peso: item.peso,
+        gorduraCorporal: item.gordura_corporal,
+        massaMuscular: item.massa_muscular,
+        peito: item.peito,
+        cintura: item.cintura,
+        quadril: item.quadril,
+        braco: item.braco,
+        coxa: item.coxa,
+        observacoes: item.observacoes,
+        createdAt: item.created_at
+      }));
     },
     enabled: !!alunoId
   });
@@ -73,11 +96,56 @@ export function useEvolucaoStats(alunoId: string | null) {
     queryFn: async () => {
       if (!alunoId) throw new Error('alunoId é obrigatório');
       
-      const response = await fetch(`/api/aluno/evolucao/stats?alunoId=${alunoId}`);
-      if (!response.ok) {
+      const { data, error } = await supabase
+        .from('evolucoes')
+        .select('*')
+        .eq('aluno_id', alunoId)
+        .order('data', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Erro ao buscar estatísticas:', error);
         throw new Error('Falha ao buscar estatísticas');
       }
-      return response.json();
+      
+      const evolucoes = data || [];
+      const totalRegistros = evolucoes.length;
+      
+      if (totalRegistros === 0) {
+        return {
+          totalRegistros: 0,
+          primeiroRegistro: null,
+          ultimoRegistro: null,
+          pesoInicial: null,
+          pesoAtual: null,
+          pesoPerdido: null,
+          gorduraInicial: null,
+          gorduraAtual: null,
+          gorduraReduzida: null,
+          musculoInicial: null,
+          musculoAtual: null,
+          musculoGanho: null
+        };
+      }
+      
+      const primeiro = evolucoes[0];
+      const ultimo = evolucoes[evolucoes.length - 1];
+      
+      return {
+        totalRegistros,
+        primeiroRegistro: primeiro.data,
+        ultimoRegistro: ultimo.data,
+        pesoInicial: primeiro.peso,
+        pesoAtual: ultimo.peso,
+        pesoPerdido: primeiro.peso && ultimo.peso ? primeiro.peso - ultimo.peso : null,
+        gorduraInicial: primeiro.gordura_corporal,
+        gorduraAtual: ultimo.gordura_corporal,
+        gorduraReduzida: primeiro.gordura_corporal && ultimo.gordura_corporal 
+          ? primeiro.gordura_corporal - ultimo.gordura_corporal : null,
+        musculoInicial: primeiro.massa_muscular,
+        musculoAtual: ultimo.massa_muscular,
+        musculoGanho: primeiro.massa_muscular && ultimo.massa_muscular 
+          ? ultimo.massa_muscular - primeiro.massa_muscular : null
+      };
     },
     enabled: !!alunoId
   });
@@ -90,18 +158,30 @@ export function useCreateEvolucao() {
 
   return useMutation({
     mutationFn: async (data: CreateEvolucaoData) => {
-      const response = await fetch('/api/aluno/evolucao', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao registrar evolução');
+      const { data: evolucao, error } = await supabase
+        .from('evolucoes')
+        .insert([{
+          aluno_id: data.alunoId,
+          data: data.data,
+          peso: data.peso || null,
+          gordura_corporal: data.gorduraCorporal || null,
+          massa_muscular: data.massaMuscular || null,
+          peito: data.peito || null,
+          cintura: data.cintura || null,
+          quadril: data.quadril || null,
+          braco: data.braco || null,
+          coxa: data.coxa || null,
+          observacoes: data.observacoes || null
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Erro ao criar evolução:', error);
+        throw new Error(error.message || 'Falha ao registrar evolução');
       }
-
-      return response.json();
+      
+      return evolucao;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['evolucao', variables.alunoId] });
@@ -128,18 +208,31 @@ export function useUpdateEvolucao() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<CreateEvolucaoData> }) => {
-      const response = await fetch(`/api/aluno/evolucao/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const updateData: any = {};
+      if (data.data) updateData.data = data.data;
+      if (data.peso !== undefined) updateData.peso = data.peso;
+      if (data.gorduraCorporal !== undefined) updateData.gordura_corporal = data.gorduraCorporal;
+      if (data.massaMuscular !== undefined) updateData.massa_muscular = data.massaMuscular;
+      if (data.peito !== undefined) updateData.peito = data.peito;
+      if (data.cintura !== undefined) updateData.cintura = data.cintura;
+      if (data.quadril !== undefined) updateData.quadril = data.quadril;
+      if (data.braco !== undefined) updateData.braco = data.braco;
+      if (data.coxa !== undefined) updateData.coxa = data.coxa;
+      if (data.observacoes !== undefined) updateData.observacoes = data.observacoes;
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao atualizar evolução');
+      const { data: evolucao, error } = await supabase
+        .from('evolucoes')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Erro ao atualizar evolução:', error);
+        throw new Error(error.message || 'Falha ao atualizar evolução');
       }
 
-      return response.json();
+      return evolucao;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evolucao'] });
@@ -166,16 +259,17 @@ export function useDeleteEvolucao() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/aluno/evolucao/${id}`, {
-        method: 'DELETE'
-      });
+      const { error } = await supabase
+        .from('evolucoes')
+        .delete()
+        .eq('id', id);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao deletar evolução');
+      if (error) {
+        console.error('❌ Erro ao deletar evolução:', error);
+        throw new Error(error.message || 'Falha ao deletar evolução');
       }
 
-      return response.json();
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evolucao'] });

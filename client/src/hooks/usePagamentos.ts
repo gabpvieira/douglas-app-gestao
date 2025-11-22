@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface Pagamento {
   id: string;
@@ -24,15 +25,32 @@ export function usePagamentos(assinaturaId?: string) {
   return useQuery<Pagamento[]>({
     queryKey: ['pagamentos', assinaturaId],
     queryFn: async () => {
-      const url = assinaturaId
-        ? `/api/admin/pagamentos?assinaturaId=${assinaturaId}`
-        : '/api/admin/pagamentos';
+      let query = supabase
+        .from('pagamentos')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      const response = await fetch(url);
-      if (!response.ok) {
+      if (assinaturaId) {
+        query = query.eq('assinatura_id', assinaturaId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('❌ Erro ao buscar pagamentos:', error);
         throw new Error('Falha ao buscar pagamentos');
       }
-      return response.json();
+      
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        assinaturaId: item.assinatura_id,
+        status: item.status,
+        valor: item.valor,
+        metodo: item.metodo,
+        mercadoPagoPaymentId: item.mercado_pago_payment_id,
+        dataPagamento: item.data_pagamento,
+        createdAt: item.created_at
+      }));
     }
   });
 }
@@ -42,11 +60,30 @@ export function useMyPagamentos(alunoId: string) {
   return useQuery<Pagamento[]>({
     queryKey: ['meus-pagamentos', alunoId],
     queryFn: async () => {
-      const response = await fetch(`/api/aluno/pagamentos?alunoId=${alunoId}`);
-      if (!response.ok) {
+      const { data, error } = await supabase
+        .from('pagamentos')
+        .select(`
+          *,
+          assinaturas!inner(aluno_id)
+        `)
+        .eq('assinaturas.aluno_id', alunoId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Erro ao buscar pagamentos:', error);
         throw new Error('Falha ao buscar pagamentos');
       }
-      return response.json();
+      
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        assinaturaId: item.assinatura_id,
+        status: item.status,
+        valor: item.valor,
+        metodo: item.metodo,
+        mercadoPagoPaymentId: item.mercado_pago_payment_id,
+        dataPagamento: item.data_pagamento,
+        createdAt: item.created_at
+      }));
     },
     enabled: !!alunoId
   });
@@ -57,11 +94,27 @@ export function usePagamento(id: string) {
   return useQuery<Pagamento>({
     queryKey: ['pagamento', id],
     queryFn: async () => {
-      const response = await fetch(`/api/pagamentos/${id}`);
-      if (!response.ok) {
+      const { data, error } = await supabase
+        .from('pagamentos')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        console.error('❌ Erro ao buscar pagamento:', error);
         throw new Error('Falha ao buscar pagamento');
       }
-      return response.json();
+      
+      return {
+        id: data.id,
+        assinaturaId: data.assinatura_id,
+        status: data.status,
+        valor: data.valor,
+        metodo: data.metodo,
+        mercadoPagoPaymentId: data.mercado_pago_payment_id,
+        dataPagamento: data.data_pagamento,
+        createdAt: data.created_at
+      };
     },
     enabled: !!id
   });
@@ -74,18 +127,23 @@ export function useCreatePagamento() {
 
   return useMutation({
     mutationFn: async (data: CreatePagamentoData) => {
-      const response = await fetch('/api/admin/pagamentos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao criar pagamento');
+      const { data: pagamento, error } = await supabase
+        .from('pagamentos')
+        .insert([{
+          assinatura_id: data.assinaturaId,
+          valor: data.valor,
+          metodo: data.metodo,
+          status: data.status || 'pendente'
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Erro ao criar pagamento:', error);
+        throw new Error(error.message || 'Falha ao criar pagamento');
       }
-
-      return response.json();
+      
+      return pagamento;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
@@ -112,18 +170,19 @@ export function useUpdatePagamento() {
 
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Pagamento['status'] }) => {
-      const response = await fetch(`/api/admin/pagamentos/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
+      const { data, error } = await supabase
+        .from('pagamentos')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao atualizar pagamento');
+      if (error) {
+        console.error('❌ Erro ao atualizar pagamento:', error);
+        throw new Error(error.message || 'Falha ao atualizar pagamento');
       }
 
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
