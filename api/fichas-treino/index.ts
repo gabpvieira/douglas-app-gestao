@@ -3,8 +3,6 @@ import { getSupabaseAdmin } from '../_lib/supabase';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('🔍 [Fichas API] Iniciando requisição:', req.method);
-  console.log('🔍 [Fichas API] SUPABASE_URL:', process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
-  console.log('🔍 [Fichas API] Service Key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
   
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -17,6 +15,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Verificar variáveis de ambiente
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    console.log('🔍 [Fichas API] SUPABASE_URL:', supabaseUrl ? '✅' : '❌');
+    console.log('🔍 [Fichas API] Service Key:', serviceKey ? '✅' : '❌');
+    
+    if (!supabaseUrl || !serviceKey) {
+      console.error('❌ [Fichas API] Variáveis de ambiente faltando');
+      return res.status(500).json({ 
+        error: 'Configuração do servidor incompleta',
+        details: {
+          supabaseUrl: !supabaseUrl ? 'SUPABASE_URL ou VITE_SUPABASE_URL não configurada' : 'ok',
+          serviceKey: !serviceKey ? 'SUPABASE_SERVICE_ROLE_KEY não configurada' : 'ok'
+        }
+      });
+    }
+    
     const supabase = getSupabaseAdmin();
     console.log('✅ [Fichas API] Supabase client criado');
 
