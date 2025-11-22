@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface Assinatura {
   id: string;
@@ -32,28 +33,64 @@ export function useAssinaturas() {
   return useQuery<Assinatura[]>({
     queryKey: ['assinaturas'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/assinaturas');
-      if (!response.ok) {
+      const { data, error } = await supabase
+        .from('assinaturas')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Erro ao buscar assinaturas:', error);
         throw new Error('Falha ao buscar assinaturas');
       }
-      return response.json();
+      
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        alunoId: item.aluno_id,
+        planoTipo: item.plano_tipo,
+        preco: item.preco,
+        dataInicio: item.data_inicio,
+        dataFim: item.data_fim,
+        status: item.status,
+        mercadoPagoSubscriptionId: item.mercado_pago_subscription_id,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at
+      }));
     }
   });
 }
 
 // Obter assinatura de um aluno
 export function useAssinaturaAluno(alunoId: string) {
-  return useQuery<Assinatura>({
+  return useQuery<Assinatura | null>({
     queryKey: ['assinatura-aluno', alunoId],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/assinaturas/aluno/${alunoId}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          return null;
-        }
+      const { data, error } = await supabase
+        .from('assinaturas')
+        .select('*')
+        .eq('aluno_id', alunoId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('❌ Erro ao buscar assinatura:', error);
         throw new Error('Falha ao buscar assinatura');
       }
-      return response.json();
+      
+      if (!data) return null;
+      
+      return {
+        id: data.id,
+        alunoId: data.aluno_id,
+        planoTipo: data.plano_tipo,
+        preco: data.preco,
+        dataInicio: data.data_inicio,
+        dataFim: data.data_fim,
+        status: data.status,
+        mercadoPagoSubscriptionId: data.mercado_pago_subscription_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     },
     enabled: !!alunoId
   });
@@ -61,17 +98,36 @@ export function useAssinaturaAluno(alunoId: string) {
 
 // Obter minha assinatura (Aluno)
 export function useMyAssinatura(alunoId: string) {
-  return useQuery<Assinatura>({
+  return useQuery<Assinatura | null>({
     queryKey: ['minha-assinatura', alunoId],
     queryFn: async () => {
-      const response = await fetch(`/api/aluno/assinatura?alunoId=${alunoId}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          return null;
-        }
+      const { data, error } = await supabase
+        .from('assinaturas')
+        .select('*')
+        .eq('aluno_id', alunoId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('❌ Erro ao buscar assinatura:', error);
         throw new Error('Falha ao buscar assinatura');
       }
-      return response.json();
+      
+      if (!data) return null;
+      
+      return {
+        id: data.id,
+        alunoId: data.aluno_id,
+        planoTipo: data.plano_tipo,
+        preco: data.preco,
+        dataInicio: data.data_inicio,
+        dataFim: data.data_fim,
+        status: data.status,
+        mercadoPagoSubscriptionId: data.mercado_pago_subscription_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     },
     enabled: !!alunoId
   });
@@ -84,18 +140,25 @@ export function useCreateAssinatura() {
 
   return useMutation({
     mutationFn: async (data: CreateAssinaturaData) => {
-      const response = await fetch('/api/admin/assinaturas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao criar assinatura');
+      const { data: assinatura, error } = await supabase
+        .from('assinaturas')
+        .insert([{
+          aluno_id: data.alunoId,
+          plano_tipo: data.planoTipo,
+          preco: data.preco,
+          data_inicio: data.dataInicio,
+          data_fim: data.dataFim,
+          status: 'ativa'
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('❌ Erro ao criar assinatura:', error);
+        throw new Error(error.message || 'Falha ao criar assinatura');
       }
-
-      return response.json();
+      
+      return assinatura;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['assinaturas'] });
@@ -122,18 +185,34 @@ export function useUpdateAssinatura() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateAssinaturaData }) => {
-      const response = await fetch(`/api/admin/assinaturas/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const updateData: any = {};
+      if (data.status) updateData.status = data.status;
+      if (data.dataFim) updateData.data_fim = data.dataFim;
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao atualizar assinatura');
+      const { data: assinatura, error } = await supabase
+        .from('assinaturas')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Erro ao atualizar assinatura:', error);
+        throw new Error(error.message || 'Falha ao atualizar assinatura');
       }
 
-      return response.json();
+      return {
+        id: assinatura.id,
+        alunoId: assinatura.aluno_id,
+        planoTipo: assinatura.plano_tipo,
+        preco: assinatura.preco,
+        dataInicio: assinatura.data_inicio,
+        dataFim: assinatura.data_fim,
+        status: assinatura.status,
+        mercadoPagoSubscriptionId: assinatura.mercado_pago_subscription_id,
+        createdAt: assinatura.created_at,
+        updatedAt: assinatura.updated_at
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['assinaturas'] });
@@ -161,18 +240,19 @@ export function useCancelAssinatura() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/assinaturas/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelada' })
-      });
+      const { data, error } = await supabase
+        .from('assinaturas')
+        .update({ status: 'cancelada' })
+        .eq('id', id)
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao cancelar assinatura');
+      if (error) {
+        console.error('❌ Erro ao cancelar assinatura:', error);
+        throw new Error(error.message || 'Falha ao cancelar assinatura');
       }
 
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assinaturas'] });

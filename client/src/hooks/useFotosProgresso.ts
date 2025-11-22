@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface FotoProgresso {
   id: string;
@@ -22,11 +23,25 @@ export function useFotosProgresso(alunoId: string) {
   return useQuery<FotoProgresso[]>({
     queryKey: ['fotos-progresso', alunoId],
     queryFn: async () => {
-      const response = await fetch(`/api/aluno/fotos-progresso?alunoId=${alunoId}`);
-      if (!response.ok) {
+      const { data, error } = await supabase
+        .from('fotos_progresso')
+        .select('*')
+        .eq('aluno_id', alunoId)
+        .order('data', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Erro ao buscar fotos:', error);
         throw new Error('Falha ao buscar fotos de progresso');
       }
-      return response.json();
+      
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        alunoId: item.aluno_id,
+        data: item.data,
+        tipo: item.tipo,
+        urlFoto: item.url_foto,
+        createdAt: item.created_at
+      }));
     },
     enabled: !!alunoId
   });
@@ -37,11 +52,26 @@ export function useFotosProgressoByData(alunoId: string, data: string) {
   return useQuery<FotoProgresso[]>({
     queryKey: ['fotos-progresso', alunoId, data],
     queryFn: async () => {
-      const response = await fetch(`/api/aluno/fotos-progresso/data/${data}?alunoId=${alunoId}`);
-      if (!response.ok) {
+      const { data: fotos, error } = await supabase
+        .from('fotos_progresso')
+        .select('*')
+        .eq('aluno_id', alunoId)
+        .eq('data', data)
+        .order('tipo', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Erro ao buscar fotos:', error);
         throw new Error('Falha ao buscar fotos');
       }
-      return response.json();
+      
+      return (fotos || []).map((item: any) => ({
+        id: item.id,
+        alunoId: item.aluno_id,
+        data: item.data,
+        tipo: item.tipo,
+        urlFoto: item.url_foto,
+        createdAt: item.created_at
+      }));
     },
     enabled: !!alunoId && !!data
   });
@@ -52,11 +82,25 @@ export function useAdminFotosProgresso(alunoId: string) {
   return useQuery<FotoProgresso[]>({
     queryKey: ['admin-fotos-progresso', alunoId],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/fotos-progresso/${alunoId}`);
-      if (!response.ok) {
+      const { data, error } = await supabase
+        .from('fotos_progresso')
+        .select('*')
+        .eq('aluno_id', alunoId)
+        .order('data', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Erro ao buscar fotos:', error);
         throw new Error('Falha ao buscar fotos');
       }
-      return response.json();
+      
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        alunoId: item.aluno_id,
+        data: item.data,
+        tipo: item.tipo,
+        urlFoto: item.url_foto,
+        createdAt: item.created_at
+      }));
     },
     enabled: !!alunoId
   });
@@ -112,16 +156,35 @@ export function useDeleteFotoProgresso() {
 
   return useMutation({
     mutationFn: async ({ id, alunoId }: { id: string; alunoId: string }) => {
-      const response = await fetch(`/api/aluno/fotos-progresso/${id}?alunoId=${alunoId}`, {
-        method: 'DELETE'
-      });
+      // Buscar a foto para pegar a URL antes de deletar
+      const { data: foto } = await supabase
+        .from('fotos_progresso')
+        .select('url_foto')
+        .eq('id', id)
+        .single();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao deletar foto');
+      // Deletar do storage se existir
+      if (foto?.url_foto) {
+        const fileName = foto.url_foto.split('/').pop();
+        if (fileName) {
+          await supabase.storage
+            .from('fotos-progresso')
+            .remove([fileName]);
+        }
       }
 
-      return response.json();
+      // Deletar do banco
+      const { error } = await supabase
+        .from('fotos_progresso')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ Erro ao deletar foto:', error);
+        throw new Error(error.message || 'Falha ao deletar foto');
+      }
+
+      return { success: true };
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['fotos-progresso', variables.alunoId] });
