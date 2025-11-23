@@ -35,15 +35,19 @@ export function useTreinosVideo(objetivo?: string) {
   return useQuery<TreinoVideo[]>({
     queryKey: ['treinos-video', objetivo],
     queryFn: async () => {
-      const url = objetivo 
-        ? `/api/treinos-video?objetivo=${encodeURIComponent(objetivo)}`
-        : '/api/treinos-video';
+      let query = supabase
+        .from('treinos_video')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Falha ao buscar vídeos');
+      if (objetivo) {
+        query = query.eq('objetivo', objetivo);
       }
-      return response.json();
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return data || [];
     }
   });
 }
@@ -53,11 +57,14 @@ export function useTreinoVideo(id: string) {
   return useQuery<TreinoVideo>({
     queryKey: ['treino-video', id],
     queryFn: async () => {
-      const response = await fetch(`/api/treinos-video/${id}`);
-      if (!response.ok) {
-        throw new Error('Falha ao buscar vídeo');
-      }
-      return response.json();
+      const { data, error } = await supabase
+        .from('treinos_video')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     enabled: !!id
   });
@@ -68,11 +75,48 @@ export function useStreamTreinoVideo(id: string) {
   return useQuery<{ id: string; nome: string; streamUrl: string; duracao: number; expiresIn: number }>({
     queryKey: ['treino-video-stream', id],
     queryFn: async () => {
-      const response = await fetch(`/api/treinos-video/${id}/stream`);
-      if (!response.ok) {
-        throw new Error('Falha ao gerar URL de streaming');
+      const { data: video, error } = await supabase
+        .from('treinos_video')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      
+      // Gerar URL assinada para streaming
+      const fileName = video.url_video?.split('/').pop();
+      
+      if (!fileName) {
+        return {
+          id: video.id,
+          nome: video.nome,
+          streamUrl: video.url_video,
+          duracao: video.duracao || 0,
+          expiresIn: 3600
+        };
       }
-      return response.json();
+      
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from('videos')
+        .createSignedUrl(fileName, 3600);
+      
+      if (signedError) {
+        return {
+          id: video.id,
+          nome: video.nome,
+          streamUrl: video.url_video,
+          duracao: video.duracao || 0,
+          expiresIn: 3600
+        };
+      }
+      
+      return {
+        id: video.id,
+        nome: video.nome,
+        streamUrl: signedData.signedUrl,
+        duracao: video.duracao || 0,
+        expiresIn: 3600
+      };
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 60 // 1 hora
@@ -155,37 +199,15 @@ export function useUpdateTreinoVideo() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateVideoData }) => {
-      console.group('🌐 REQUISIÇÃO HTTP - ATUALIZAR VÍDEO');
-      console.log('🆔 ID do vídeo:', id);
-      console.log('📝 Dados a atualizar:', data);
+      const { data: video, error } = await supabase
+        .from('treinos_video')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
       
-      console.log('🚀 Enviando requisição PUT...');
-      const requestStart = Date.now();
-      
-      const response = await fetch(`/api/admin/treinos-video/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      const requestTime = ((Date.now() - requestStart) / 1000).toFixed(2);
-      console.log(`📡 Resposta recebida em ${requestTime}s:`, {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('❌ ERRO NA RESPOSTA:', error);
-        console.groupEnd();
-        throw new Error(error.error || 'Falha ao atualizar vídeo');
-      }
-
-      const result = await response.json();
-      console.log('✅ SUCESSO! Vídeo atualizado:', result);
-      console.groupEnd();
-      return result;
+      if (error) throw error;
+      return video;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['treinos-video'] });
@@ -282,34 +304,35 @@ export function useDeleteTreinoVideo() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      console.group('🌐 REQUISIÇÃO HTTP - DELETAR VÍDEO');
-      console.log('🆔 ID do vídeo:', id);
+      // Buscar vídeo para pegar URLs dos arquivos
+      const { data: video, error: fetchError } = await supabase
+        .from('treinos_video')
+        .select('*')
+        .eq('id', id)
+        .single();
       
-      console.log('🚀 Enviando requisição DELETE...');
-      const requestStart = Date.now();
+      if (fetchError) throw fetchError;
       
-      const response = await fetch(`/api/admin/treinos-video/${id}`, {
-        method: 'DELETE'
-      });
-
-      const requestTime = ((Date.now() - requestStart) / 1000).toFixed(2);
-      console.log(`📡 Resposta recebida em ${requestTime}s:`, {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('❌ ERRO NA RESPOSTA:', error);
-        console.groupEnd();
-        throw new Error(error.error || 'Falha ao deletar vídeo');
+      // Deletar arquivo de vídeo do storage
+      if (video.url_video) {
+        const fileName = video.url_video.split('/').pop();
+        await supabase.storage.from('videos').remove([fileName]);
       }
-
-      const result = await response.json();
-      console.log('✅ SUCESSO! Vídeo deletado:', result);
-      console.groupEnd();
-      return result;
+      
+      // Deletar thumbnail do storage
+      if (video.thumbnail_url) {
+        const thumbName = video.thumbnail_url.split('/').pop();
+        await supabase.storage.from('thumbnails').remove([thumbName]);
+      }
+      
+      // Deletar registro do banco
+      const { error } = await supabase
+        .from('treinos_video')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['treinos-video'] });

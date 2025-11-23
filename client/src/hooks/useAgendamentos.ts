@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface Agendamento {
   id: string;
@@ -35,17 +36,25 @@ export function useAgendamentos(data?: string, alunoId?: string) {
   return useQuery<Agendamento[]>({
     queryKey: ['agendamentos', data, alunoId],
     queryFn: async () => {
-      let url = '/api/admin/agendamentos';
-      const params = new URLSearchParams();
-      if (data) params.append('data', data);
-      if (alunoId) params.append('alunoId', alunoId);
-      if (params.toString()) url += `?${params.toString()}`;
+      let query = supabase
+        .from('agendamentos')
+        .select(`
+          *,
+          aluno:alunos(id, nome, email),
+          blocoHorario:blocos_horarios(*)
+        `)
+        .order('data_agendamento', { ascending: true });
       
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Falha ao buscar agendamentos');
+      if (data) {
+        query = query.eq('data_agendamento', data);
       }
-      return response.json();
+      if (alunoId) {
+        query = query.eq('aluno_id', alunoId);
+      }
+      
+      const { data: agendamentos, error } = await query;
+      if (error) throw error;
+      return agendamentos || [];
     }
   });
 }
@@ -55,11 +64,17 @@ export function useMyAgendamentos(alunoId: string) {
   return useQuery<Agendamento[]>({
     queryKey: ['meus-agendamentos', alunoId],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/agendamentos?alunoId=${alunoId}`);
-      if (!response.ok) {
-        throw new Error('Falha ao buscar agendamentos');
-      }
-      return response.json();
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select(`
+          *,
+          blocoHorario:blocos_horarios(*)
+        `)
+        .eq('aluno_id', alunoId)
+        .order('data_agendamento', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
     },
     enabled: !!alunoId
   });
@@ -72,18 +87,14 @@ export function useCreateAgendamento() {
 
   return useMutation({
     mutationFn: async (data: CreateAgendamentoData) => {
-      const response = await fetch('/api/admin/agendamentos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao criar agendamento');
-      }
-
-      return response.json();
+      const { data: agendamento, error } = await supabase
+        .from('agendamentos')
+        .insert([data])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return agendamento;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
@@ -110,18 +121,15 @@ export function useUpdateAgendamento() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateAgendamentoData }) => {
-      const response = await fetch(`/api/admin/agendamentos/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao atualizar agendamento');
-      }
-
-      return response.json();
+      const { data: agendamento, error } = await supabase
+        .from('agendamentos')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return agendamento;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
@@ -148,18 +156,15 @@ export function useCancelAgendamento() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/agendamentos/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelado' })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao cancelar agendamento');
-      }
-
-      return response.json();
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .update({ status: 'cancelado' })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
@@ -186,16 +191,13 @@ export function useDeleteAgendamento() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/agendamentos/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao deletar agendamento');
-      }
-
-      return response.json();
+      const { error } = await supabase
+        .from('agendamentos')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
