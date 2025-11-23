@@ -18,8 +18,82 @@ module.exports = async function handler(req, res) {
     const supabase = getSupabaseAdmin();
     console.log('✅ [Fichas API] Supabase client criado');
 
-    const { id } = req.query;
+    const { id, action, atribuicaoId } = req.query;
     const idParam = Array.isArray(id) ? id[0] : id;
+
+    // GET /api/fichas-treino/stats/geral - Estatísticas gerais
+    if (req.method === 'GET' && action === 'stats') {
+      console.log('📊 [Fichas API] Buscando estatísticas...');
+
+      const { data: fichas } = await supabase
+        .from('fichas_treino')
+        .select('id, ativo, exercicios:exercicios_ficha(id)');
+
+      const { data: atribuicoes } = await supabase
+        .from('fichas_atribuicoes')
+        .select('aluno_id')
+        .eq('status', 'ativo');
+
+      const totalFichas = fichas?.length || 0;
+      const fichasAtivas = fichas?.filter(f => f.ativo === 'true').length || 0;
+      const totalExercicios = fichas?.reduce((acc, f) => acc + (f.exercicios?.length || 0), 0) || 0;
+      const alunosComFichas = new Set(atribuicoes?.map(a => a.aluno_id) || []).size;
+
+      return res.status(200).json({
+        totalFichas,
+        fichasAtivas,
+        totalExercicios,
+        alunosComFichas
+      });
+    }
+
+    // POST /api/fichas-treino/:id/atribuir - Atribuir ficha a aluno
+    if (req.method === 'POST' && idParam && action === 'atribuir') {
+      console.log('👤 [Fichas API] Atribuindo ficha...');
+
+      const { data, error } = await supabase
+        .from('fichas_atribuicoes')
+        .insert({
+          ficha_id: idParam,
+          ...req.body
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return res.status(201).json(data);
+    }
+
+    // GET /api/fichas-treino/:id/atribuicoes - Buscar atribuições de uma ficha
+    if (req.method === 'GET' && idParam && action === 'atribuicoes') {
+      console.log('📋 [Fichas API] Buscando atribuições...');
+
+      const { data, error } = await supabase
+        .from('fichas_atribuicoes')
+        .select(`
+          *,
+          aluno:alunos(id, nome, email)
+        `)
+        .eq('ficha_id', idParam)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return res.status(200).json(data || []);
+    }
+
+    // DELETE /api/fichas-treino/:id/atribuicoes/:atribuicaoId - Remover atribuição
+    if (req.method === 'DELETE' && idParam && atribuicaoId) {
+      console.log('🗑️ [Fichas API] Removendo atribuição...');
+
+      const { error } = await supabase
+        .from('fichas_atribuicoes')
+        .delete()
+        .eq('id', atribuicaoId)
+        .eq('ficha_id', idParam);
+
+      if (error) throw error;
+      return res.status(204).end();
+    }
 
     // Roteamento para operações com ID (GET single, PUT, DELETE)
     if (idParam) {

@@ -6,8 +6,48 @@
   "framework": null,
   "rewrites": [
     {
+      "source": "/api/fichas-treino/stats/geral",
+      "destination": "/api/fichas-treino?action=stats"
+    },
+    {
+      "source": "/api/fichas-treino/:id/atribuir",
+      "destination": "/api/fichas-treino?id=:id&action=atribuir"
+    },
+    {
+      "source": "/api/fichas-treino/:id/atribuicoes/:atribuicaoId",
+      "destination": "/api/fichas-treino?id=:id&atribuicaoId=:atribuicaoId"
+    },
+    {
+      "source": "/api/fichas-treino/:id/atribuicoes",
+      "destination": "/api/fichas-treino?id=:id&action=atribuicoes"
+    },
+    {
       "source": "/api/fichas-treino/:id",
       "destination": "/api/fichas-treino?id=:id"
+    },
+    {
+      "source": "/api/admin/planos-alimentares/all",
+      "destination": "/api/admin/planos-alimentares?action=all"
+    },
+    {
+      "source": "/api/admin/planos-alimentares/:id",
+      "destination": "/api/admin/planos-alimentares?id=:id"
+    },
+    {
+      "source": "/api/admin/treinos-video/upload",
+      "destination": "/api/admin/treinos-video?action=upload"
+    },
+    {
+      "source": "/api/admin/treinos-video/:id/stream",
+      "destination": "/api/admin/treinos-video?id=:id&action=stream"
+    },
+    {
+      "source": "/api/admin/treinos-video/:id/replace",
+      "destination": "/api/admin/treinos-video?id=:id&action=replace"
+    },
+    {
+      "source": "/api/admin/treinos-video/:id",
+      "destination": "/api/admin/treinos-video?id=:id"
     },
     {
       "source": "/api/admin/students/:id",
