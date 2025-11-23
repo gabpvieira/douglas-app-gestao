@@ -11,7 +11,7 @@ import { PlanosAlimentaresList } from '@/components/PlanosAlimentaresList';
 import { PlanoDetalhesModal } from '@/components/PlanoDetalhesModal';
 import { useAlunos } from '@/hooks/useAlunos';
 import { useToast } from '@/hooks/use-toast';
-import { useCreatePlanoAlimentar, useUpdatePlanoAlimentar, useDeletePlanoAlimentar } from '@/hooks/usePlanosAlimentares';
+import { usePlanosAlimentares, useCreatePlanoAlimentar, useUpdatePlanoAlimentar, useDeletePlanoAlimentar } from '@/hooks/usePlanosAlimentares';
 import PageHeader from '@/components/PageHeader';
 
 // Interfaces
