@@ -75,41 +75,77 @@ export function useStreamTreinoVideo(id: string) {
   return useQuery<{ id: string; nome: string; streamUrl: string; duracao: number; expiresIn: number }>({
     queryKey: ['treino-video-stream', id],
     queryFn: async () => {
+      console.log('🎬 [Stream] Buscando vídeo:', id);
+      
       const { data: video, error } = await supabase
         .from('treinos_video')
         .select('*')
         .eq('id', id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [Stream] Erro ao buscar vídeo:', error);
+        throw error;
+      }
       
-      // Gerar URL assinada para streaming
-      const fileName = video.url_video?.split('/').pop();
+      console.log('📹 [Stream] Vídeo encontrado:', {
+        id: video.id,
+        nome: video.nome,
+        url_video: video.url_video,
+        urlVideo: video.urlVideo
+      });
       
-      if (!fileName) {
+      // Usar url_video ou urlVideo (snake_case ou camelCase)
+      const videoUrl = video.url_video || video.urlVideo;
+      
+      if (!videoUrl) {
+        console.error('❌ [Stream] URL do vídeo não encontrada');
+        throw new Error('URL do vídeo não encontrada');
+      }
+      
+      // Se a URL já é pública do Supabase, usar diretamente
+      if (videoUrl.includes('supabase.co/storage/v1/object/public/')) {
+        console.log('✅ [Stream] Usando URL pública:', videoUrl);
         return {
           id: video.id,
           nome: video.nome,
-          streamUrl: video.url_video,
+          streamUrl: videoUrl,
           duracao: video.duracao || 0,
           expiresIn: 3600
         };
       }
       
+      // Tentar extrair o path do arquivo da URL
+      let filePath = videoUrl;
+      
+      // Se for URL completa do Supabase, extrair o path
+      if (videoUrl.includes('supabase.co/storage/v1/object/')) {
+        const match = videoUrl.match(/\/object\/(?:public|sign)\/videos\/(.+)/);
+        if (match) {
+          filePath = match[1];
+        }
+      }
+      
+      console.log('🔑 [Stream] Gerando signed URL para:', filePath);
+      
+      // Tentar gerar URL assinada
       const { data: signedData, error: signedError } = await supabase.storage
         .from('videos')
-        .createSignedUrl(fileName, 3600);
+        .createSignedUrl(filePath, 3600);
       
       if (signedError) {
+        console.error('⚠️ [Stream] Erro ao gerar signed URL:', signedError);
+        console.log('📌 [Stream] Usando URL original como fallback');
         return {
           id: video.id,
           nome: video.nome,
-          streamUrl: video.url_video,
+          streamUrl: videoUrl,
           duracao: video.duracao || 0,
           expiresIn: 3600
         };
       }
       
+      console.log('✅ [Stream] Signed URL gerada com sucesso');
       return {
         id: video.id,
         nome: video.nome,

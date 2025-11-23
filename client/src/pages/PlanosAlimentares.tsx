@@ -80,7 +80,16 @@ export default function PlanosAlimentares() {
   const [activeTab, setActiveTab] = useState('planos');
   
   // Buscar todos os planos (sem filtro de aluno)
-  const { data: planosSupabase = [], isLoading: loadingPlanos } = usePlanosAlimentares();
+  const { data: planosSupabase = [], isLoading: loadingPlanos, error: errorPlanos } = usePlanosAlimentares();
+  
+  // Log para debug
+  console.log('📊 [Planos] Estado:', {
+    planosCount: planosSupabase?.length,
+    loadingPlanos,
+    errorPlanos,
+    alunosCount: alunosSupabase?.length,
+    loadingAlunos
+  });
   
   const alunos: Aluno[] = alunosSupabase.map(aluno => ({
     id: aluno.id,
@@ -291,9 +300,21 @@ export default function PlanosAlimentares() {
   
   const loading = loadingAlunos || loadingPlanos;
 
+  // Mostrar erro se houver
+  if (errorPlanos) {
+    console.error('❌ [Planos] Erro ao carregar:', errorPlanos);
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
       <div className="w-full space-y-4 sm:space-y-6">
+        {errorPlanos && (
+          <Card className="border-red-800 bg-red-900/20">
+            <CardContent className="p-4">
+              <p className="text-red-400">Erro ao carregar planos: {errorPlanos.message}</p>
+            </CardContent>
+          </Card>
+        )}
         <PageHeader
           title="Planos Alimentares"
           description="Gerencie e crie planos alimentares para seus alunos"
