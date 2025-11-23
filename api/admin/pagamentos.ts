@@ -21,18 +21,9 @@ export default async function handler(
   }
 
   try {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ [Pagamentos API] Missing environment variables');
-      return res.status(500).json({ 
-        error: 'Server configuration error',
-        details: 'Missing Supabase credentials'
-      });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Usar helper centralizado
+    const { getSupabaseAdmin } = require('../../_lib/supabase');
+    const supabase = getSupabaseAdmin();
 
     if (req.method === 'GET') {
       const { assinaturaId, dataInicio, dataFim } = req.query;
@@ -84,7 +75,7 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
     console.error('❌ [Pagamentos API] Fatal error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: error.message || 'Internal server error',
       details: error.details
     });

@@ -1,28 +1,28 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getSupabaseAdmin } from '../_lib/supabase';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    const supabase = getSupabaseAdmin();
     const { method } = req;
     const { resource, id, alunoId } = req.query;
+
+    const idParam = Array.isArray(id) ? id[0] : id;
+    const alunoIdParam = Array.isArray(alunoId) ? alunoId[0] : alunoId;
 
     // Roteamento baseado no recurso
     switch (resource) {
       case 'evolucoes':
-        return handleEvolucoes(req, res, method, id as string | undefined, alunoId as string | undefined);
+        return handleEvolucoes(req, res, method, supabase, idParam, alunoIdParam);
       case 'pagamentos':
-        return handlePagamentos(req, res, method, id as string | undefined, alunoId as string | undefined);
+        return handlePagamentos(req, res, method, supabase, idParam, alunoIdParam);
       case 'fotos-progresso':
-        return handleFotosProgresso(req, res, method, id as string | undefined, alunoId as string | undefined);
+        return handleFotosProgresso(req, res, method, supabase, idParam, alunoIdParam);
       case 'assinaturas':
-        return handleAssinaturas(req, res, method, id as string | undefined, alunoId as string | undefined);
+        return handleAssinaturas(req, res, method, supabase, idParam, alunoIdParam);
       case 'agenda':
-        return handleAgenda(req, res, method, id as string | undefined);
+        return handleAgenda(req, res, method, supabase, idParam);
       default:
         return res.status(404).json({ error: 'Resource not found' });
     }
@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-async function handleEvolucoes(req: VercelRequest, res: VercelResponse, method: string, id: string | undefined, alunoId: string | undefined) {
+async function handleEvolucoes(req: VercelRequest, res: VercelResponse, method: string, supabase: SupabaseClient, id: string | undefined, alunoId: string | undefined) {
   if (method === 'GET') {
     let query = supabase.from('evolucoes').select('*').order('data', { ascending: false });
     if (alunoId) query = query.eq('aluno_id', alunoId);
@@ -58,7 +58,7 @@ async function handleEvolucoes(req: VercelRequest, res: VercelResponse, method: 
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-async function handlePagamentos(req: VercelRequest, res: VercelResponse, method: string, id: string | undefined, alunoId: string | undefined) {
+async function handlePagamentos(req: VercelRequest, res: VercelResponse, method: string, supabase: SupabaseClient, id: string | undefined, alunoId: string | undefined) {
   if (method === 'GET') {
     let query = supabase.from('pagamentos').select('*').order('data_vencimento', { ascending: false });
     if (alunoId) query = query.eq('aluno_id', alunoId);
@@ -84,7 +84,7 @@ async function handlePagamentos(req: VercelRequest, res: VercelResponse, method:
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-async function handleFotosProgresso(req: VercelRequest, res: VercelResponse, method: string, id: string | undefined, alunoId: string | undefined) {
+async function handleFotosProgresso(req: VercelRequest, res: VercelResponse, method: string, supabase: SupabaseClient, id: string | undefined, alunoId: string | undefined) {
   if (method === 'GET') {
     let query = supabase.from('fotos_progresso').select('*').order('data', { ascending: false });
     if (alunoId) query = query.eq('aluno_id', alunoId);
@@ -105,7 +105,7 @@ async function handleFotosProgresso(req: VercelRequest, res: VercelResponse, met
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-async function handleAssinaturas(req: VercelRequest, res: VercelResponse, method: string, id: string | undefined, alunoId: string | undefined) {
+async function handleAssinaturas(req: VercelRequest, res: VercelResponse, method: string, supabase: SupabaseClient, id: string | undefined, alunoId: string | undefined) {
   if (method === 'GET') {
     let query = supabase.from('assinaturas').select('*').order('created_at', { ascending: false });
     if (alunoId) query = query.eq('aluno_id', alunoId);
@@ -131,7 +131,7 @@ async function handleAssinaturas(req: VercelRequest, res: VercelResponse, method
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-async function handleAgenda(req: VercelRequest, res: VercelResponse, method: string, id: string | undefined) {
+async function handleAgenda(req: VercelRequest, res: VercelResponse, method: string, supabase: SupabaseClient, id: string | undefined) {
   if (method === 'GET') {
     const { data, error } = await supabase.from('agenda').select('*').order('data', { ascending: true });
     if (error) throw error;

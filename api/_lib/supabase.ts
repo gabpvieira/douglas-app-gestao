@@ -10,11 +10,13 @@ export function getSupabaseAdmin() {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl) {
+    console.error('❌ Missing SUPABASE_URL environment variable');
     throw new Error('Missing SUPABASE_URL environment variable');
   }
 
   if (!supabaseKey) {
-    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+    console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable - Please add this to Vercel Environment Variables');
   }
 
   return createClient(supabaseUrl, supabaseKey, {

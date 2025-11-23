@@ -16,15 +16,9 @@ export default async function handler(
   }
 
   try {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase credentials');
-      return res.status(500).json({ error: 'Server configuration error' });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Usar o helper centralizado que já faz as verificações de erro
+    const { getSupabaseAdmin } = require('./_lib/supabase');
+    const supabase = getSupabaseAdmin();
 
     if (req.method === 'GET') {
       const { objetivo } = req.query;
