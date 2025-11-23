@@ -51,8 +51,29 @@ export function TreinosVideo() {
     console.log('📹 Vídeo do Supabase:', {
       id: video.id,
       nome: video.nome,
-      thumbnailUrl: video.thumbnailUrl
+      urlVideo: video.urlVideo,
+      thumbnailUrl: video.thumbnailUrl,
+      thumbnail_url: video.thumbnail_url,
+      allKeys: Object.keys(video)
     });
+    
+    // Garantir que a data seja válida
+    let dataCriacao = new Date();
+    try {
+      if (video.dataUpload) {
+        const parsedDate = new Date(video.dataUpload);
+        if (!isNaN(parsedDate.getTime())) {
+          dataCriacao = parsedDate;
+        }
+      }
+    } catch (e) {
+      console.error('Data inválida para vídeo:', video.id, video.dataUpload);
+    }
+    
+    // Tentar diferentes formatos de nome de campo para thumbnail
+    const thumbnailUrl = video.thumbnailUrl || video.thumbnail_url || video.thumbnailurl || undefined;
+    
+    console.log('🖼️ Thumbnail URL final:', thumbnailUrl);
     
     return {
       id: video.id,
@@ -61,10 +82,10 @@ export function TreinosVideo() {
       divisaoMuscular: video.objetivo || '',
       nivel: 'intermediario' as const,
       duracao: video.duracao || 0,
-      videoUrl: video.urlVideo,
-      thumbnail: video.thumbnailUrl || undefined,
+      videoUrl: video.urlVideo || video.url_video,
+      thumbnail: thumbnailUrl,
       alunosComAcesso: [],
-      dataCriacao: new Date(video.dataUpload),
+      dataCriacao,
       ativo: true,
       tags: []
     };
@@ -343,7 +364,7 @@ export function TreinosVideo() {
             videoDescription={treinoVisualizando.descricao}
             videoDuration={treinoVisualizando.duracao}
             videoObjective={treinoVisualizando.divisaoMuscular}
-            videoDate={treinoVisualizando.dataCriacao.toISOString()}
+            videoDate={treinoVisualizando.dataCriacao?.toISOString?.() || new Date().toISOString()}
           />
         )}
       </div>

@@ -123,12 +123,22 @@ export function VideoPlayerModal({
                     <span>{videoDuration} min</span>
                   </div>
                 )}
-                {videoDate && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>{new Date(videoDate).toLocaleDateString('pt-BR')}</span>
-                  </div>
-                )}
+                {videoDate && (() => {
+                  try {
+                    const date = new Date(videoDate);
+                    if (!isNaN(date.getTime())) {
+                      return (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>{date.toLocaleDateString('pt-BR')}</span>
+                        </div>
+                      );
+                    }
+                  } catch (e) {
+                    console.error('Data inválida:', videoDate);
+                  }
+                  return null;
+                })()}
               </div>
             </div>
             <Button
