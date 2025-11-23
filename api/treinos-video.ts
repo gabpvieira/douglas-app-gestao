@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
       let query = supabase
         .from('treinos_video')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (objetivo) {
         query = query.eq('objetivo', objetivo);

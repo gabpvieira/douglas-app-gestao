@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
         .from('users_profile')
         .select('*')
         .eq('tipo', 'aluno')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('❌ [Students API] Supabase error:', error);
