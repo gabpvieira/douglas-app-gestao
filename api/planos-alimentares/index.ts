@@ -1,7 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from '../_lib/supabase';
+const { getSupabaseAdmin } = require('../_lib/supabase');
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (method === 'GET') {
       const { alunoId } = req.query;
-      
+
       let query = supabase
         .from('planos_alimentares')
         .select(`
@@ -38,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (method === 'POST') {
       const { refeicoes, ...planoData } = req.body;
-      
+
       const { data: plano, error: planoError } = await supabase
         .from('planos_alimentares')
         .insert(planoData)
@@ -121,7 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (method === 'DELETE') {
       const { id } = req.query;
-      
+
       await supabase
         .from('refeicoes_plano_alimentar')
         .delete()
@@ -139,10 +138,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error: any) {
     console.error('Planos Alimentares API error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: error.message || 'Internal server error',
       details: error.details || null,
       hint: error.hint || null
     });
   }
-}
+};

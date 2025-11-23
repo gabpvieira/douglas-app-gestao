@@ -1,7 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from '../_lib/supabase';
+const { getSupabaseAdmin } = require('../_lib/supabase');
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   console.log('🔍 [Fichas API] Iniciando requisição:', req.method);
 
   // CORS headers
@@ -185,4 +184,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       hint: error.hint || null
     });
   }
-}
+};
