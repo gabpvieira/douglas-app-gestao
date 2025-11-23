@@ -39,7 +39,15 @@ export function usePlanosAlimentares(alunoId?: string) {
       let query = supabase
         .from('planos_alimentares')
         .select(`
-          *,
+          id,
+          aluno_id,
+          titulo,
+          conteudo_html,
+          observacoes,
+          dados_json,
+          data_criacao,
+          created_at,
+          updated_at,
           refeicoes:refeicoes_plano(*)
         `)
         .order('created_at', { ascending: false });
@@ -51,7 +59,20 @@ export function usePlanosAlimentares(alunoId?: string) {
       const { data, error } = await query;
       
       if (error) throw error;
-      return data || [];
+      
+      // Converter snake_case para camelCase
+      return (data || []).map(plano => ({
+        id: plano.id,
+        alunoId: plano.aluno_id,
+        titulo: plano.titulo,
+        conteudoHtml: plano.conteudo_html,
+        observacoes: plano.observacoes,
+        dadosJson: plano.dados_json,
+        dataCriacao: plano.data_criacao,
+        createdAt: plano.created_at,
+        updatedAt: plano.updated_at,
+        refeicoes: plano.refeicoes || []
+      }));
     }
   });
 }
@@ -64,7 +85,15 @@ export function useMyPlanoAlimentar(alunoId: string) {
       const { data, error } = await supabase
         .from('planos_alimentares')
         .select(`
-          *,
+          id,
+          aluno_id,
+          titulo,
+          conteudo_html,
+          observacoes,
+          dados_json,
+          data_criacao,
+          created_at,
+          updated_at,
           refeicoes:refeicoes_plano(*)
         `)
         .eq('aluno_id', alunoId)
@@ -73,7 +102,22 @@ export function useMyPlanoAlimentar(alunoId: string) {
         .maybeSingle();
       
       if (error) throw error;
-      return data;
+      
+      if (!data) return null;
+      
+      // Converter snake_case para camelCase
+      return {
+        id: data.id,
+        alunoId: data.aluno_id,
+        titulo: data.titulo,
+        conteudoHtml: data.conteudo_html,
+        observacoes: data.observacoes,
+        dadosJson: data.dados_json,
+        dataCriacao: data.data_criacao,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        refeicoes: data.refeicoes || []
+      };
     },
     enabled: !!alunoId
   });
@@ -87,14 +131,35 @@ export function usePlanoAlimentar(id: string) {
       const { data, error } = await supabase
         .from('planos_alimentares')
         .select(`
-          *,
+          id,
+          aluno_id,
+          titulo,
+          conteudo_html,
+          observacoes,
+          dados_json,
+          data_criacao,
+          created_at,
+          updated_at,
           refeicoes:refeicoes_plano(*)
         `)
         .eq('id', id)
         .single();
       
       if (error) throw error;
-      return data;
+      
+      // Converter snake_case para camelCase
+      return {
+        id: data.id,
+        alunoId: data.aluno_id,
+        titulo: data.titulo,
+        conteudoHtml: data.conteudo_html,
+        observacoes: data.observacoes,
+        dadosJson: data.dados_json,
+        dataCriacao: data.data_criacao,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        refeicoes: data.refeicoes || []
+      };
     },
     enabled: !!id
   });
@@ -109,10 +174,19 @@ export function useCreatePlanoAlimentar() {
     mutationFn: async (data: CreatePlanoData) => {
       const { refeicoes, ...planoData } = data;
       
+      // Converter camelCase para snake_case
+      const planoDataSnakeCase = {
+        aluno_id: planoData.alunoId,
+        titulo: planoData.titulo,
+        conteudo_html: planoData.conteudoHtml,
+        observacoes: planoData.observacoes,
+        dados_json: planoData.dadosJson
+      };
+      
       // Criar plano
       const { data: plano, error: planoError } = await supabase
         .from('planos_alimentares')
-        .insert(planoData)
+        .insert(planoDataSnakeCase)
         .select()
         .single();
       
@@ -122,7 +196,7 @@ export function useCreatePlanoAlimentar() {
       if (refeicoes && refeicoes.length > 0) {
         const refeicoesComPlanoId = refeicoes.map((r) => ({
           ...r,
-          plano_alimentar_id: plano.id
+          plano_id: plano.id
         }));
         
         const { error: refeicoesError } = await supabase
@@ -135,6 +209,7 @@ export function useCreatePlanoAlimentar() {
       return plano;
     },
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['planos-alimentares'] });
       queryClient.invalidateQueries({ queryKey: ['planos-alimentares', variables.alunoId] });
       queryClient.invalidateQueries({ queryKey: ['meu-plano-alimentar', variables.alunoId] });
       toast({
@@ -159,17 +234,45 @@ export function useUpdatePlanoAlimentar() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdatePlanoData }) => {
+      console.log('🔄 [Update] Dados recebidos:', data);
+      
       const { refeicoes, ...planoData } = data;
+      
+      // Converter camelCase para snake_case - GARANTIR conversão correta
+      const planoDataSnakeCase: Record<string, any> = {};
+      if (planoData.titulo !== undefined) planoDataSnakeCase.titulo = planoData.titulo;
+      if (planoData.conteudoHtml !== undefined) planoDataSnakeCase.conteudo_html = planoData.conteudoHtml;
+      if (planoData.observacoes !== undefined) planoDataSnakeCase.observacoes = planoData.observacoes;
+      if (planoData.dadosJson !== undefined) planoDataSnakeCase.dados_json = planoData.dadosJson;
+      
+      console.log('📤 [Update] Dados convertidos para snake_case:', planoDataSnakeCase);
+      console.log('📤 [Update] Tipo dos dados:', typeof planoDataSnakeCase, Object.keys(planoDataSnakeCase));
+      
+      // Garantir que estamos enviando apenas snake_case
+      const updatePayload = {
+        ...(planoDataSnakeCase.titulo && { titulo: planoDataSnakeCase.titulo }),
+        ...(planoDataSnakeCase.conteudo_html && { conteudo_html: planoDataSnakeCase.conteudo_html }),
+        ...(planoDataSnakeCase.observacoes !== undefined && { observacoes: planoDataSnakeCase.observacoes }),
+        ...(planoDataSnakeCase.dados_json && { dados_json: planoDataSnakeCase.dados_json }),
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('📦 [Update] Payload final:', updatePayload);
       
       // Atualizar plano
       const { data: plano, error: planoError } = await supabase
         .from('planos_alimentares')
-        .update(planoData)
+        .update(updatePayload)
         .eq('id', id)
         .select()
         .single();
       
-      if (planoError) throw planoError;
+      console.log('✅ [Update] Resposta do Supabase:', { plano, error: planoError });
+      
+      if (planoError) {
+        console.error('❌ [Update] Erro detalhado:', planoError);
+        throw planoError;
+      }
       
       // Atualizar refeições se fornecidas
       if (refeicoes) {
@@ -177,13 +280,13 @@ export function useUpdatePlanoAlimentar() {
         await supabase
           .from('refeicoes_plano')
           .delete()
-          .eq('plano_alimentar_id', id);
+          .eq('plano_id', id);
         
         // Inserir novas refeições
         if (refeicoes.length > 0) {
           const refeicoesComPlanoId = refeicoes.map((r) => ({
             ...r,
-            plano_alimentar_id: id
+            plano_id: id
           }));
           
           const { error: refeicoesError } = await supabase
@@ -226,7 +329,7 @@ export function useDeletePlanoAlimentar() {
       await supabase
         .from('refeicoes_plano')
         .delete()
-        .eq('plano_alimentar_id', id);
+        .eq('plano_id', id);
       
       // Remover plano
       const { error } = await supabase

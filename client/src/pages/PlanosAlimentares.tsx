@@ -201,6 +201,15 @@ export default function PlanosAlimentares() {
       };
       
       if (planoEditando) {
+          console.log('📝 [Salvar] Enviando atualização:', {
+          id: planoEditando.id,
+          titulo: planoData.nome,
+          conteudoHtml: conteudoTexto.substring(0, 100) + '...',
+          observacoes: planoData.observacoes,
+          dadosJson,
+          refeicoesCount: planoData.refeicoes?.length || 0
+        });
+        
         await updatePlano.mutateAsync({
           id: planoEditando.id,
           data: {

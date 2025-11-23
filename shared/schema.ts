@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, date, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, date, integer, timestamp, jsonb, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -241,3 +241,48 @@ export type InsertTreinoRealizado = z.infer<typeof insertTreinoRealizadoSchema>;
 export type TreinoRealizado = typeof treinosRealizados.$inferSelect;
 export type InsertSerieRealizada = z.infer<typeof insertSerieRealizadaSchema>;
 export type SerieRealizada = typeof seriesRealizadas.$inferSelect;
+
+// Tabela para planos alimentares
+export const planosAlimentares = pgTable("planos_alimentares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  titulo: text("titulo").notNull(),
+  conteudoHtml: text("conteudo_html").notNull(),
+  observacoes: text("observacoes"),
+  dadosJson: jsonb("dados_json"), // dados estruturados: objetivo, calorias, macros, etc
+  dataCriacao: timestamp("data_criacao").default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela para refeições do plano
+export const refeicoesPlano = pgTable("refeicoes_plano", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  planoId: varchar("plano_id").notNull().references(() => planosAlimentares.id, { onDelete: 'cascade' }),
+  nome: text("nome").notNull(), // Café da manhã, Almoço, etc
+  horario: text("horario").notNull(),
+  ordem: integer("ordem").notNull(),
+  alimentos: jsonb("alimentos").notNull(), // array de alimentos com detalhes
+  calorias: integer("calorias").notNull(),
+  observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertPlanoAlimentarSchema = createInsertSchema(planosAlimentares).omit({
+  id: true,
+  dataCriacao: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRefeicaoPlanoSchema = createInsertSchema(refeicoesPlano).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPlanoAlimentar = z.infer<typeof insertPlanoAlimentarSchema>;
+export type PlanoAlimentar = typeof planosAlimentares.$inferSelect;
+export type InsertRefeicaoPlano = z.infer<typeof insertRefeicaoPlanoSchema>;
+export type RefeicaoPlano = typeof refeicoesPlano.$inferSelect;
