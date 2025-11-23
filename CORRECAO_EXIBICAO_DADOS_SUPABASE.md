@@ -4,16 +4,12 @@
 
 As páginas `/admin/planos`, `/admin/fichas-treino` e `/admin/treinos-video` não estavam exibindo dados corretamente em produção (Vercel) porque:
 
-1. **Rotas API faltando**: As páginas faziam requisições para rotas que não existiam no Vercel:
-   - `/api/admin/planos-alimentares/all`
-   - `/api/admin/treinos-video/upload`
-   - `/api/admin/treinos-video/:id/stream`
-   - `/api/admin/treinos-video/:id/replace`
-   - `/api/fichas-treino/stats/geral`
-   - `/api/fichas-treino/:id/atribuir`
-   - `/api/fichas-treino/:id/atribuicoes`
+1. **Rotas API faltando**: As páginas faziam requisições para rotas que não existiam no Vercel
+2. **Estrutura de rotas complexa**: Tentativa inicial usou query parameters que não funcionaram bem no Vercel
 
-2. **Roteamento incorreto**: O `vercel.json` não tinha as regras de rewrite necessárias para essas rotas
+## Solução Implementada (v2 - Simplificada)
+
+Mudamos para uma estrutura de rotas mais simples e direta, usando o padrão de file-based routing do Vercel com dynamic routes `[id]`
 
 ## Solução Implementada
 
