@@ -48,7 +48,7 @@ module.exports = async function handler(req, res) {
       const { data: agendamentos, error } = await query;
       if (error) throw error;
 
-      const formatted = agendamentos.map((a: any) => ({
+      const formatted = agendamentos.map((a) => ({
         id: a.id,
         alunoId: a.aluno_id,
         blocoHorarioId: null,
@@ -122,7 +122,7 @@ module.exports = async function handler(req, res) {
     if (req.method === 'PUT' && id) {
       const { status, observacoes } = req.body;
 
-      const updateData: any = {};
+      const updateData = {};
       if (status) updateData.status = status;
       if (observacoes !== undefined) updateData.observacoes = observacoes;
 
@@ -159,7 +159,7 @@ module.exports = async function handler(req, res) {
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in agendamentos API:', error);
     return res.status(500).json({
       error: error.message || 'Internal server error',

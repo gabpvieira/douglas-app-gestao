@@ -47,7 +47,7 @@ module.exports = async function handler(req, res) {
       if (planoError) throw planoError;
 
       if (refeicoes && refeicoes.length > 0) {
-        const refeicoesComPlanoId = refeicoes.map((r: any) => ({
+        const refeicoesComPlanoId = refeicoes.map((r) => ({
           ...r,
           plano_alimentar_id: plano.id
         }));
@@ -92,7 +92,7 @@ module.exports = async function handler(req, res) {
           .eq('plano_alimentar_id', id);
 
         if (refeicoes.length > 0) {
-          const refeicoesComPlanoId = refeicoes.map((r: any) => ({
+          const refeicoesComPlanoId = refeicoes.map((r) => ({
             ...r,
             plano_alimentar_id: id
           }));
@@ -136,7 +136,7 @@ module.exports = async function handler(req, res) {
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Planos Alimentares API error:', error);
     return res.status(500).json({
       error: error.message || 'Internal server error',

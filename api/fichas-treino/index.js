@@ -64,7 +64,7 @@ module.exports = async function handler(req, res) {
           await supabase.from('exercicios_ficha').delete().eq('ficha_id', idParam);
 
           // Inserir novos exercícios
-          const exerciciosComFichaId = exercicios.map((ex: any, index: number) => ({
+          const exerciciosComFichaId = exercicios.map((ex, index) => ({
             ...ex,
             ficha_id: idParam,
             ordem: index
@@ -154,7 +154,7 @@ module.exports = async function handler(req, res) {
       // Criar exercícios se fornecidos
       let exerciciosCriados = [];
       if (exercicios && exercicios.length > 0) {
-        const exerciciosComFichaId = exercicios.map((ex: any, index: number) => ({
+        const exerciciosComFichaId = exercicios.map((ex, index) => ({
           ...ex,
           ficha_id: novaFicha.id,
           ordem: ex.ordem || index + 1
@@ -176,7 +176,7 @@ module.exports = async function handler(req, res) {
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in fichas-treino API:', error);
     return res.status(500).json({
       error: error.message || 'Internal server error',
