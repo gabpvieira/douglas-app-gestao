@@ -121,6 +121,90 @@ function Router() {
   const [location, setLocation] = useLocation();
   const [currentView, setCurrentView] = useState<'landing' | 'login' | 'admin' | 'student'>('landing');
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Restaurar sessão ao carregar
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Buscar perfil do usuário
+          const { data: profile } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          const user = {
+            ...session.user,
+            profile
+          };
+          
+          setCurrentUser(user);
+          
+          // Determinar tipo de usuário
+          const tipo = profile?.tipo || session.user.user_metadata?.role;
+          
+          if (tipo === 'admin') {
+            setCurrentView('admin');
+            if (location === '/' || location === '/login') {
+              setLocation('/admin');
+            }
+          } else {
+            setCurrentView('student');
+            if (location === '/' || location === '/login') {
+              setLocation('/aluno');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao restaurar sessão:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
+
+    // Listener para mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setCurrentView('landing');
+        setLocation('/');
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        // Buscar perfil do usuário
+        const { data: profile } = await supabase
+          .from('usuarios')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        const user = {
+          ...session.user,
+          profile
+        };
+        
+        setCurrentUser(user);
+        
+        const tipo = profile?.tipo || session.user.user_metadata?.role;
+        
+        if (tipo === 'admin') {
+          setCurrentView('admin');
+          setLocation('/admin');
+        } else {
+          setCurrentView('student');
+          setLocation('/aluno');
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const handleLogin = () => {
     setCurrentView('login');
@@ -155,6 +239,18 @@ function Router() {
   };
 
   const userName = currentUser?.profile?.nome || currentUser?.email || 'Usuário';
+
+  // Mostrar loading enquanto verifica sessão
+  if (loading) {
+    return (
+      <div className="dark min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dark">
