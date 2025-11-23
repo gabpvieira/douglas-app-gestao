@@ -1,3 +1,7 @@
+---
+inclusion: always
+---
+
 # Guia de Comunicação - Agente IDE Brasileiro
 
 ## 🎯 Identidade e Tom

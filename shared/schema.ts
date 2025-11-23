@@ -262,11 +262,26 @@ export const refeicoesPlano = pgTable("refeicoes_plano", {
   nome: text("nome").notNull(), // Café da manhã, Almoço, etc
   horario: text("horario").notNull(),
   ordem: integer("ordem").notNull(),
-  alimentos: jsonb("alimentos").notNull(), // array de alimentos com detalhes
-  calorias: integer("calorias").notNull(),
+  caloriasCalculadas: integer("calorias_calculadas").default(0), // Soma automática dos alimentos
   observacoes: text("observacoes"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela para alimentos de cada refeição
+export const alimentosRefeicao = pgTable("alimentos_refeicao", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  refeicaoId: varchar("refeicao_id").notNull().references(() => refeicoesPlano.id, { onDelete: 'cascade' }),
+  nome: text("nome").notNull(),
+  quantidade: integer("quantidade").notNull(),
+  unidade: text("unidade").notNull(),
+  calorias: integer("calorias").notNull(),
+  proteinas: integer("proteinas").notNull(),
+  carboidratos: integer("carboidratos").notNull(),
+  gorduras: integer("gorduras").notNull(),
+  categoria: text("categoria"),
+  ordem: integer("ordem").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const insertPlanoAlimentarSchema = createInsertSchema(planosAlimentares).omit({
@@ -282,7 +297,14 @@ export const insertRefeicaoPlanoSchema = createInsertSchema(refeicoesPlano).omit
   updatedAt: true,
 });
 
+export const insertAlimentoRefeicaoSchema = createInsertSchema(alimentosRefeicao).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertPlanoAlimentar = z.infer<typeof insertPlanoAlimentarSchema>;
 export type PlanoAlimentar = typeof planosAlimentares.$inferSelect;
 export type InsertRefeicaoPlano = z.infer<typeof insertRefeicaoPlanoSchema>;
 export type RefeicaoPlano = typeof refeicoesPlano.$inferSelect;
+export type InsertAlimentoRefeicao = z.infer<typeof insertAlimentoRefeicaoSchema>;
+export type AlimentoRefeicao = typeof alimentosRefeicao.$inferSelect;

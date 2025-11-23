@@ -48,7 +48,15 @@ export function usePlanosAlimentares(alunoId?: string) {
           data_criacao,
           created_at,
           updated_at,
-          refeicoes:refeicoes_plano(*)
+          refeicoes:refeicoes_plano(
+            id,
+            nome,
+            horario,
+            ordem,
+            calorias_calculadas,
+            observacoes,
+            alimentos:alimentos_refeicao(*)
+          )
         `)
         .order('created_at', { ascending: false });
       
@@ -94,7 +102,15 @@ export function useMyPlanoAlimentar(alunoId: string) {
           data_criacao,
           created_at,
           updated_at,
-          refeicoes:refeicoes_plano(*)
+          refeicoes:refeicoes_plano(
+            id,
+            nome,
+            horario,
+            ordem,
+            calorias_calculadas,
+            observacoes,
+            alimentos:alimentos_refeicao(*)
+          )
         `)
         .eq('aluno_id', alunoId)
         .order('created_at', { ascending: false })
@@ -140,7 +156,15 @@ export function usePlanoAlimentar(id: string) {
           data_criacao,
           created_at,
           updated_at,
-          refeicoes:refeicoes_plano(*)
+          refeicoes:refeicoes_plano(
+            id,
+            nome,
+            horario,
+            ordem,
+            calorias_calculadas,
+            observacoes,
+            alimentos:alimentos_refeicao(*)
+          )
         `)
         .eq('id', id)
         .single();
@@ -194,16 +218,57 @@ export function useCreatePlanoAlimentar() {
       
       // Criar refeições se fornecidas
       if (refeicoes && refeicoes.length > 0) {
-        const refeicoesComPlanoId = refeicoes.map((r) => ({
-          ...r,
-          plano_id: plano.id
-        }));
+        console.log('🍽️ [Create] Criando refeições:', refeicoes.length);
         
-        const { error: refeicoesError } = await supabase
-          .from('refeicoes_plano')
-          .insert(refeicoesComPlanoId);
+        for (const refeicao of refeicoes) {
+          const { alimentos, calorias, ...refeicaoData } = refeicao;
+          
+          // Inserir refeição (sem alimentos)
+          const { data: refeicaoInserida, error: refeicaoError } = await supabase
+            .from('refeicoes_plano')
+            .insert({
+              plano_id: plano.id,
+              nome: refeicaoData.nome,
+              horario: refeicaoData.horario,
+              ordem: refeicaoData.ordem || 0,
+              calorias_calculadas: Math.round(calorias || 0),
+              observacoes: refeicaoData.observacoes
+            })
+            .select()
+            .single();
+          
+          if (refeicaoError) {
+            console.error('❌ [Create] Erro ao inserir refeição:', refeicaoError);
+            throw refeicaoError;
+          }
+          
+          // Inserir alimentos da refeição
+          if (alimentos && alimentos.length > 0) {
+            const alimentosParaInserir = alimentos.map((alimento: any, index: number) => ({
+              refeicao_id: refeicaoInserida.id,
+              nome: alimento.nome,
+              quantidade: alimento.quantidade,
+              unidade: alimento.unidade,
+              calorias: alimento.calorias,
+              proteinas: alimento.proteinas,
+              carboidratos: alimento.carboidratos,
+              gorduras: alimento.gorduras,
+              categoria: alimento.categoria || 'outros',
+              ordem: index
+            }));
+            
+            const { error: alimentosError } = await supabase
+              .from('alimentos_refeicao')
+              .insert(alimentosParaInserir);
+            
+            if (alimentosError) {
+              console.error('❌ [Create] Erro ao inserir alimentos:', alimentosError);
+              throw alimentosError;
+            }
+          }
+        }
         
-        if (refeicoesError) throw refeicoesError;
+        console.log('✅ [Create] Refeições criadas com sucesso');
       }
       
       return plano;
@@ -276,7 +341,9 @@ export function useUpdatePlanoAlimentar() {
       
       // Atualizar refeições se fornecidas
       if (refeicoes) {
-        // Remover refeições antigas
+        console.log('🍽️ [Update] Atualizando refeições:', refeicoes.length);
+        
+        // Remover refeições antigas (cascade vai deletar alimentos também)
         await supabase
           .from('refeicoes_plano')
           .delete()
@@ -284,16 +351,55 @@ export function useUpdatePlanoAlimentar() {
         
         // Inserir novas refeições
         if (refeicoes.length > 0) {
-          const refeicoesComPlanoId = refeicoes.map((r) => ({
-            ...r,
-            plano_id: id
-          }));
+          for (const refeicao of refeicoes) {
+            const { alimentos, calorias, ...refeicaoData } = refeicao;
+            
+            // Inserir refeição (sem alimentos)
+            const { data: refeicaoInserida, error: refeicaoError } = await supabase
+              .from('refeicoes_plano')
+              .insert({
+                plano_id: id,
+                nome: refeicaoData.nome,
+                horario: refeicaoData.horario,
+                ordem: refeicaoData.ordem || 0,
+                calorias_calculadas: Math.round(calorias || 0),
+                observacoes: refeicaoData.observacoes
+              })
+              .select()
+              .single();
+            
+            if (refeicaoError) {
+              console.error('❌ [Update] Erro ao inserir refeição:', refeicaoError);
+              throw refeicaoError;
+            }
+            
+            // Inserir alimentos da refeição
+            if (alimentos && alimentos.length > 0) {
+              const alimentosParaInserir = alimentos.map((alimento: any, index: number) => ({
+                refeicao_id: refeicaoInserida.id,
+                nome: alimento.nome,
+                quantidade: alimento.quantidade,
+                unidade: alimento.unidade,
+                calorias: alimento.calorias,
+                proteinas: alimento.proteinas,
+                carboidratos: alimento.carboidratos,
+                gorduras: alimento.gorduras,
+                categoria: alimento.categoria || 'outros',
+                ordem: index
+              }));
+              
+              const { error: alimentosError } = await supabase
+                .from('alimentos_refeicao')
+                .insert(alimentosParaInserir);
+              
+              if (alimentosError) {
+                console.error('❌ [Update] Erro ao inserir alimentos:', alimentosError);
+                throw alimentosError;
+              }
+            }
+          }
           
-          const { error: refeicoesError } = await supabase
-            .from('refeicoes_plano')
-            .insert(refeicoesComPlanoId);
-          
-          if (refeicoesError) throw refeicoesError;
+          console.log('✅ [Update] Refeições atualizadas com sucesso');
         }
       }
       
