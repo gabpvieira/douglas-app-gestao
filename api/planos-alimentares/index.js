@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
         .from('planos_alimentares')
         .select(`
           *,
-          refeicoes:refeicoes_plano_alimentar(*)
+          refeicoes:refeicoes_plano(*)
         `)
         .order('created_at', { ascending: false });
 
@@ -53,7 +53,7 @@ module.exports = async function handler(req, res) {
         }));
 
         const { error: refeicoesError } = await supabase
-          .from('refeicoes_plano_alimentar')
+          .from('refeicoes_plano')
           .insert(refeicoesComPlanoId);
 
         if (refeicoesError) throw refeicoesError;
@@ -63,7 +63,7 @@ module.exports = async function handler(req, res) {
         .from('planos_alimentares')
         .select(`
           *,
-          refeicoes:refeicoes_plano_alimentar(*)
+          refeicoes:refeicoes_plano(*)
         `)
         .eq('id', plano.id)
         .single();
@@ -87,7 +87,7 @@ module.exports = async function handler(req, res) {
 
       if (refeicoes) {
         await supabase
-          .from('refeicoes_plano_alimentar')
+          .from('refeicoes_plano')
           .delete()
           .eq('plano_alimentar_id', id);
 
@@ -98,7 +98,7 @@ module.exports = async function handler(req, res) {
           }));
 
           const { error: refeicoesError } = await supabase
-            .from('refeicoes_plano_alimentar')
+            .from('refeicoes_plano')
             .insert(refeicoesComPlanoId);
 
           if (refeicoesError) throw refeicoesError;
@@ -109,7 +109,7 @@ module.exports = async function handler(req, res) {
         .from('planos_alimentares')
         .select(`
           *,
-          refeicoes:refeicoes_plano_alimentar(*)
+          refeicoes:refeicoes_plano(*)
         `)
         .eq('id', id)
         .single();
@@ -122,7 +122,7 @@ module.exports = async function handler(req, res) {
       const { id } = req.query;
 
       await supabase
-        .from('refeicoes_plano_alimentar')
+        .from('refeicoes_plano')
         .delete()
         .eq('plano_alimentar_id', id);
 

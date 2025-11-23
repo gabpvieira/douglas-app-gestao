@@ -81,7 +81,7 @@ module.exports = async function handler(req, res) {
 
       if (blocoHorarioId) {
         const { data: existente } = await supabase
-          .from('agendamentos')
+          .from('agendamentos_presenciais')
           .select('id')
           .eq('bloco_horario_id', blocoHorarioId)
           .eq('data_agendamento', dataAgendamento)
@@ -93,7 +93,7 @@ module.exports = async function handler(req, res) {
       }
 
       const { data: agendamento, error } = await supabase
-        .from('agendamentos')
+        .from('agendamentos_presenciais')
         .insert({
           aluno_id: alunoId,
           bloco_horario_id: blocoHorarioId,
