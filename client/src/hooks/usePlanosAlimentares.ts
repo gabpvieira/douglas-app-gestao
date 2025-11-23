@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
+import { supabase } from '@/lib/supabase';
 
 interface PlanoAlimentar {
   id: string;
@@ -31,36 +32,48 @@ interface UpdatePlanoData {
 }
 
 // Listar planos de um aluno (Admin)
-export function usePlanosAlimentares(alunoId: string) {
+export function usePlanosAlimentares(alunoId?: string) {
   return useQuery<PlanoAlimentar[]>({
     queryKey: ['planos-alimentares', alunoId],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/planos-alimentares/${alunoId}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          return [];
-        }
-        throw new Error('Falha ao buscar planos alimentares');
+      let query = supabase
+        .from('planos_alimentares')
+        .select(`
+          *,
+          refeicoes:refeicoes_plano(*)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (alunoId) {
+        query = query.eq('aluno_id', alunoId);
       }
-      return response.json();
-    },
-    enabled: !!alunoId
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return data || [];
+    }
   });
 }
 
 // Obter plano atual do aluno
 export function useMyPlanoAlimentar(alunoId: string) {
-  return useQuery<PlanoAlimentar>({
+  return useQuery<PlanoAlimentar | null>({
     queryKey: ['meu-plano-alimentar', alunoId],
     queryFn: async () => {
-      const response = await fetch(`/api/aluno/plano-alimentar?alunoId=${alunoId}`);
-      if (!response.ok) {
-        if (response.status === 404) {
-          return null;
-        }
-        throw new Error('Falha ao buscar plano alimentar');
-      }
-      return response.json();
+      const { data, error } = await supabase
+        .from('planos_alimentares')
+        .select(`
+          *,
+          refeicoes:refeicoes_plano(*)
+        `)
+        .eq('aluno_id', alunoId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
     },
     enabled: !!alunoId
   });
@@ -71,11 +84,17 @@ export function usePlanoAlimentar(id: string) {
   return useQuery<PlanoAlimentar>({
     queryKey: ['plano-alimentar', id],
     queryFn: async () => {
-      const response = await fetch(`/api/planos-alimentares/${id}`);
-      if (!response.ok) {
-        throw new Error('Falha ao buscar plano alimentar');
-      }
-      return response.json();
+      const { data, error } = await supabase
+        .from('planos_alimentares')
+        .select(`
+          *,
+          refeicoes:refeicoes_plano(*)
+        `)
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     enabled: !!id
   });
@@ -88,18 +107,32 @@ export function useCreatePlanoAlimentar() {
 
   return useMutation({
     mutationFn: async (data: CreatePlanoData) => {
-      const response = await fetch('/api/admin/planos-alimentares', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao criar plano alimentar');
+      const { refeicoes, ...planoData } = data;
+      
+      // Criar plano
+      const { data: plano, error: planoError } = await supabase
+        .from('planos_alimentares')
+        .insert(planoData)
+        .select()
+        .single();
+      
+      if (planoError) throw planoError;
+      
+      // Criar refeições se fornecidas
+      if (refeicoes && refeicoes.length > 0) {
+        const refeicoesComPlanoId = refeicoes.map((r) => ({
+          ...r,
+          plano_alimentar_id: plano.id
+        }));
+        
+        const { error: refeicoesError } = await supabase
+          .from('refeicoes_plano')
+          .insert(refeicoesComPlanoId);
+        
+        if (refeicoesError) throw refeicoesError;
       }
-
-      return response.json();
+      
+      return plano;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['planos-alimentares', variables.alunoId] });
@@ -126,22 +159,46 @@ export function useUpdatePlanoAlimentar() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdatePlanoData }) => {
-      const response = await fetch(`/api/admin/planos-alimentares/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao atualizar plano alimentar');
+      const { refeicoes, ...planoData } = data;
+      
+      // Atualizar plano
+      const { data: plano, error: planoError } = await supabase
+        .from('planos_alimentares')
+        .update(planoData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (planoError) throw planoError;
+      
+      // Atualizar refeições se fornecidas
+      if (refeicoes) {
+        // Remover refeições antigas
+        await supabase
+          .from('refeicoes_plano')
+          .delete()
+          .eq('plano_alimentar_id', id);
+        
+        // Inserir novas refeições
+        if (refeicoes.length > 0) {
+          const refeicoesComPlanoId = refeicoes.map((r) => ({
+            ...r,
+            plano_alimentar_id: id
+          }));
+          
+          const { error: refeicoesError } = await supabase
+            .from('refeicoes_plano')
+            .insert(refeicoesComPlanoId);
+          
+          if (refeicoesError) throw refeicoesError;
+        }
       }
-
-      return response.json();
+      
+      return plano;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['planos-alimentares', data.alunoId] });
-      queryClient.invalidateQueries({ queryKey: ['meu-plano-alimentar', data.alunoId] });
+      queryClient.invalidateQueries({ queryKey: ['planos-alimentares'] });
+      queryClient.invalidateQueries({ queryKey: ['meu-plano-alimentar'] });
       queryClient.invalidateQueries({ queryKey: ['plano-alimentar', data.id] });
       toast({
         title: 'Sucesso!',
@@ -165,16 +222,20 @@ export function useDeletePlanoAlimentar() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/planos-alimentares/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao deletar plano alimentar');
-      }
-
-      return response.json();
+      // Remover refeições primeiro
+      await supabase
+        .from('refeicoes_plano')
+        .delete()
+        .eq('plano_alimentar_id', id);
+      
+      // Remover plano
+      const { error } = await supabase
+        .from('planos_alimentares')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planos-alimentares'] });

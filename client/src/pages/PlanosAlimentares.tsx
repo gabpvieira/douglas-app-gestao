@@ -70,9 +70,6 @@ export default function PlanosAlimentares() {
   const createPlano = useCreatePlanoAlimentar();
   const updatePlano = useUpdatePlanoAlimentar();
   const deletePlano = useDeletePlanoAlimentar();
-  
-  const [planosSupabase, setPlanosSupabase] = useState<any[]>([]);
-  const [loadingPlanos, setLoadingPlanos] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetalhesModalOpen, setIsDetalhesModalOpen] = useState(false);
   const [planoEditando, setPlanoEditando] = useState<PlanoAlimentar | null>(null);
@@ -82,22 +79,8 @@ export default function PlanosAlimentares() {
   const [filtroCategoria, setFiltroCategoria] = useState<string>('todos');
   const [activeTab, setActiveTab] = useState('planos');
   
-  useEffect(() => {
-    const fetchPlanos = async () => {
-      try {
-        const response = await fetch('/api/admin/planos-alimentares/all');
-        if (response.ok) {
-          const data = await response.json();
-          setPlanosSupabase(data);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar planos:', error);
-      } finally {
-        setLoadingPlanos(false);
-      }
-    };
-    fetchPlanos();
-  }, []);
+  // Buscar todos os planos (sem filtro de aluno)
+  const { data: planosSupabase = [], isLoading: loadingPlanos } = usePlanosAlimentares();
   
   const alunos: Aluno[] = alunosSupabase.map(aluno => ({
     id: aluno.id,
@@ -224,12 +207,6 @@ export default function PlanosAlimentares() {
           title: 'Sucesso',
           description: 'Plano alimentar atualizado com sucesso!',
         });
-        
-        const response = await fetch('/api/admin/planos-alimentares/all');
-        if (response.ok) {
-          const data = await response.json();
-          setPlanosSupabase(data);
-        }
       } else {
         if (planoData.alunosAtribuidos.length === 0) {
           toast({
@@ -253,12 +230,6 @@ export default function PlanosAlimentares() {
           title: 'Sucesso',
           description: 'Plano alimentar criado com sucesso!',
         });
-        
-        const response = await fetch('/api/admin/planos-alimentares/all');
-        if (response.ok) {
-          const data = await response.json();
-          setPlanosSupabase(data);
-        }
       }
       setIsModalOpen(false);
     } catch (error) {
@@ -276,12 +247,6 @@ export default function PlanosAlimentares() {
     
     try {
       await deletePlano.mutateAsync(id);
-      
-      const response = await fetch('/api/admin/planos-alimentares/all');
-      if (response.ok) {
-        const data = await response.json();
-        setPlanosSupabase(data);
-      }
     } catch (error) {
       console.error('Erro ao excluir plano:', error);
     }

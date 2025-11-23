@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
 interface Exercicio {
   id?: string;
@@ -31,9 +32,16 @@ export function useFichasTreino() {
   return useQuery({
     queryKey: ['fichas-treino'],
     queryFn: async () => {
-      const response = await fetch('/api/fichas-treino');
-      if (!response.ok) throw new Error('Erro ao buscar fichas');
-      return response.json() as Promise<FichaTreino[]>;
+      const { data, error } = await supabase
+        .from('fichas_treino')
+        .select(`
+          *,
+          exercicios:exercicios_ficha(*)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as FichaTreino[];
     }
   });
 }
@@ -43,9 +51,17 @@ export function useFichaTreino(id: string) {
   return useQuery({
     queryKey: ['fichas-treino', id],
     queryFn: async () => {
-      const response = await fetch(`/api/fichas-treino/${id}`);
-      if (!response.ok) throw new Error('Erro ao buscar ficha');
-      return response.json() as Promise<FichaTreino>;
+      const { data, error } = await supabase
+        .from('fichas_treino')
+        .select(`
+          *,
+          exercicios:exercicios_ficha(*)
+        `)
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data as FichaTreino;
     },
     enabled: !!id
   });
@@ -57,14 +73,33 @@ export function useCreateFichaTreino() {
   
   return useMutation({
     mutationFn: async (data: Partial<FichaTreino> & { exercicios?: Exercicio[] }) => {
-      const response = await fetch('/api/fichas-treino', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const { exercicios, ...fichaData } = data;
       
-      if (!response.ok) throw new Error('Erro ao criar ficha');
-      return response.json();
+      // Criar ficha
+      const { data: novaFicha, error: fichaError } = await supabase
+        .from('fichas_treino')
+        .insert([fichaData])
+        .select()
+        .single();
+      
+      if (fichaError) throw fichaError;
+      
+      // Criar exercícios se fornecidos
+      if (exercicios && exercicios.length > 0) {
+        const exerciciosComFichaId = exercicios.map((ex, index) => ({
+          ...ex,
+          ficha_id: novaFicha.id,
+          ordem: ex.ordem || index + 1
+        }));
+        
+        const { error: exError } = await supabase
+          .from('exercicios_ficha')
+          .insert(exerciciosComFichaId);
+        
+        if (exError) throw exError;
+      }
+      
+      return novaFicha;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fichas-treino'] });
@@ -79,14 +114,38 @@ export function useUpdateFichaTreino() {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<FichaTreino> & { exercicios?: Exercicio[] } }) => {
-      const response = await fetch(`/api/fichas-treino/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const { exercicios, ...fichaData } = data;
       
-      if (!response.ok) throw new Error('Erro ao atualizar ficha');
-      return response.json();
+      // Atualizar ficha
+      const { data: fichaAtualizada, error: fichaError } = await supabase
+        .from('fichas_treino')
+        .update({ ...fichaData, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (fichaError) throw fichaError;
+      
+      // Se exercícios foram fornecidos, atualizar
+      if (exercicios && exercicios.length > 0) {
+        // Remover exercícios antigos
+        await supabase.from('exercicios_ficha').delete().eq('ficha_id', id);
+        
+        // Inserir novos exercícios
+        const exerciciosComFichaId = exercicios.map((ex, index) => ({
+          ...ex,
+          ficha_id: id,
+          ordem: index
+        }));
+        
+        const { error: exerciciosError } = await supabase
+          .from('exercicios_ficha')
+          .insert(exerciciosComFichaId);
+        
+        if (exerciciosError) throw exerciciosError;
+      }
+      
+      return fichaAtualizada;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fichas-treino'] });
@@ -101,12 +160,17 @@ export function useDeleteFichaTreino() {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/fichas-treino/${id}`, {
-        method: 'DELETE'
-      });
+      // Remover exercícios primeiro
+      await supabase.from('exercicios_ficha').delete().eq('ficha_id', id);
       
-      if (!response.ok) throw new Error('Erro ao deletar ficha');
-      return response.json();
+      // Remover ficha
+      const { error } = await supabase
+        .from('fichas_treino')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fichas-treino'] });
@@ -121,14 +185,17 @@ export function useAtribuirFicha() {
   
   return useMutation({
     mutationFn: async ({ fichaId, data }: { fichaId: string; data: any }) => {
-      const response = await fetch(`/api/fichas-treino/${fichaId}/atribuir`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
+      const { data: atribuicao, error } = await supabase
+        .from('fichas_atribuicoes')
+        .insert({
+          ficha_id: fichaId,
+          ...data
+        })
+        .select()
+        .single();
       
-      if (!response.ok) throw new Error('Erro ao atribuir ficha');
-      return response.json();
+      if (error) throw error;
+      return atribuicao;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['fichas-treino'] });
@@ -143,9 +210,17 @@ export function useFichaAtribuicoes(fichaId: string) {
   return useQuery({
     queryKey: ['fichas-atribuicoes', fichaId],
     queryFn: async () => {
-      const response = await fetch(`/api/fichas-treino/${fichaId}/atribuicoes`);
-      if (!response.ok) throw new Error('Erro ao buscar atribuições');
-      return response.json();
+      const { data, error } = await supabase
+        .from('fichas_atribuicoes')
+        .select(`
+          *,
+          aluno:alunos(id, nome, email)
+        `)
+        .eq('ficha_id', fichaId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
     },
     enabled: !!fichaId
   });
@@ -157,12 +232,14 @@ export function useRemoverAtribuicao() {
   
   return useMutation({
     mutationFn: async ({ fichaId, atribuicaoId }: { fichaId: string; atribuicaoId: string }) => {
-      const response = await fetch(`/api/fichas-treino/${fichaId}/atribuicoes/${atribuicaoId}`, {
-        method: 'DELETE'
-      });
+      const { error } = await supabase
+        .from('fichas_atribuicoes')
+        .delete()
+        .eq('id', atribuicaoId)
+        .eq('ficha_id', fichaId);
       
-      if (!response.ok) throw new Error('Erro ao remover atribuição');
-      return response.json();
+      if (error) throw error;
+      return { success: true };
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['fichas-atribuicoes', variables.fichaId] });
@@ -176,14 +253,26 @@ export function useFichasStats() {
   return useQuery({
     queryKey: ['fichas-stats'],
     queryFn: async () => {
-      const response = await fetch('/api/fichas-treino/stats/geral');
-      if (!response.ok) throw new Error('Erro ao buscar estatísticas');
-      return response.json() as Promise<{
-        totalFichas: number;
-        fichasAtivas: number;
-        totalExercicios: number;
-        alunosComFichas: number;
-      }>;
+      const { data: fichas } = await supabase
+        .from('fichas_treino')
+        .select('id, ativo, exercicios:exercicios_ficha(id)');
+      
+      const { data: atribuicoes } = await supabase
+        .from('fichas_atribuicoes')
+        .select('aluno_id')
+        .eq('status', 'ativo');
+      
+      const totalFichas = fichas?.length || 0;
+      const fichasAtivas = fichas?.filter(f => f.ativo === 'true').length || 0;
+      const totalExercicios = fichas?.reduce((acc: number, f: any) => acc + (f.exercicios?.length || 0), 0) || 0;
+      const alunosComFichas = new Set(atribuicoes?.map(a => a.aluno_id) || []).size;
+      
+      return {
+        totalFichas,
+        fichasAtivas,
+        totalExercicios,
+        alunosComFichas
+      };
     }
   });
 }
