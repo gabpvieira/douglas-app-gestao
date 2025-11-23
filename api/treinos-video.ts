@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from './_lib/supabase';
 
 export default async function handler(
   req: VercelRequest,
@@ -16,8 +16,6 @@ export default async function handler(
   }
 
   try {
-    // Usar o helper centralizado que já faz as verificações de erro
-    const { getSupabaseAdmin } = require('./_lib/supabase');
     const supabase = getSupabaseAdmin();
 
     if (req.method === 'GET') {
