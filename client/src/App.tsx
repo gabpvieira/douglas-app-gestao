@@ -125,27 +125,51 @@ function Router() {
 
   // Restaurar sessão ao carregar
   useEffect(() => {
+    let mounted = true;
+    
     const restoreSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Timeout de segurança
+        const timeoutId = setTimeout(() => {
+          if (mounted) {
+            console.warn('Timeout ao restaurar sessão');
+            setLoading(false);
+          }
+        }, 3000);
+
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        clearTimeout(timeoutId);
+        
+        if (!mounted) return;
+        
+        if (sessionError) {
+          console.error('Erro ao buscar sessão:', sessionError);
+          setLoading(false);
+          return;
+        }
         
         if (session?.user) {
           // Buscar perfil do usuário
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('usuarios')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
+          
+          if (profileError) {
+            console.error('Erro ao buscar perfil:', profileError);
+          }
           
           const user = {
             ...session.user,
-            profile
+            profile: profile || null
           };
           
           setCurrentUser(user);
           
           // Determinar tipo de usuário
-          const tipo = profile?.tipo || session.user.user_metadata?.role;
+          const tipo = profile?.tipo || session.user.user_metadata?.role || 'student';
           
           if (tipo === 'admin') {
             setCurrentView('admin');
@@ -162,7 +186,9 @@ function Router() {
       } catch (error) {
         console.error('Erro ao restaurar sessão:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -170,6 +196,8 @@ function Router() {
 
     // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
       if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
         setCurrentView('landing');
@@ -180,16 +208,16 @@ function Router() {
           .from('usuarios')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         const user = {
           ...session.user,
-          profile
+          profile: profile || null
         };
         
         setCurrentUser(user);
         
-        const tipo = profile?.tipo || session.user.user_metadata?.role;
+        const tipo = profile?.tipo || session.user.user_metadata?.role || 'student';
         
         if (tipo === 'admin') {
           setCurrentView('admin');
@@ -202,6 +230,7 @@ function Router() {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
