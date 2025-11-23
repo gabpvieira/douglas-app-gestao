@@ -6,6 +6,14 @@
   "framework": null,
   "rewrites": [
     {
+      "source": "/api/fichas-treino/:id",
+      "destination": "/api/fichas-treino?id=:id"
+    },
+    {
+      "source": "/api/admin/students/:id",
+      "destination": "/api/admin/students?id=:id"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
