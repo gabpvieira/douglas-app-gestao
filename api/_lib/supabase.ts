@@ -1,11 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 /**
  * Cliente Supabase para serverless functions (Admin)
  * Usa SERVICE_ROLE_KEY que bypassa RLS
  * Use para operações administrativas que precisam de acesso total
  */
-export function getSupabaseAdmin() {
+function getSupabaseAdmin() {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -32,7 +32,7 @@ export function getSupabaseAdmin() {
  * Usa ANON_KEY e respeita políticas RLS
  * Use quando precisar validar permissões do usuário
  */
-export function getSupabaseClient() {
+function getSupabaseClient() {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
@@ -50,19 +50,21 @@ export function getSupabaseClient() {
 /**
  * Helper para extrair usuário do token de autorização
  */
-export async function getUserFromRequest(authHeader: string | undefined) {
+async function getUserFromRequest(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
 
   const token = authHeader.replace('Bearer ', '');
   const supabase = getSupabaseClient();
-  
+
   const { data: { user }, error } = await supabase.auth.getUser(token);
-  
+
   if (error || !user) {
     return null;
   }
-  
+
   return user;
 }
+
+module.exports = { getSupabaseAdmin, getSupabaseClient, getUserFromRequest };

@@ -1,10 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from '../_lib/supabase';
+const { getSupabaseAdmin } = require('../_lib/supabase');
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+module.exports = async function handler(req, res) {
   console.log('🔵 [Students API] Request received:', {
     method: req.method,
     url: req.url
@@ -27,7 +23,7 @@ export default async function handler(
 
     if (req.method === 'GET') {
       console.log('📥 [Students API] Fetching students...');
-      
+
       const { data, error } = await supabase
         .from('users_profile')
         .select('*')
@@ -45,7 +41,7 @@ export default async function handler(
 
     if (req.method === 'POST') {
       console.log('📤 [Students API] Creating student:', req.body);
-      
+
       const { data, error } = await supabase
         .from('users_profile')
         .insert([{ ...req.body, tipo: 'aluno' }])
@@ -63,7 +59,7 @@ export default async function handler(
 
     console.log('⚠️ [Students API] Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ [Students API] Fatal error:', {
       message: error.message,
       code: error.code,
@@ -71,12 +67,12 @@ export default async function handler(
       hint: error.hint,
       stack: error.stack
     });
-    
-    return res.status(500).json({ 
+
+    return res.status(500).json({
       error: error.message || 'Internal server error',
       code: error.code,
       details: error.details,
       hint: error.hint
     });
   }
-}
+};

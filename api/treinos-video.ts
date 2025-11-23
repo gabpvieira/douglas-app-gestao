@@ -1,10 +1,6 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabaseAdmin } from './_lib/supabase';
+const { getSupabaseAdmin } = require('./_lib/supabase');
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
+module.exports = async function handler(req, res) {
   console.log('🔵 [Treinos Video API] Request received:', {
     method: req.method,
     url: req.url
@@ -51,7 +47,7 @@ export default async function handler(
 
     console.log('⚠️ [Treinos Video API] Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ [Treinos Video API] Fatal error:', {
       message: error.message,
       code: error.code,
@@ -67,4 +63,4 @@ export default async function handler(
       hint: error.hint
     });
   }
-}
+};
