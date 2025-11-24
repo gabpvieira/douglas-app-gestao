@@ -124,27 +124,66 @@ function Router() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Função auxiliar para processar usuário autenticado
+  const processAuthenticatedUser = async (session: any, shouldRedirect: boolean = false) => {
+    console.log('👤 Processando usuário:', session.user.id);
+    
+    // Buscar perfil do usuário
+    const { data: profile, error: profileError } = await supabase
+      .from('users_profile')
+      .select('*')
+      .eq('auth_uid', session.user.id)
+      .maybeSingle();
+    
+    if (profileError) {
+      console.error('❌ Erro ao buscar perfil:', profileError);
+    } else {
+      console.log('✅ Perfil encontrado:', profile);
+    }
+    
+    const user = {
+      ...session.user,
+      profile: profile || null
+    };
+    
+    setCurrentUser(user);
+    
+    // Determinar tipo de usuário
+    const tipo = profile?.tipo || session.user.user_metadata?.role || 'aluno';
+    console.log('🔑 Tipo de usuário:', tipo);
+    
+    if (tipo === 'admin') {
+      setCurrentView('admin');
+      if (shouldRedirect && !location.startsWith('/admin')) {
+        console.log('📍 Redirecionando para /admin');
+        setLocation('/admin');
+      }
+    } else {
+      setCurrentView('student');
+      if (shouldRedirect && !location.startsWith('/aluno')) {
+        console.log('📍 Redirecionando para /aluno');
+        setLocation('/aluno');
+      }
+    }
+  };
+
   // Restaurar sessão ao carregar
   useEffect(() => {
     let mounted = true;
-    let timeoutCleared = false;
+    let isProcessing = false;
     
     const restoreSession = async () => {
+      if (isProcessing) {
+        console.log('⚠️ Já está processando sessão, ignorando...');
+        return;
+      }
+      
+      isProcessing = true;
+      
       try {
         console.log('🔍 Restaurando sessão...');
         
-        // Timeout de segurança aumentado para 5 segundos
-        const timeoutId = setTimeout(() => {
-          if (mounted && !timeoutCleared) {
-            console.warn('⏱️ Timeout ao restaurar sessão - continuando sem autenticação');
-            setLoading(false);
-          }
-        }, 5000);
-
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        timeoutCleared = true;
-        clearTimeout(timeoutId);
         
         if (!mounted) return;
         
@@ -160,52 +199,15 @@ function Router() {
           return;
         }
         
-        if (session?.user) {
-          console.log('✅ Sessão encontrada:', session.user.id);
-          
-          // Buscar perfil do usuário na tabela correta
-          const { data: profile, error: profileError } = await supabase
-            .from('users_profile')
-            .select('*')
-            .eq('auth_uid', session.user.id)
-            .maybeSingle();
-          
-          if (profileError) {
-            console.error('❌ Erro ao buscar perfil:', profileError);
-          } else {
-            console.log('👤 Perfil encontrado:', profile);
-          }
-          
-          const user = {
-            ...session.user,
-            profile: profile || null
-          };
-          
-          setCurrentUser(user);
-          
-          // Determinar tipo de usuário
-          const tipo = profile?.tipo || session.user.user_metadata?.role || 'aluno';
-          console.log('🔑 Tipo de usuário:', tipo);
-          
-          if (tipo === 'admin') {
-            setCurrentView('admin');
-            // Manter na página atual se já estiver em rota admin
-            if (!location.startsWith('/admin')) {
-              setLocation('/admin');
-            }
-          } else {
-            setCurrentView('student');
-            // Manter na página atual se já estiver em rota aluno
-            if (!location.startsWith('/aluno')) {
-              setLocation('/aluno');
-            }
-          }
-        }
+        console.log('✅ Sessão encontrada');
+        await processAuthenticatedUser(session, location === '/' || location === '/login');
+        
       } catch (error) {
         console.error('❌ Erro ao restaurar sessão:', error);
       } finally {
         if (mounted) {
           setLoading(false);
+          isProcessing = false;
         }
       }
     };
@@ -218,52 +220,20 @@ function Router() {
       
       console.log('🔄 Auth state changed:', event);
       
+      // Ignorar evento SIGNED_IN inicial (já tratado no restoreSession)
+      if (event === 'SIGNED_IN' && loading) {
+        console.log('⏭️ Ignorando SIGNED_IN durante carregamento inicial');
+        return;
+      }
+      
       if (event === 'SIGNED_OUT') {
         console.log('👋 Usuário deslogado');
         setCurrentUser(null);
         setCurrentView('landing');
         setLocation('/');
       } else if (event === 'SIGNED_IN' && session?.user) {
-        console.log('👋 Usuário logado:', session.user.id);
-        
-        // Buscar perfil do usuário na tabela correta
-        const { data: profile } = await supabase
-          .from('users_profile')
-          .select('*')
-          .eq('auth_uid', session.user.id)
-          .maybeSingle();
-        
-        console.log('👤 Perfil carregado:', profile);
-        
-        const user = {
-          ...session.user,
-          profile: profile || null
-        };
-        
-        setCurrentUser(user);
-        
-        const tipo = profile?.tipo || session.user.user_metadata?.role || 'aluno';
-        console.log('🔑 Tipo detectado:', tipo);
-        
-        if (tipo === 'admin') {
-          setCurrentView('admin');
-          // Só redirecionar se estiver na landing ou login
-          if (location === '/' || location === '/login') {
-            console.log('📍 Redirecionando para /admin');
-            setLocation('/admin');
-          } else {
-            console.log('📍 Mantendo na página atual:', location);
-          }
-        } else {
-          setCurrentView('student');
-          // Só redirecionar se estiver na landing ou login
-          if (location === '/' || location === '/login') {
-            console.log('📍 Redirecionando para /aluno');
-            setLocation('/aluno');
-          } else {
-            console.log('📍 Mantendo na página atual:', location);
-          }
-        }
+        console.log('👋 Novo login detectado');
+        await processAuthenticatedUser(session, true);
       }
     });
 
