@@ -127,21 +127,23 @@ function Router() {
   // Restaurar sessão ao carregar
   useEffect(() => {
     let mounted = true;
+    let timeoutCleared = false;
     
     const restoreSession = async () => {
       try {
         console.log('🔍 Restaurando sessão...');
         
-        // Timeout de segurança reduzido
+        // Timeout de segurança aumentado para 5 segundos
         const timeoutId = setTimeout(() => {
-          if (mounted) {
+          if (mounted && !timeoutCleared) {
             console.warn('⏱️ Timeout ao restaurar sessão - continuando sem autenticação');
             setLoading(false);
           }
-        }, 2000);
+        }, 5000);
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
+        timeoutCleared = true;
         clearTimeout(timeoutId);
         
         if (!mounted) return;
@@ -187,18 +189,20 @@ function Router() {
           
           if (tipo === 'admin') {
             setCurrentView('admin');
-            if (location === '/' || location === '/login') {
+            // Manter na página atual se já estiver em rota admin
+            if (!location.startsWith('/admin')) {
               setLocation('/admin');
             }
           } else {
             setCurrentView('student');
-            if (location === '/' || location === '/login') {
+            // Manter na página atual se já estiver em rota aluno
+            if (!location.startsWith('/aluno')) {
               setLocation('/aluno');
             }
           }
         }
       } catch (error) {
-        console.error('Erro ao restaurar sessão:', error);
+        console.error('❌ Erro ao restaurar sessão:', error);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -239,14 +243,26 @@ function Router() {
         setCurrentUser(user);
         
         const tipo = profile?.tipo || session.user.user_metadata?.role || 'aluno';
-        console.log('🔑 Redirecionando para:', tipo);
+        console.log('🔑 Tipo detectado:', tipo);
         
         if (tipo === 'admin') {
           setCurrentView('admin');
-          setLocation('/admin');
+          // Só redirecionar se estiver na landing ou login
+          if (location === '/' || location === '/login') {
+            console.log('📍 Redirecionando para /admin');
+            setLocation('/admin');
+          } else {
+            console.log('📍 Mantendo na página atual:', location);
+          }
         } else {
           setCurrentView('student');
-          setLocation('/aluno');
+          // Só redirecionar se estiver na landing ou login
+          if (location === '/' || location === '/login') {
+            console.log('📍 Redirecionando para /aluno');
+            setLocation('/aluno');
+          } else {
+            console.log('📍 Mantendo na página atual:', location);
+          }
         }
       }
     });
