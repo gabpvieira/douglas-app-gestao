@@ -1,203 +1,332 @@
+/**
+ * Hook para gerenciar pagamentos e assinaturas via Supabase
+ */
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from './use-toast';
 import { supabase } from '@/lib/supabase';
 
-interface Pagamento {
+export interface Assinatura {
   id: string;
-  assinaturaId: string;
+  aluno_id: string;
+  plano_tipo: 'mensal' | 'trimestral' | 'familia';
+  preco: number;
+  data_inicio: string;
+  data_fim: string;
+  status: 'ativa' | 'cancelada' | 'vencida';
+  mercado_pago_subscription_id: string | null;
+  created_at: string;
+  updated_at: string;
+  // Dados do aluno (join)
+  aluno?: {
+    id: string;
+    user_profile_id: string;
+    status: string;
+    user_profile: {
+      nome: string;
+      email: string;
+    };
+  };
+}
+
+export interface Pagamento {
+  id: string;
+  assinatura_id: string;
   status: 'pendente' | 'aprovado' | 'recusado' | 'cancelado' | 'estornado';
   valor: number;
   metodo: 'credit_card' | 'debit_card' | 'pix' | 'boleto';
-  mercadoPagoPaymentId: string | null;
-  dataPagamento: string | null;
-  createdAt: string;
+  mercado_pago_payment_id: string | null;
+  data_pagamento: string | null;
+  created_at: string;
+  // Dados da assinatura (join)
+  assinatura?: Assinatura;
 }
 
-interface CreatePagamentoData {
-  assinaturaId: string;
-  valor: number;
-  metodo: 'credit_card' | 'debit_card' | 'pix' | 'boleto';
-  status?: 'pendente' | 'aprovado';
+export interface AssinaturaComPagamentos extends Assinatura {
+  pagamentos: Pagamento[];
+  ultimo_pagamento?: Pagamento;
 }
 
-// Listar todos os pagamentos (Admin)
-export function usePagamentos(assinaturaId?: string) {
-  return useQuery<Pagamento[]>({
-    queryKey: ['pagamentos', assinaturaId],
+/**
+ * Busca todas as assinaturas com dados dos alunos
+ */
+export function useAssinaturas() {
+  return useQuery({
+    queryKey: ['assinaturas'],
     queryFn: async () => {
-      let query = supabase
-        .from('pagamentos')
-        .select('*')
+      const { data, error } = await supabase
+        .from('assinaturas')
+        .select(`
+          *,
+          aluno:alunos!inner(
+            id,
+            user_profile_id,
+            status,
+            user_profile:users_profile!inner(
+              nome,
+              email
+            )
+          )
+        `)
         .order('created_at', { ascending: false });
-      
-      if (assinaturaId) {
-        query = query.eq('assinatura_id', assinaturaId);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('❌ Erro ao buscar pagamentos:', error);
-        throw new Error('Falha ao buscar pagamentos');
-      }
-      
-      return (data || []).map((item: any) => ({
-        id: item.id,
-        assinaturaId: item.assinatura_id,
-        status: item.status,
-        valor: item.valor,
-        metodo: item.metodo,
-        mercadoPagoPaymentId: item.mercado_pago_payment_id,
-        dataPagamento: item.data_pagamento,
-        createdAt: item.created_at
-      }));
-    }
+
+      if (error) throw error;
+      return data as AssinaturaComPagamentos[];
+    },
   });
 }
 
-// Obter meus pagamentos (Aluno)
-export function useMyPagamentos(alunoId: string) {
-  return useQuery<Pagamento[]>({
-    queryKey: ['meus-pagamentos', alunoId],
+/**
+ * Busca todos os pagamentos com dados das assinaturas
+ */
+export function usePagamentos() {
+  return useQuery({
+    queryKey: ['pagamentos'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('pagamentos')
         .select(`
           *,
-          assinaturas!inner(aluno_id)
+          assinatura:assinaturas!inner(
+            *,
+            aluno:alunos!inner(
+              id,
+              user_profile_id,
+              user_profile:users_profile!inner(
+                nome,
+                email
+              )
+            )
+          )
         `)
-        .eq('assinaturas.aluno_id', alunoId)
         .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('❌ Erro ao buscar pagamentos:', error);
-        throw new Error('Falha ao buscar pagamentos');
-      }
-      
-      return (data || []).map((item: any) => ({
-        id: item.id,
-        assinaturaId: item.assinatura_id,
-        status: item.status,
-        valor: item.valor,
-        metodo: item.metodo,
-        mercadoPagoPaymentId: item.mercado_pago_payment_id,
-        dataPagamento: item.data_pagamento,
-        createdAt: item.created_at
-      }));
+
+      if (error) throw error;
+      return data as Pagamento[];
     },
-    enabled: !!alunoId
   });
 }
 
-// Obter pagamento específico
-export function usePagamento(id: string) {
-  return useQuery<Pagamento>({
-    queryKey: ['pagamento', id],
+/**
+ * Busca assinaturas com seus pagamentos
+ */
+export function useAssinaturasComPagamentos() {
+  return useQuery({
+    queryKey: ['assinaturas-com-pagamentos'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('pagamentos')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error('❌ Erro ao buscar pagamento:', error);
-        throw new Error('Falha ao buscar pagamento');
-      }
-      
-      return {
-        id: data.id,
-        assinaturaId: data.assinatura_id,
-        status: data.status,
-        valor: data.valor,
-        metodo: data.metodo,
-        mercadoPagoPaymentId: data.mercado_pago_payment_id,
-        dataPagamento: data.data_pagamento,
-        createdAt: data.created_at
-      };
+      // Buscar assinaturas
+      const { data: assinaturas, error: assinaturasError } = await supabase
+        .from('assinaturas')
+        .select(`
+          *,
+          aluno:alunos!inner(
+            id,
+            user_profile_id,
+            status,
+            user_profile:users_profile!inner(
+              nome,
+              email
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (assinaturasError) throw assinaturasError;
+
+      // Buscar pagamentos para cada assinatura
+      const assinaturasComPagamentos = await Promise.all(
+        (assinaturas || []).map(async (assinatura) => {
+          const { data: pagamentos, error: pagamentosError } = await supabase
+            .from('pagamentos')
+            .select('*')
+            .eq('assinatura_id', assinatura.id)
+            .order('created_at', { ascending: false });
+
+          if (pagamentosError) throw pagamentosError;
+
+          return {
+            ...assinatura,
+            pagamentos: pagamentos || [],
+            ultimo_pagamento: pagamentos?.[0] || null,
+          };
+        })
+      );
+
+      return assinaturasComPagamentos as AssinaturaComPagamentos[];
     },
-    enabled: !!id
   });
 }
 
-// Criar pagamento
+/**
+ * Cria uma nova assinatura
+ */
+export function useCreateAssinatura() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      aluno_id: string;
+      plano_tipo: 'mensal' | 'trimestral' | 'familia';
+      preco: number;
+      data_inicio: string;
+      data_fim: string;
+    }) => {
+      const { data: assinatura, error } = await supabase
+        .from('assinaturas')
+        .insert(data)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return assinatura;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assinaturas'] });
+      queryClient.invalidateQueries({ queryKey: ['assinaturas-com-pagamentos'] });
+    },
+  });
+}
+
+/**
+ * Atualiza uma assinatura
+ */
+export function useUpdateAssinatura() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<Assinatura>;
+    }) => {
+      const { data: assinatura, error } = await supabase
+        .from('assinaturas')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return assinatura;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assinaturas'] });
+      queryClient.invalidateQueries({ queryKey: ['assinaturas-com-pagamentos'] });
+    },
+  });
+}
+
+/**
+ * Cancela uma assinatura
+ */
+export function useCancelAssinatura() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('assinaturas')
+        .update({ status: 'cancelada' })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assinaturas'] });
+      queryClient.invalidateQueries({ queryKey: ['assinaturas-com-pagamentos'] });
+    },
+  });
+}
+
+/**
+ * Cria um novo pagamento
+ */
 export function useCreatePagamento() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: CreatePagamentoData) => {
+    mutationFn: async (data: {
+      assinatura_id: string;
+      status: 'pendente' | 'aprovado' | 'recusado' | 'cancelado' | 'estornado';
+      valor: number;
+      metodo: 'credit_card' | 'debit_card' | 'pix' | 'boleto';
+      data_pagamento?: string;
+    }) => {
       const { data: pagamento, error } = await supabase
         .from('pagamentos')
-        .insert([{
-          assinatura_id: data.assinaturaId,
-          valor: data.valor,
-          metodo: data.metodo,
-          status: data.status || 'pendente'
-        }])
+        .insert(data)
         .select()
         .single();
-      
-      if (error) {
-        console.error('❌ Erro ao criar pagamento:', error);
-        throw new Error(error.message || 'Falha ao criar pagamento');
-      }
-      
+
+      if (error) throw error;
       return pagamento;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['pagamentos', variables.assinaturaId] });
-      toast({
-        title: 'Sucesso!',
-        description: 'Pagamento registrado com sucesso'
-      });
+      queryClient.invalidateQueries({ queryKey: ['assinaturas-com-pagamentos'] });
     },
-    onError: (error: Error) => {
-      toast({
-        title: 'Erro',
-        description: error.message,
-        variant: 'destructive'
-      });
-    }
   });
 }
 
-// Atualizar status do pagamento
+/**
+ * Atualiza um pagamento
+ */
 export function useUpdatePagamento() {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: Pagamento['status'] }) => {
-      const { data, error } = await supabase
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<Pagamento>;
+    }) => {
+      const { data: pagamento, error } = await supabase
         .from('pagamentos')
-        .update({ status })
+        .update(data)
         .eq('id', id)
         .select()
         .single();
 
-      if (error) {
-        console.error('❌ Erro ao atualizar pagamento:', error);
-        throw new Error(error.message || 'Falha ao atualizar pagamento');
-      }
+      if (error) throw error;
+      return pagamento;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['assinaturas-com-pagamentos'] });
+    },
+  });
+}
 
+/**
+ * Marca um pagamento como aprovado
+ */
+export function useAprovarPagamento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('pagamentos')
+        .update({
+          status: 'aprovado',
+          data_pagamento: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['meus-pagamentos'] });
-      toast({
-        title: 'Sucesso!',
-        description: 'Pagamento atualizado com sucesso'
-      });
+      queryClient.invalidateQueries({ queryKey: ['assinaturas-com-pagamentos'] });
     },
-    onError: (error: Error) => {
-      toast({
-        title: 'Erro',
-        description: error.message,
-        variant: 'destructive'
-      });
-    }
   });
 }

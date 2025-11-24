@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { NotificationProvider } from "@/components/notifications";
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -61,10 +62,19 @@ function AdminLayout({ userName, onLogout }: {
   userName: string;
   onLogout: () => void;
 }) {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
-      <AdminSidebar onLogout={onLogout} />
-      <main className="min-h-screen md:ml-64">
+      <AdminSidebar 
+        onLogout={onLogout}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={setIsSidebarCollapsed}
+      />
+      <main className={`
+        min-h-screen transition-all duration-300 ease-in-out
+        ${isSidebarCollapsed ? 'md:ml-16' : 'md:ml-56'}
+      `}>
         <Switch>
           <Route path="/admin/dashboard">
             <AdminDashboard />
@@ -365,10 +375,12 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <NotificationProvider maxNotifications={5}>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </NotificationProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );
