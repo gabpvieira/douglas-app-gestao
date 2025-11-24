@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { format, addDays, subDays, isSameDay, startOfMonth, endOfMonth, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useAgendamentos, useUpdateAgendamento, useDeleteAgendamento } from '@/hooks/useAgenda';
+import { useAgendamentos, useUpdateAgendamento, useDeleteAgendamento, useCreateAgendamento } from '@/hooks/useAgenda';
 import { useAlunos } from '@/hooks/useAlunos';
 import { useToast } from '@/hooks/use-toast';
 import PageHeader from '@/components/PageHeader';
@@ -51,8 +51,17 @@ export default function AgendaProfissional() {
   const [selectedAgendamento, setSelectedAgendamento] = useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [editData, setEditData] = useState({
     status: '',
+    observacoes: ''
+  });
+  const [newAgendamentoData, setNewAgendamentoData] = useState({
+    alunoId: '',
+    dataAgendamento: format(new Date(), 'yyyy-MM-dd'),
+    horaInicio: '',
+    horaFim: '',
+    tipo: 'presencial',
     observacoes: ''
   });
   const { toast } = useToast();
@@ -66,6 +75,7 @@ export default function AgendaProfissional() {
   
   const updateAgendamento = useUpdateAgendamento();
   const deleteAgendamento = useDeleteAgendamento();
+  const createAgendamento = useCreateAgendamento();
 
   const isLoading = loadingAgendamentos || loadingAlunos;
 
@@ -160,6 +170,50 @@ export default function AgendaProfissional() {
     }
   };
 
+  // Abrir modal de novo agendamento
+  const handleOpenNew = () => {
+    setNewAgendamentoData({
+      alunoId: '',
+      dataAgendamento: format(selectedDate, 'yyyy-MM-dd'),
+      horaInicio: '',
+      horaFim: '',
+      tipo: 'presencial',
+      observacoes: ''
+    });
+    setIsNewModalOpen(true);
+  };
+
+  // Criar novo agendamento
+  const handleCreateAgendamento = async () => {
+    if (!newAgendamentoData.alunoId || !newAgendamentoData.horaInicio || !newAgendamentoData.horaFim) {
+      toast({
+        title: 'Erro',
+        description: 'Preencha todos os campos obrigatórios',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      await createAgendamento.mutateAsync({
+        alunoId: newAgendamentoData.alunoId,
+        dataAgendamento: newAgendamentoData.dataAgendamento,
+        horaInicio: newAgendamentoData.horaInicio,
+        horaFim: newAgendamentoData.horaFim,
+        tipo: newAgendamentoData.tipo,
+        observacoes: newAgendamentoData.observacoes,
+        status: 'agendado'
+      });
+      setIsNewModalOpen(false);
+      toast({
+        title: 'Sucesso',
+        description: 'Agendamento criado com sucesso'
+      });
+    } catch (error) {
+      console.error('Erro ao criar agendamento:', error);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     const colors = {
       agendado: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
@@ -207,6 +261,7 @@ export default function AgendaProfissional() {
           actions={
             <Button 
               size="sm" 
+              onClick={handleOpenNew}
               className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
               disabled={isLoading}
             >
@@ -572,6 +627,138 @@ export default function AgendaProfissional() {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Novo Agendamento */}
+      <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+        <DialogContent className="max-w-lg bg-gray-900 border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Novo Agendamento</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Crie um novo atendimento para um aluno
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="aluno">Aluno *</Label>
+              <Select
+                value={newAgendamentoData.alunoId}
+                onValueChange={(value) => setNewAgendamentoData({ ...newAgendamentoData, alunoId: value })}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700">
+                  <SelectValue placeholder="Selecione um aluno" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  {alunosData.map((aluno) => (
+                    <SelectItem key={aluno.id} value={aluno.id} className="text-white hover:bg-gray-700">
+                      {aluno.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data">Data *</Label>
+              <Input
+                id="data"
+                type="date"
+                value={newAgendamentoData.dataAgendamento}
+                onChange={(e) => setNewAgendamentoData({ ...newAgendamentoData, dataAgendamento: e.target.value })}
+                className="bg-gray-800 border-gray-700"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="horaInicio">Hora Início *</Label>
+                <Input
+                  id="horaInicio"
+                  type="time"
+                  value={newAgendamentoData.horaInicio}
+                  onChange={(e) => setNewAgendamentoData({ ...newAgendamentoData, horaInicio: e.target.value })}
+                  className="bg-gray-800 border-gray-700"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="horaFim">Hora Fim *</Label>
+                <Input
+                  id="horaFim"
+                  type="time"
+                  value={newAgendamentoData.horaFim}
+                  onChange={(e) => setNewAgendamentoData({ ...newAgendamentoData, horaFim: e.target.value })}
+                  className="bg-gray-800 border-gray-700"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tipo">Tipo de Atendimento</Label>
+              <Select
+                value={newAgendamentoData.tipo}
+                onValueChange={(value) => setNewAgendamentoData({ ...newAgendamentoData, tipo: value })}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700">
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectItem value="presencial" className="text-white hover:bg-gray-700">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Presencial
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="online" className="text-white hover:bg-gray-700">
+                    <div className="flex items-center gap-2">
+                      <Video className="h-4 w-4" />
+                      Online
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="observacoes-new">Observações</Label>
+              <Textarea
+                id="observacoes-new"
+                value={newAgendamentoData.observacoes}
+                onChange={(e) => setNewAgendamentoData({ ...newAgendamentoData, observacoes: e.target.value })}
+                placeholder="Adicione observações sobre o atendimento..."
+                className="bg-gray-800 border-gray-700 min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsNewModalOpen(false)}
+              className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateAgendamento}
+              disabled={createAgendamento.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {createAgendamento.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Agendamento
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

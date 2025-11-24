@@ -266,19 +266,19 @@ export function PlanosAlimentaresList({
                 <div className="grid grid-cols-4 gap-2 py-2 border-y border-gray-800">
                   <div className="text-center">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Calorias</p>
-                    <p className="text-sm font-semibold text-white mt-0.5">{plano.calorias}</p>
+                    <p className="text-sm font-semibold text-white mt-0.5">{Math.round(plano.calorias)}</p>
                   </div>
                   <div className="text-center border-l border-gray-800">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Refeições</p>
-                    <p className="text-sm font-semibold text-white mt-0.5">{plano.refeicoes.length}</p>
+                    <p className="text-sm font-semibold text-white mt-0.5">{plano.refeicoes?.length || 0}</p>
                   </div>
                   <div className="text-center border-l border-gray-800">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Proteínas</p>
-                    <p className="text-sm font-semibold text-white mt-0.5">{plano.proteinas}g</p>
+                    <p className="text-sm font-semibold text-white mt-0.5">{Math.round(plano.proteinas)}g</p>
                   </div>
                   <div className="text-center border-l border-gray-800">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wide">Carbos</p>
-                    <p className="text-sm font-semibold text-white mt-0.5">{plano.carboidratos}g</p>
+                    <p className="text-sm font-semibold text-white mt-0.5">{Math.round(plano.carboidratos)}g</p>
                   </div>
                 </div>
 

@@ -186,7 +186,7 @@ export function useAtribuirFicha() {
   return useMutation({
     mutationFn: async ({ fichaId, data }: { fichaId: string; data: any }) => {
       const { data: atribuicao, error } = await supabase
-        .from('fichas_atribuicoes')
+        .from('fichas_alunos')
         .insert({
           ficha_id: fichaId,
           ...data
@@ -211,7 +211,7 @@ export function useFichaAtribuicoes(fichaId: string) {
     queryKey: ['fichas-atribuicoes', fichaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('fichas_atribuicoes')
+        .from('fichas_alunos')
         .select(`
           *,
           aluno:alunos(id, nome, email)
@@ -233,7 +233,7 @@ export function useRemoverAtribuicao() {
   return useMutation({
     mutationFn: async ({ fichaId, atribuicaoId }: { fichaId: string; atribuicaoId: string }) => {
       const { error } = await supabase
-        .from('fichas_atribuicoes')
+        .from('fichas_alunos')
         .delete()
         .eq('id', atribuicaoId)
         .eq('ficha_id', fichaId);
@@ -258,7 +258,7 @@ export function useFichasStats() {
         .select('id, ativo, exercicios:exercicios_ficha(id)');
       
       const { data: atribuicoes } = await supabase
-        .from('fichas_atribuicoes')
+        .from('fichas_alunos')
         .select('aluno_id')
         .eq('status', 'ativo');
       

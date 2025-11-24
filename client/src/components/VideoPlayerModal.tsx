@@ -8,8 +8,7 @@ import {
   Pause, 
   Volume2, 
   VolumeX, 
-  Maximize, 
-  X,
+  Maximize,
   Clock,
   Calendar,
   Target,
@@ -141,14 +140,6 @@ export function VideoPlayerModal({
                 })()}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-gray-400 hover:text-white hover:bg-gray-800"
-            >
-              <X className="w-5 h-5" />
-            </Button>
           </div>
         </DialogHeader>
 

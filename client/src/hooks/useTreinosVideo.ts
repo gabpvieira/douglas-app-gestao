@@ -126,65 +126,40 @@ export function useStreamTreinoVideo(id: string) {
       console.log('📹 [Stream] Vídeo encontrado:', {
         id: video.id,
         nome: video.nome,
-        url_video: video.url_video,
-        urlVideo: video.urlVideo
+        url_video: video.url_video
       });
       
-      // Usar url_video ou urlVideo (snake_case ou camelCase)
-      const videoUrl = video.url_video || video.urlVideo;
+      // Usar url_video (snake_case do banco)
+      const videoFileName = video.url_video;
       
-      if (!videoUrl) {
-        console.error('❌ [Stream] URL do vídeo não encontrada');
-        throw new Error('URL do vídeo não encontrada');
+      if (!videoFileName) {
+        console.error('❌ [Stream] Nome do arquivo de vídeo não encontrado');
+        throw new Error('Arquivo de vídeo não encontrado');
       }
       
-      // Se a URL já é pública do Supabase, usar diretamente
-      if (videoUrl.includes('supabase.co/storage/v1/object/public/')) {
-        console.log('✅ [Stream] Usando URL pública:', videoUrl);
+      // Se já for uma URL completa, usar diretamente
+      if (videoFileName.startsWith('http')) {
+        console.log('✅ [Stream] Usando URL completa:', videoFileName);
         return {
           id: video.id,
           nome: video.nome,
-          streamUrl: videoUrl,
+          streamUrl: videoFileName,
           duracao: video.duracao || 0,
           expiresIn: 3600
         };
       }
       
-      // Tentar extrair o path do arquivo da URL
-      let filePath = videoUrl;
+      // Construir URL pública do Supabase Storage
+      const { data: { publicUrl } } = supabase.storage
+        .from('treinos-video')
+        .getPublicUrl(videoFileName);
       
-      // Se for URL completa do Supabase, extrair o path
-      if (videoUrl.includes('supabase.co/storage/v1/object/')) {
-        const match = videoUrl.match(/\/object\/(?:public|sign)\/videos\/(.+)/);
-        if (match) {
-          filePath = match[1];
-        }
-      }
+      console.log('✅ [Stream] URL pública gerada:', publicUrl);
       
-      console.log('🔑 [Stream] Gerando signed URL para:', filePath);
-      
-      // Tentar gerar URL assinada
-      const { data: signedData, error: signedError } = await supabase.storage
-        .from('videos')
-        .createSignedUrl(filePath, 3600);
-      
-      if (signedError) {
-        console.error('⚠️ [Stream] Erro ao gerar signed URL:', signedError);
-        console.log('📌 [Stream] Usando URL original como fallback');
-        return {
-          id: video.id,
-          nome: video.nome,
-          streamUrl: videoUrl,
-          duracao: video.duracao || 0,
-          expiresIn: 3600
-        };
-      }
-      
-      console.log('✅ [Stream] Signed URL gerada com sucesso');
       return {
         id: video.id,
         nome: video.nome,
-        streamUrl: signedData.signedUrl,
+        streamUrl: publicUrl,
         duracao: video.duracao || 0,
         expiresIn: 3600
       };
@@ -387,13 +362,13 @@ export function useDeleteTreinoVideo() {
       // Deletar arquivo de vídeo do storage
       if (video.url_video) {
         const fileName = video.url_video.split('/').pop();
-        await supabase.storage.from('videos').remove([fileName]);
+        await supabase.storage.from('treinos-video').remove([fileName]);
       }
       
       // Deletar thumbnail do storage
       if (video.thumbnail_url) {
         const thumbName = video.thumbnail_url.split('/').pop();
-        await supabase.storage.from('thumbnails').remove([thumbName]);
+        await supabase.storage.from('treinos-video').remove([`thumbnails/${thumbName}`]);
       }
       
       // Deletar registro do banco

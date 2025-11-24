@@ -9,16 +9,23 @@ import {
   DollarSign, 
   AlertTriangle,
   Search,
-  Filter
+  Filter,
+  UserPlus,
+  Video,
+  Calendar,
+  CreditCard,
+  ArrowRight
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAlunos } from "@/hooks/useAlunos";
 import { useDashboardStats } from "@/hooks/useDashboard";
 import PageHeader from "@/components/PageHeader";
+import { useLocation } from "wouter";
 
 export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [, setLocation] = useLocation();
   
   const { data: alunos = [], isLoading: loadingAlunos } = useAlunos();
   const { data: dashboardStats, isLoading: loadingStats } = useDashboardStats();
@@ -142,6 +149,81 @@ export default function AdminDashboard() {
               </div>
             </Card>
           ))}
+        </div>
+
+        {/* Quick Actions Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Adicionar Novo Aluno */}
+          <Card 
+            className="group relative overflow-hidden border-gray-800 bg-gradient-to-br from-blue-900/20 to-blue-800/10 hover:from-blue-900/30 hover:to-blue-800/20 backdrop-blur transition-all duration-300 cursor-pointer"
+            onClick={() => setLocation('/admin/alunos')}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-600/0 group-hover:from-blue-500/10 group-hover:to-blue-600/10 transition-all duration-300" />
+            <div className="relative p-4 sm:p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
+              </div>
+              <h3 className="text-sm sm:text-base font-semibold text-white mb-1">Novo Aluno</h3>
+              <p className="text-xs sm:text-sm text-gray-400">Cadastrar novo aluno no sistema</p>
+            </div>
+          </Card>
+
+          {/* Adicionar Novo Treino */}
+          <Card 
+            className="group relative overflow-hidden border-gray-800 bg-gradient-to-br from-purple-900/20 to-purple-800/10 hover:from-purple-900/30 hover:to-purple-800/20 backdrop-blur transition-all duration-300 cursor-pointer"
+            onClick={() => setLocation('/admin/treinos-video')}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-purple-600/0 group-hover:from-purple-500/10 group-hover:to-purple-600/10 transition-all duration-300" />
+            <div className="relative p-4 sm:p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Video className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
+              </div>
+              <h3 className="text-sm sm:text-base font-semibold text-white mb-1">Novo Treino</h3>
+              <p className="text-xs sm:text-sm text-gray-400">Adicionar vídeo de treino</p>
+            </div>
+          </Card>
+
+          {/* Ver Agenda */}
+          <Card 
+            className="group relative overflow-hidden border-gray-800 bg-gradient-to-br from-green-900/20 to-green-800/10 hover:from-green-900/30 hover:to-green-800/20 backdrop-blur transition-all duration-300 cursor-pointer"
+            onClick={() => setLocation('/admin/agenda')}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-green-600/0 group-hover:from-green-500/10 group-hover:to-green-600/10 transition-all duration-300" />
+            <div className="relative p-4 sm:p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-green-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
+              </div>
+              <h3 className="text-sm sm:text-base font-semibold text-white mb-1">Ver Agenda</h3>
+              <p className="text-xs sm:text-sm text-gray-400">Gerenciar atendimentos</p>
+            </div>
+          </Card>
+
+          {/* Gerenciar Pagamentos */}
+          <Card 
+            className="group relative overflow-hidden border-gray-800 bg-gradient-to-br from-orange-900/20 to-orange-800/10 hover:from-orange-900/30 hover:to-orange-800/20 backdrop-blur transition-all duration-300 cursor-pointer"
+            onClick={() => setLocation('/admin/pagamentos')}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/10 group-hover:to-orange-600/10 transition-all duration-300" />
+            <div className="relative p-4 sm:p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
+              </div>
+              <h3 className="text-sm sm:text-base font-semibold text-white mb-1">Pagamentos</h3>
+              <p className="text-xs sm:text-sm text-gray-400">Controlar financeiro</p>
+            </div>
+          </Card>
         </div>
 
         {/* Students Management */}
