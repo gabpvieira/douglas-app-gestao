@@ -35,6 +35,8 @@ export function useTreinosVideo(objetivo?: string) {
   return useQuery<TreinoVideo[]>({
     queryKey: ['treinos-video', objetivo],
     queryFn: async () => {
+      console.log('🔍 [useTreinosVideo] Buscando vídeos...');
+      
       let query = supabase
         .from('treinos_video')
         .select('*')
@@ -46,8 +48,29 @@ export function useTreinosVideo(objetivo?: string) {
       
       const { data, error } = await query;
       
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        console.error('❌ [useTreinosVideo] Erro:', error);
+        throw error;
+      }
+      
+      console.log('📊 [useTreinosVideo] Dados brutos:', data);
+      
+      // Converter snake_case para camelCase
+      const converted = (data || []).map((item: any) => ({
+        id: item.id,
+        nome: item.nome,
+        objetivo: item.objetivo,
+        descricao: item.descricao,
+        urlVideo: item.url_video,
+        thumbnailUrl: item.thumbnail_url,
+        duracao: item.duracao,
+        dataUpload: item.data_upload,
+        createdAt: item.created_at
+      }));
+      
+      console.log('✅ [useTreinosVideo] Dados convertidos:', converted);
+      
+      return converted;
     }
   });
 }
@@ -64,7 +87,19 @@ export function useTreinoVideo(id: string) {
         .single();
       
       if (error) throw error;
-      return data;
+      
+      // Converter snake_case para camelCase
+      return {
+        id: data.id,
+        nome: data.nome,
+        objetivo: data.objetivo,
+        descricao: data.descricao,
+        urlVideo: data.url_video,
+        thumbnailUrl: data.thumbnail_url,
+        duracao: data.duracao,
+        dataUpload: data.data_upload,
+        createdAt: data.created_at
+      };
     },
     enabled: !!id
   });

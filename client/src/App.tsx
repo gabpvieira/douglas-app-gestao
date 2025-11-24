@@ -130,13 +130,15 @@ function Router() {
     
     const restoreSession = async () => {
       try {
-        // Timeout de segurança
+        console.log('🔍 Restaurando sessão...');
+        
+        // Timeout de segurança reduzido
         const timeoutId = setTimeout(() => {
           if (mounted) {
-            console.warn('Timeout ao restaurar sessão');
+            console.warn('⏱️ Timeout ao restaurar sessão - continuando sem autenticação');
             setLoading(false);
           }
-        }, 3000);
+        }, 2000);
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -145,21 +147,31 @@ function Router() {
         if (!mounted) return;
         
         if (sessionError) {
-          console.error('Erro ao buscar sessão:', sessionError);
+          console.error('❌ Erro ao buscar sessão:', sessionError);
+          setLoading(false);
+          return;
+        }
+        
+        if (!session) {
+          console.log('ℹ️ Nenhuma sessão ativa');
           setLoading(false);
           return;
         }
         
         if (session?.user) {
-          // Buscar perfil do usuário
+          console.log('✅ Sessão encontrada:', session.user.id);
+          
+          // Buscar perfil do usuário na tabela correta
           const { data: profile, error: profileError } = await supabase
-            .from('usuarios')
+            .from('users_profile')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('auth_uid', session.user.id)
             .maybeSingle();
           
           if (profileError) {
-            console.error('Erro ao buscar perfil:', profileError);
+            console.error('❌ Erro ao buscar perfil:', profileError);
+          } else {
+            console.log('👤 Perfil encontrado:', profile);
           }
           
           const user = {
@@ -170,7 +182,8 @@ function Router() {
           setCurrentUser(user);
           
           // Determinar tipo de usuário
-          const tipo = profile?.tipo || session.user.user_metadata?.role || 'student';
+          const tipo = profile?.tipo || session.user.user_metadata?.role || 'aluno';
+          console.log('🔑 Tipo de usuário:', tipo);
           
           if (tipo === 'admin') {
             setCurrentView('admin');
@@ -199,17 +212,24 @@ function Router() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
+      console.log('🔄 Auth state changed:', event);
+      
       if (event === 'SIGNED_OUT') {
+        console.log('👋 Usuário deslogado');
         setCurrentUser(null);
         setCurrentView('landing');
         setLocation('/');
       } else if (event === 'SIGNED_IN' && session?.user) {
-        // Buscar perfil do usuário
+        console.log('👋 Usuário logado:', session.user.id);
+        
+        // Buscar perfil do usuário na tabela correta
         const { data: profile } = await supabase
-          .from('usuarios')
+          .from('users_profile')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('auth_uid', session.user.id)
           .maybeSingle();
+        
+        console.log('👤 Perfil carregado:', profile);
         
         const user = {
           ...session.user,
@@ -218,7 +238,8 @@ function Router() {
         
         setCurrentUser(user);
         
-        const tipo = profile?.tipo || session.user.user_metadata?.role || 'student';
+        const tipo = profile?.tipo || session.user.user_metadata?.role || 'aluno';
+        console.log('🔑 Redirecionando para:', tipo);
         
         if (tipo === 'admin') {
           setCurrentView('admin');

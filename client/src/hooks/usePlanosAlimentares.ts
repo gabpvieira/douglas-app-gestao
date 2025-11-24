@@ -36,6 +36,8 @@ export function usePlanosAlimentares(alunoId?: string) {
   return useQuery<PlanoAlimentar[]>({
     queryKey: ['planos-alimentares', alunoId],
     queryFn: async () => {
+      console.log('🔍 [usePlanosAlimentares] Iniciando busca...', { alunoId });
+      
       let query = supabase
         .from('planos_alimentares')
         .select(`
@@ -66,10 +68,20 @@ export function usePlanosAlimentares(alunoId?: string) {
       
       const { data, error } = await query;
       
-      if (error) throw error;
+      console.log('📊 [usePlanosAlimentares] Resultado da query:', {
+        sucesso: !error,
+        erro: error,
+        quantidadePlanos: data?.length,
+        primeiroPlano: data?.[0]
+      });
+      
+      if (error) {
+        console.error('❌ [usePlanosAlimentares] Erro:', error);
+        throw error;
+      }
       
       // Converter snake_case para camelCase
-      return (data || []).map(plano => ({
+      const converted = (data || []).map(plano => ({
         id: plano.id,
         alunoId: plano.aluno_id,
         titulo: plano.titulo,
@@ -81,6 +93,10 @@ export function usePlanosAlimentares(alunoId?: string) {
         updatedAt: plano.updated_at,
         refeicoes: plano.refeicoes || []
       }));
+      
+      console.log('✅ [usePlanosAlimentares] Dados convertidos:', converted);
+      
+      return converted;
     }
   });
 }
@@ -90,6 +106,8 @@ export function useMyPlanoAlimentar(alunoId: string) {
   return useQuery<PlanoAlimentar | null>({
     queryKey: ['meu-plano-alimentar', alunoId],
     queryFn: async () => {
+      console.log('🔍 [useMyPlanoAlimentar] Buscando plano do aluno:', alunoId);
+      
       const { data, error } = await supabase
         .from('planos_alimentares')
         .select(`
@@ -117,12 +135,20 @@ export function useMyPlanoAlimentar(alunoId: string) {
         .limit(1)
         .maybeSingle();
       
-      if (error) throw error;
+      console.log('📊 [useMyPlanoAlimentar] Resultado:', { data, error });
       
-      if (!data) return null;
+      if (error) {
+        console.error('❌ [useMyPlanoAlimentar] Erro:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.log('⚠️ [useMyPlanoAlimentar] Nenhum plano encontrado');
+        return null;
+      }
       
       // Converter snake_case para camelCase
-      return {
+      const converted = {
         id: data.id,
         alunoId: data.aluno_id,
         titulo: data.titulo,
@@ -134,6 +160,10 @@ export function useMyPlanoAlimentar(alunoId: string) {
         updatedAt: data.updated_at,
         refeicoes: data.refeicoes || []
       };
+      
+      console.log('✅ [useMyPlanoAlimentar] Plano convertido:', converted);
+      
+      return converted;
     },
     enabled: !!alunoId
   });

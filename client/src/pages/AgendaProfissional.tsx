@@ -73,8 +73,8 @@ export default function AgendaProfissional() {
   const agendamentosDoDia = agendamentosData
     .filter(a => isSameDay(new Date(a.dataAgendamento), selectedDate))
     .sort((a, b) => {
-      const horaA = a.blocoHorario?.horaInicio || '00:00';
-      const horaB = b.blocoHorario?.horaInicio || '00:00';
+      const horaA = (a as any).horaInicio || '00:00';
+      const horaB = (b as any).horaInicio || '00:00';
       return horaA.localeCompare(horaB);
     });
 
@@ -359,8 +359,8 @@ export default function AgendaProfissional() {
                 </div>
               ) : (
                 <div className="space-y-3 sm:space-y-4">
-                  {agendamentosDoDia.map((agendamento) => {
-                    const TipoIcon = getTipoIcon(agendamento.blocoHorario?.tipo || 'presencial');
+                  {agendamentosDoDia.map((agendamento: any) => {
+                    const TipoIcon = getTipoIcon(agendamento.tipo || 'presencial');
                     
                     return (
                       <Card
@@ -374,10 +374,10 @@ export default function AgendaProfissional() {
                             <div className="flex-shrink-0">
                               <div className="text-center">
                                 <div className="text-xl sm:text-2xl font-bold text-white">
-                                  {agendamento.blocoHorario?.horaInicio?.substring(0, 5) || '--:--'}
+                                  {agendamento.horaInicio?.substring(0, 5) || '--:--'}
                                 </div>
                                 <div className="text-xs text-gray-500">
-                                  {agendamento.blocoHorario?.horaFim?.substring(0, 5) || '--:--'}
+                                  {agendamento.horaFim?.substring(0, 5) || '--:--'}
                                 </div>
                               </div>
                             </div>
@@ -419,7 +419,7 @@ export default function AgendaProfissional() {
                                 <div className="flex items-center gap-1">
                                   <TipoIcon className="h-3 w-3" />
                                   <span className="capitalize">
-                                    {agendamento.blocoHorario?.tipo || 'presencial'}
+                                    {agendamento.tipo || 'presencial'}
                                   </span>
                                 </div>
                               </div>
@@ -508,7 +508,7 @@ export default function AgendaProfissional() {
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-gray-400 uppercase">Horário</p>
                   <p className="text-sm text-white">
-                    {selectedAgendamento.blocoHorario?.horaInicio?.substring(0, 5)} - {selectedAgendamento.blocoHorario?.horaFim?.substring(0, 5)}
+                    {selectedAgendamento.horaInicio?.substring(0, 5)} - {selectedAgendamento.horaFim?.substring(0, 5)}
                   </p>
                 </div>
 
@@ -516,11 +516,11 @@ export default function AgendaProfissional() {
                   <p className="text-xs font-semibold text-gray-400 uppercase">Tipo</p>
                   <div className="flex items-center gap-2">
                     {(() => {
-                      const TipoIcon = getTipoIcon(selectedAgendamento.blocoHorario?.tipo || 'presencial');
+                      const TipoIcon = getTipoIcon(selectedAgendamento.tipo || 'presencial');
                       return <TipoIcon className="h-4 w-4 text-gray-400" />;
                     })()}
                     <span className="text-sm text-white capitalize">
-                      {selectedAgendamento.blocoHorario?.tipo || 'presencial'}
+                      {selectedAgendamento.tipo || 'presencial'}
                     </span>
                   </div>
                 </div>
