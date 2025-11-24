@@ -51,12 +51,12 @@ export function useBlocosHorarios() {
         .select('*')
         .order('dia_semana', { ascending: true })
         .order('hora_inicio', { ascending: true });
-      
+
       if (error) {
         console.error('❌ Erro ao buscar blocos:', error);
         throw new Error('Falha ao buscar blocos de horários');
       }
-      
+
       return (data || []).map((item: any) => ({
         id: item.id,
         diaSemana: item.dia_semana,
@@ -76,32 +76,41 @@ export function useAgendamentos(dataInicio?: string, dataFim?: string) {
   return useQuery<Agendamento[]>({
     queryKey: ['agendamentos', dataInicio, dataFim],
     queryFn: async () => {
+      console.log('🔍 Buscando agendamentos...', { dataInicio, dataFim });
+
       let query = supabase
         .from('agendamentos_presenciais')
         .select(`
           *,
-          alunos!inner(
+          alunos(
             id,
             users_profile(nome, email)
           )
         `)
         .order('data_agendamento', { ascending: true });
-      
+
       if (dataInicio) {
         query = query.gte('data_agendamento', dataInicio);
       }
       if (dataFim) {
         query = query.lte('data_agendamento', dataFim);
       }
-      
+
       const { data, error } = await query;
-      
+
+      console.log('📊 Resultado da query:', {
+        data,
+        error,
+        count: data?.length,
+        firstItem: data?.[0]
+      });
+
       if (error) {
         console.error('❌ Erro ao buscar agendamentos:', error);
         throw new Error('Falha ao buscar agendamentos');
       }
-      
-      return (data || []).map((item: any) => ({
+
+      const mappedData = (data || []).map((item: any) => ({
         id: item.id,
         alunoId: item.aluno_id,
         blocoHorarioId: null, // agendamentos_presenciais não usa blocos
@@ -117,11 +126,20 @@ export function useAgendamentos(dataInicio?: string, dataFim?: string) {
           id: item.alunos.id,
           nome: item.alunos.users_profile.nome,
           email: item.alunos.users_profile.email
-        } : undefined
+        } : {
+          id: item.aluno_id,
+          nome: 'Aluno não encontrado',
+          email: ''
+        }
       }));
+
+      console.log('✅ Dados mapeados:', mappedData);
+
+      return mappedData;
     }
   });
 }
+
 
 // Hook para buscar exceções de disponibilidade
 export function useExcecoesDisponibilidade() {
@@ -132,12 +150,12 @@ export function useExcecoesDisponibilidade() {
         .from('excecoes_disponibilidade')
         .select('*')
         .order('data_inicio', { ascending: true });
-      
+
       if (error) {
         console.error('❌ Erro ao buscar exceções:', error);
         throw new Error('Falha ao buscar exceções');
       }
-      
+
       return (data || []).map((item: any) => ({
         id: item.id,
         dataInicio: item.data_inicio,
@@ -169,12 +187,12 @@ export function useCreateBlocoHorario() {
         }])
         .select()
         .single();
-      
+
       if (error) {
         console.error('❌ Erro ao criar bloco:', error);
         throw new Error(error.message || 'Falha ao criar bloco de horário');
       }
-      
+
       return bloco;
     },
     onSuccess: () => {
@@ -214,12 +232,12 @@ export function useCreateAgendamento() {
         }])
         .select()
         .single();
-      
+
       if (error) {
         console.error('❌ Erro ao criar agendamento:', error);
         throw new Error(error.message || 'Falha ao criar agendamento');
       }
-      
+
       return agendamento;
     },
     onSuccess: () => {
@@ -249,12 +267,12 @@ export function useUpdateAgendamento() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) {
         console.error('❌ Erro ao atualizar agendamento:', error);
         throw new Error(error.message || 'Falha ao atualizar agendamento');
       }
-      
+
       return data;
     },
     onSuccess: () => {
@@ -278,12 +296,12 @@ export function useDeleteAgendamento() {
         .from('agendamentos_presenciais')
         .delete()
         .eq('id', id);
-      
+
       if (error) {
         console.error('❌ Erro ao deletar agendamento:', error);
         throw new Error(error.message || 'Falha ao deletar agendamento');
       }
-      
+
       return { success: true };
     },
     onSuccess: () => {
@@ -316,12 +334,12 @@ export function useUpdateBlocoHorario() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) {
         console.error('❌ Erro ao atualizar bloco:', error);
         throw new Error(error.message || 'Falha ao atualizar bloco de horário');
       }
-      
+
       return bloco;
     },
     onSuccess: () => {
@@ -345,12 +363,12 @@ export function useDeleteBlocoHorario() {
         .from('blocos_horarios')
         .delete()
         .eq('id', id);
-      
+
       if (error) {
         console.error('❌ Erro ao deletar bloco:', error);
         throw new Error(error.message || 'Falha ao deletar bloco de horário');
       }
-      
+
       return { success: true };
     },
     onSuccess: () => {
