@@ -14,11 +14,7 @@ import BenefitsSection from "./components/BenefitsSection";
 import PricingSection from "./components/PricingSection";
 import LoginForm from "./components/LoginForm";
 import AdminDashboard from "./components/AdminDashboard";
-import StudentDashboard from "./components/StudentDashboard";
-import StudentDashboardEnhanced from "./components/StudentDashboardEnhanced";
-import NavigationHeader from "./components/NavigationHeader";
 import AdminSidebar from "./components/AdminSidebar";
-import StudentSidebar from "./components/StudentSidebar";
 import StudentsList from "./pages/admin/StudentsList";
 import AgendaProfissional from "./pages/AgendaProfissional";
 import { TreinosVideo } from "./pages/TreinosVideo";
@@ -27,13 +23,12 @@ import PlanosAlimentares from "./pages/PlanosAlimentares";
 import PagamentosAdmin from "./pages/admin/Pagamentos";
 import FichasTreino from "./pages/admin/FichasTreino";
 import NotFound from "@/pages/not-found";
-import StudentLayoutWrapper from "./components/StudentLayoutWrapper";
-import MyWorkouts from "./pages/aluno/MyWorkouts";
-import MySchedule from "./pages/aluno/MySchedule";
-import Configuracoes from "./pages/aluno/Configuracoes";
+import AlunoDashboard from "./pages/aluno/Dashboard";
+import MeusTreinos from "./pages/aluno/MeusTreinos";
+import TreinoExecucao from "./pages/aluno/TreinoExecucao";
+import Nutricao from "./pages/aluno/Nutricao";
+import AgendaAluno from "./pages/aluno/Agenda";
 import Progresso from "./pages/aluno/Progresso";
-import Metas from "./pages/aluno/Metas";
-import Community from "./pages/aluno/Community";
 
 // Landing Page Component
 function LandingPage({ onLogin }: { onLogin: () => void }) {
@@ -102,27 +97,6 @@ function AdminLayout({ userName, onLogout }: {
             <NotFound />
           </Route>
         </Switch>
-      </main>
-    </div>
-  );
-}
-
-// Student Layout Component  
-function StudentLayout({ children, userName, onLogout }: { 
-  children: React.ReactNode;
-  userName: string;
-  onLogout: () => void;
-}) {
-  return (
-    <div className="min-h-screen bg-background flex">
-      <StudentSidebar 
-        onLogout={onLogout}
-        userName={userName}
-        userEmail="ana@email.com"
-        planType="Trimestral"
-      />
-      <main className="flex-1 relative md:ml-64 ml-0">
-        {children}
       </main>
     </div>
   );
@@ -314,53 +288,18 @@ function Router() {
       )}
       
       {currentView === 'student' && (
-        <StudentLayoutWrapper 
-          userName={userName}
-          userEmail={currentUser?.email || ''}
-          avatarUrl={currentUser?.profile?.fotoUrl}
-          planType="Trimestral"
-          onLogout={handleLogout}
-        >
-          <Switch>
-            <Route path="/aluno">
-              <StudentDashboardEnhanced />
-            </Route>
-            <Route path="/aluno/dashboard">
-              <StudentDashboardEnhanced />
-            </Route>
-            <Route path="/aluno/treinos">
-              <MyWorkouts />
-            </Route>
-            <Route path="/aluno/videos">
-              <div className="p-6">
-                <TreinosVideo />
-              </div>
-            </Route>
-            <Route path="/aluno/plano-alimentar">
-              <div className="p-6">
-                <PlanosAlimentares />
-              </div>
-            </Route>
-            <Route path="/aluno/agenda">
-              <MySchedule />
-            </Route>
-            <Route path="/aluno/progresso">
-              <Progresso />
-            </Route>
-            <Route path="/aluno/metas">
-              <Metas />
-            </Route>
-            <Route path="/aluno/comunidade">
-              <Community />
-            </Route>
-            <Route path="/aluno/configuracoes">
-              <Configuracoes />
-            </Route>
-            <Route>
-              <NotFound />
-            </Route>
-          </Switch>
-        </StudentLayoutWrapper>
+        <Switch>
+          <Route path="/aluno" component={AlunoDashboard} />
+          <Route path="/aluno/dashboard" component={AlunoDashboard} />
+          <Route path="/aluno/treinos" component={MeusTreinos} />
+          <Route path="/aluno/treino/:fichaAlunoId" component={TreinoExecucao} />
+          <Route path="/aluno/nutricao" component={Nutricao} />
+          <Route path="/aluno/agenda" component={AgendaAluno} />
+          <Route path="/aluno/progresso" component={Progresso} />
+          <Route path="/aluno/videos" component={AlunoDashboard} />
+          <Route path="/aluno/perfil" component={AlunoDashboard} />
+          <Route component={NotFound} />
+        </Switch>
       )}
     </div>
   );
