@@ -107,7 +107,7 @@ export default function PlanosAlimentares() {
     // Usar refeições do banco se disponíveis, senão usar do dadosJson
     const refeicoes = plano.refeicoes || dadosJson.refeicoes || [];
     
-    // Calcular macros totais das refeições
+    // Calcular macros totais das refeições (SEMPRE usar valores calculados)
     let totalCalorias = 0;
     let totalProteinas = 0;
     let totalCarboidratos = 0;
@@ -129,10 +129,11 @@ export default function PlanosAlimentares() {
       nome: plano.titulo,
       descricao: dadosJson.descricao || plano.conteudoHtml?.substring(0, 150) + '...' || 'Sem descrição',
       objetivo: dadosJson.objetivo || 'manutencao' as const,
-      calorias: totalCalorias > 0 ? Math.round(totalCalorias) : (dadosJson.calorias || 2000),
-      proteinas: totalProteinas > 0 ? Math.round(totalProteinas) : (dadosJson.proteinas || 150),
-      carboidratos: totalCarboidratos > 0 ? Math.round(totalCarboidratos) : (dadosJson.carboidratos || 250),
-      gorduras: totalGorduras > 0 ? Math.round(totalGorduras) : (dadosJson.gorduras || 70),
+      // SEMPRE usar valores calculados das refeições, nunca os valores de meta
+      calorias: Math.round(totalCalorias),
+      proteinas: Math.round(totalProteinas),
+      carboidratos: Math.round(totalCarboidratos),
+      gorduras: Math.round(totalGorduras),
       categoria: dadosJson.categoria || 'basico' as const,
       restricoes: dadosJson.restricoes || [],
       observacoes: plano.observacoes,
@@ -340,78 +341,91 @@ export default function PlanosAlimentares() {
           }
         />
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Redesenhados */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
+          <Card className="p-3 sm:p-6 border-gray-800 bg-gradient-to-br from-gray-800/50 to-gray-800/30 hover:from-gray-800/70 hover:to-gray-800/50 transition-all backdrop-blur shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-gray-400">Total de Planos</p>
+                <p className="text-xs sm:text-sm text-gray-400 font-medium">Total de Planos</p>
                 <p className="text-lg sm:text-2xl font-bold text-white mt-1">{estatisticas.totalPlanos}</p>
+                <p className="text-[10px] sm:text-xs text-green-400 mt-1">
+                  {estatisticas.planosAtivos} ativos
+                </p>
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600">
-                <ChefHat className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
+                <ChefHat className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
+          <Card className="p-3 sm:p-6 border-gray-800 bg-gradient-to-br from-gray-800/50 to-gray-800/30 hover:from-gray-800/70 hover:to-gray-800/50 transition-all backdrop-blur shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-gray-400">Planos Ativos</p>
+                <p className="text-xs sm:text-sm text-gray-400 font-medium">Planos Ativos</p>
                 <p className="text-lg sm:text-2xl font-bold text-white mt-1">{estatisticas.planosAtivos}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
+                  em uso
+                </p>
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600">
-                <Target className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
+                <Target className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
+          <Card className="p-3 sm:p-6 border-gray-800 bg-gradient-to-br from-gray-800/50 to-gray-800/30 hover:from-gray-800/70 hover:to-gray-800/50 transition-all backdrop-blur shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-gray-400">Alunos com Planos</p>
+                <p className="text-xs sm:text-sm text-gray-400 font-medium">Alunos com Planos</p>
                 <p className="text-lg sm:text-2xl font-bold text-white mt-1">{estatisticas.alunosComPlanos}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
+                  alunos ativos
+                </p>
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500 to-purple-600">
-                <Users className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+                <Users className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
+          <Card className="p-3 sm:p-6 border-gray-800 bg-gradient-to-br from-gray-800/50 to-gray-800/30 hover:from-gray-800/70 hover:to-gray-800/50 transition-all backdrop-blur shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm text-gray-400">Média Calorias</p>
+                <p className="text-xs sm:text-sm text-gray-400 font-medium">Média Calorias</p>
                 <p className="text-lg sm:text-2xl font-bold text-white mt-1">{estatisticas.mediaCaloriasPorPlano}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-1">
+                  kcal/dia
+                </p>
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600">
-                <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="h-10 w-10 sm:h-14 sm:w-14 rounded-xl flex items-center justify-center bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg">
+                <Activity className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
               </div>
             </div>
           </Card>
         </div>
 
-        {/* Filtros */}
-        <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+        {/* Filtros - Redesenhados */}
+        <Card className="border-gray-800 bg-gradient-to-br from-gray-800/50 to-gray-800/30 backdrop-blur shadow-lg">
           <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
-            <div className="flex flex-col gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3 h-3 sm:w-4 sm:h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
                 <Input
-                  placeholder="Buscar planos..."
+                  placeholder="Buscar por nome ou descrição..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 sm:pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-xs sm:text-sm"
+                  className="pl-10 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500 text-sm h-11 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
                   data-testid="input-search-planos"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <Select value={filtroObjetivo} onValueChange={setFiltroObjetivo}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs sm:text-sm">
+                  <SelectTrigger className="bg-gray-800/80 border-gray-700 text-white text-sm h-11 min-w-[140px] hover:bg-gray-800 transition-colors">
+                    <Target className="w-4 h-4 mr-2 text-gray-400" />
                     <SelectValue placeholder="Objetivo" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="todos" className="text-white hover:bg-gray-700">Todos</SelectItem>
+                    <SelectItem value="todos" className="text-white hover:bg-gray-700">Todos Objetivos</SelectItem>
                     <SelectItem value="emagrecimento" className="text-white hover:bg-gray-700">Emagrecimento</SelectItem>
                     <SelectItem value="ganho_massa" className="text-white hover:bg-gray-700">Ganho de Massa</SelectItem>
                     <SelectItem value="manutencao" className="text-white hover:bg-gray-700">Manutenção</SelectItem>
@@ -419,11 +433,12 @@ export default function PlanosAlimentares() {
                   </SelectContent>
                 </Select>
                 <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs sm:text-sm">
+                  <SelectTrigger className="bg-gray-800/80 border-gray-700 text-white text-sm h-11 min-w-[140px] hover:bg-gray-800 transition-colors">
+                    <Filter className="w-4 h-4 mr-2 text-gray-400" />
                     <SelectValue placeholder="Categoria" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="todos" className="text-white hover:bg-gray-700">Todas</SelectItem>
+                    <SelectItem value="todos" className="text-white hover:bg-gray-700">Todas Categorias</SelectItem>
                     <SelectItem value="basico" className="text-white hover:bg-gray-700">Básico</SelectItem>
                     <SelectItem value="intermediario" className="text-white hover:bg-gray-700">Intermediário</SelectItem>
                     <SelectItem value="avancado" className="text-white hover:bg-gray-700">Avançado</SelectItem>
@@ -434,31 +449,37 @@ export default function PlanosAlimentares() {
           </CardContent>
         </Card>
 
-        {/* Tabs */}
+        {/* Tabs - Redesenhadas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 gap-2 bg-gray-800 border-gray-700 p-1 sm:p-1.5">
+          <TabsList className="grid w-full grid-cols-2 gap-3 bg-transparent border-0 p-0">
             <TabsTrigger 
               value="planos" 
-              className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm py-2 sm:py-2.5 px-2 sm:px-3 data-[state=active]:bg-gray-700 rounded-md"
+              className="flex items-center justify-center gap-2 text-sm py-3 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=inactive]:bg-gray-800/50 data-[state=inactive]:text-gray-400 data-[state=active]:text-white rounded-lg border border-gray-700 data-[state=active]:border-blue-500 transition-all hover:bg-gray-800/70"
             >
               <ChefHat className="h-4 w-4 flex-shrink-0" />
-              <span>Planos</span>
+              <span className="font-semibold">Planos</span>
             </TabsTrigger>
             <TabsTrigger 
               value="alunos" 
-              className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm py-2 sm:py-2.5 px-2 sm:px-3 data-[state=active]:bg-gray-700 rounded-md"
+              className="flex items-center justify-center gap-2 text-sm py-3 px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-purple-700 data-[state=inactive]:bg-gray-800/50 data-[state=inactive]:text-gray-400 data-[state=active]:text-white rounded-lg border border-gray-700 data-[state=active]:border-purple-500 transition-all hover:bg-gray-800/70"
             >
               <Users className="h-4 w-4 flex-shrink-0" />
-              <span>Alunos</span>
+              <span className="font-semibold">Alunos</span>
             </TabsTrigger>
           </TabsList>
           
           <TabsContent value="planos" className="space-y-3 sm:space-y-4 mt-6 sm:mt-4">
-            <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-lg sm:text-xl text-white">
-                  Lista de Planos ({planosFiltrados.length})
-                </CardTitle>
+            <Card className="border-gray-800 bg-gradient-to-br from-gray-800/50 to-gray-800/30 backdrop-blur shadow-lg">
+              <CardHeader className="p-4 sm:p-6 border-b border-gray-700/50">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg sm:text-xl text-white font-bold flex items-center gap-2">
+                    <ChefHat className="w-5 h-5 text-blue-400" />
+                    Lista de Planos
+                  </CardTitle>
+                  <Badge variant="outline" className="bg-blue-900/30 text-blue-300 border-blue-700/50 text-sm">
+                    {planosFiltrados.length} {planosFiltrados.length === 1 ? 'plano' : 'planos'}
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent className="p-3 sm:p-6">
                 {loading ? (

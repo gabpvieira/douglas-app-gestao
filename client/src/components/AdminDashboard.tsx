@@ -28,7 +28,10 @@ export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   
   const { data: alunos = [], isLoading: loadingAlunos } = useAlunos();
-  const { data: dashboardStats, isLoading: loadingStats } = useDashboardStats();
+  const { data: dashboardStats, isLoading: loadingStats, error: statsError } = useDashboardStats();
+  
+  // Log para debug
+  console.log('📊 [AdminDashboard] Stats:', { dashboardStats, loadingStats, statsError });
 
   useEffect(() => {
     const timer = setInterval(() => {

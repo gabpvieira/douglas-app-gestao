@@ -10,8 +10,12 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import HeroSection from "./components/HeroSection";
+import AboutSection from "./components/AboutSection";
 import BenefitsSection from "./components/BenefitsSection";
+import HowItWorksSection from "./components/HowItWorksSection";
+import ResultsSection from "./components/ResultsSection";
 import PricingSection from "./components/PricingSection";
+import ChatFormSection from "./components/ChatFormSection";
 import LoginForm from "./components/LoginForm";
 import AdminDashboard from "./components/AdminDashboard";
 import AdminSidebar from "./components/AdminSidebar";
@@ -22,6 +26,8 @@ import TreinosPdfPage from "./pages/TreinosPdf";
 import PlanosAlimentares from "./pages/PlanosAlimentares";
 import PagamentosAdmin from "./pages/admin/Pagamentos";
 import FichasTreino from "./pages/admin/FichasTreino";
+import AvaliacoesFisicas from "./pages/admin/AvaliacoesFisicas";
+import AvaliacoesPosturais from "./pages/admin/AvaliacoesPosturais";
 import NotFound from "@/pages/not-found";
 import AlunoDashboard from "./pages/aluno/Dashboard";
 import MeusTreinos from "./pages/aluno/MeusTreinos";
@@ -36,17 +42,12 @@ function LandingPage({ onLogin }: { onLogin: () => void }) {
     <div className="min-h-screen bg-background text-foreground">
       <Header onLoginClick={onLogin} />
       <HeroSection />
+      <AboutSection />
       <BenefitsSection />
+      <HowItWorksSection />
+      <ResultsSection />
       <PricingSection />
-      <div className="text-center py-12">
-        <button 
-          onClick={onLogin}
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-          data-testid="button-demo-login"
-        >
-          Ver Dashboard Demo
-        </button>
-      </div>
+      <ChatFormSection />
       <Footer />
     </div>
   );
@@ -90,6 +91,8 @@ function AdminLayout({ userName, onLogout }: {
             <TreinosVideo />
           </Route>
           <Route path="/admin/fichas-treino" component={FichasTreino} />
+          <Route path="/admin/avaliacoes-fisicas" component={AvaliacoesFisicas} />
+          <Route path="/admin/avaliacoes-posturais" component={AvaliacoesPosturais} />
           <Route path="/admin/planos" component={PlanosAlimentares} />
           <Route path="/admin/planos-alimentares" component={PlanosAlimentares} />
           <Route path="/admin/pagamentos" component={PagamentosAdmin} />

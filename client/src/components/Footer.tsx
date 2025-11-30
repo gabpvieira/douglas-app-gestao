@@ -1,95 +1,59 @@
 import logoImage from "@assets/logo-personal-douglas.png";
-import { Instagram, Facebook, Youtube, Mail, Phone, MapPin } from "lucide-react";
+import { Instagram, Mail, MapPin } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="bg-card/20 border-t border-border py-16">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="grid md:grid-cols-4 gap-12">
-          {/* Logo and Description */}
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-3 mb-6">
-              <img 
-                src={logoImage} 
-                alt="Personal Douglas - Consultoria Fitness" 
-                className="h-16 w-auto"
-                data-testid="img-logo-footer"
-              />
-              <div>
-                <h3 className="text-2xl font-bold text-foreground">Personal Douglas</h3>
-                <p className="text-muted-foreground">Consultoria Fitness</p>
-              </div>
+    <footer className="bg-zinc-950 border-t border-zinc-800/50 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Content */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-8">
+          {/* Logo and Name */}
+          <div className="flex items-center gap-3">
+            <img 
+              src={logoImage} 
+              alt="Douglas Coimbra" 
+              className="h-12 w-auto"
+              data-testid="img-logo-footer"
+            />
+            <div>
+              <h3 className="text-lg font-bold text-white">Douglas Coimbra</h3>
+              <p className="text-sm text-zinc-400">Consultoria Fitness</p>
             </div>
-            <p className="text-muted-foreground leading-relaxed mb-6">
-              Transforme seu corpo e sua vida com métodos comprovados e acompanhamento personalizado. 
-              Mais de 500 alunos já conquistaram seus objetivos conosco.
-            </p>
-            <div className="flex gap-4">
-              <a 
-                href="#" 
-                className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
-                data-testid="link-instagram"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a 
-                href="#" 
-                className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
-                data-testid="link-facebook"
-              >
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a 
-                href="#" 
-                className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary hover:bg-primary/20 transition-colors"
-                data-testid="link-youtube"
-              >
-                <Youtube className="w-5 h-5" />
-              </a>
-            </div>
-          </div>
-
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-lg font-semibold mb-6">Links Rápidos</h4>
-            <ul className="space-y-3">
-              <li><a href="#sobre" className="text-muted-foreground hover:text-foreground transition-colors">Sobre</a></li>
-              <li><a href="#beneficios" className="text-muted-foreground hover:text-foreground transition-colors">Benefícios</a></li>
-              <li><a href="#planos" className="text-muted-foreground hover:text-foreground transition-colors">Planos</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Depoimentos</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Resultados</a></li>
-            </ul>
           </div>
 
           {/* Contact Info */}
-          <div>
-            <h4 className="text-lg font-semibold mb-6">Contato</h4>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <Mail className="w-5 h-5 text-primary" />
-                <span>contato@personaldouglas.com</span>
-              </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <Phone className="w-5 h-5 text-primary" />
-                <span>(11) 99999-9999</span>
-              </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <MapPin className="w-5 h-5 text-primary" />
-                <span>São Paulo, SP</span>
-              </div>
+          <div className="flex flex-col sm:flex-row items-center gap-6 text-sm">
+            <a 
+              href="mailto:consultoriadouglas.personal@gmail.com"
+              className="flex items-center gap-2 text-zinc-400 hover:text-[#3c8af6] transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              <span>consultoriadouglas.personal@gmail.com</span>
+            </a>
+            <div className="flex items-center gap-2 text-zinc-400">
+              <MapPin className="w-4 h-4" />
+              <span>Goiânia - GO</span>
             </div>
           </div>
+
+          {/* Social Media */}
+          <a 
+            href="https://www.instagram.com/douglas_personal.oficial/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800/50 hover:bg-zinc-800 rounded-lg text-zinc-300 hover:text-white transition-all duration-200"
+            data-testid="link-instagram"
+          >
+            <Instagram className="w-5 h-5" />
+            <span className="text-sm font-medium">@douglas_personal.oficial</span>
+          </a>
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-muted-foreground text-sm">
-            © 2024 Personal Douglas. Todos os direitos reservados.
+        <div className="border-t border-zinc-800/50 pt-6 text-center">
+          <p className="text-sm text-zinc-500">
+            © {new Date().getFullYear()} Douglas Coimbra. Todos os direitos reservados.
           </p>
-          <div className="flex gap-6 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">Política de Privacidade</a>
-            <a href="#" className="hover:text-foreground transition-colors">Termos de Uso</a>
-          </div>
         </div>
       </div>
     </footer>

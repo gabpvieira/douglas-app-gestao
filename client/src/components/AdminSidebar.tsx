@@ -10,7 +10,8 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  Activity
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,12 @@ const menuItems = [
     label: "Alunos", 
     href: "/admin/alunos",
     gradient: "from-purple-500 to-pink-500"
+  },
+  { 
+    icon: Activity, 
+    label: "Avaliações Físicas", 
+    href: "/admin/avaliacoes-fisicas",
+    gradient: "from-indigo-500 to-purple-500"
   },
   { 
     icon: Calendar, 
@@ -185,6 +192,7 @@ export default function AdminSidebar({ onLogout, isCollapsed = false, onToggleCo
                   <li key={item.href} className="group">
                     <Link href={item.href}>
                       <button
+                        onClick={() => setIsMobileOpen(false)}
                         className={`
                           w-full gap-2 text-left transition-all duration-300 rounded-lg p-2 relative overflow-hidden
                           ${isCollapsed ? 'md:justify-center md:px-1' : 'flex items-center'}

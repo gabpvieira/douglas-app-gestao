@@ -8,6 +8,7 @@ import PageHeader from '@/components/PageHeader';
 import { FichaTreinoModal } from '@/components/FichaTreinoModal';
 import { FichasTreinoList } from '@/components/FichasTreinoList';
 import { AtribuirFichaModal } from '@/components/AtribuirFichaModal';
+import { VerAlunosFichaModal } from '@/components/VerAlunosFichaModal';
 import { useFichasTreino, useCreateFichaTreino, useUpdateFichaTreino, useDeleteFichaTreino, useAtribuirFicha, useFichasStats } from '@/hooks/useFichasTreino';
 import { useToast } from '@/hooks/use-toast';
 
@@ -40,8 +41,10 @@ interface FichaTreino {
 export default function FichasTreino() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAtribuirModalOpen, setIsAtribuirModalOpen] = useState(false);
+  const [isVerAlunosModalOpen, setIsVerAlunosModalOpen] = useState(false);
   const [fichaEditando, setFichaEditando] = useState<any>(null);
   const [fichaParaAtribuir, setFichaParaAtribuir] = useState<any>(null);
+  const [fichaVerAlunos, setFichaVerAlunos] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   
@@ -197,6 +200,11 @@ export default function FichasTreino() {
   const handleAtribuirFicha = (ficha: FichaTreino) => {
     setFichaParaAtribuir(ficha);
     setIsAtribuirModalOpen(true);
+  };
+
+  const handleVerAlunos = (ficha: FichaTreino) => {
+    setFichaVerAlunos(ficha);
+    setIsVerAlunosModalOpen(true);
   };
 
   const handleConfirmarAtribuicao = async (alunosIds: string[], dataInicio: string, dataFim?: string, observacoes?: string) => {
@@ -360,6 +368,7 @@ export default function FichasTreino() {
                 onExcluirFicha={handleExcluirFicha}
                 onToggleAtivo={handleToggleAtivo}
                 onAtribuirFicha={handleAtribuirFicha}
+                onVerAlunos={handleVerAlunos}
               />
             )}
           </CardContent>
@@ -386,6 +395,18 @@ export default function FichasTreino() {
             }}
             onConfirm={handleConfirmarAtribuicao}
             ficha={fichaParaAtribuir}
+          />
+        )}
+
+        {/* Modal Ver Alunos */}
+        {fichaVerAlunos && (
+          <VerAlunosFichaModal
+            isOpen={isVerAlunosModalOpen}
+            onClose={() => {
+              setIsVerAlunosModalOpen(false);
+              setFichaVerAlunos(null);
+            }}
+            ficha={fichaVerAlunos}
           />
         )}
       </div>

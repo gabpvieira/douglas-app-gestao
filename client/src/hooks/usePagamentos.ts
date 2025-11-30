@@ -187,6 +187,61 @@ export function useCreateAssinatura() {
 }
 
 /**
+ * Cria uma nova assinatura com pagamento inicial
+ */
+export function useCreateAssinaturaComPagamento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      aluno_id: string;
+      plano_tipo: 'mensal' | 'trimestral' | 'familia';
+      preco: number;
+      data_inicio: string;
+      data_fim: string;
+      metodo_pagamento: 'credit_card' | 'debit_card' | 'pix' | 'boleto';
+    }) => {
+      // Criar assinatura
+      const { data: assinatura, error: assinaturaError } = await supabase
+        .from('assinaturas')
+        .insert({
+          aluno_id: data.aluno_id,
+          plano_tipo: data.plano_tipo,
+          preco: data.preco,
+          data_inicio: data.data_inicio,
+          data_fim: data.data_fim,
+          status: 'ativa',
+        })
+        .select()
+        .single();
+
+      if (assinaturaError) throw assinaturaError;
+
+      // Criar pagamento inicial pendente
+      const { data: pagamento, error: pagamentoError } = await supabase
+        .from('pagamentos')
+        .insert({
+          assinatura_id: assinatura.id,
+          status: 'pendente',
+          valor: data.preco,
+          metodo: data.metodo_pagamento,
+        })
+        .select()
+        .single();
+
+      if (pagamentoError) throw pagamentoError;
+
+      return { assinatura, pagamento };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assinaturas'] });
+      queryClient.invalidateQueries({ queryKey: ['assinaturas-com-pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+    },
+  });
+}
+
+/**
  * Atualiza uma assinatura
  */
 export function useUpdateAssinatura() {
@@ -238,6 +293,31 @@ export function useCancelAssinatura() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assinaturas'] });
       queryClient.invalidateQueries({ queryKey: ['assinaturas-com-pagamentos'] });
+    },
+  });
+}
+
+/**
+ * Deleta uma assinatura e seus pagamentos
+ */
+export function useDeleteAssinatura() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Os pagamentos serão deletados automaticamente por CASCADE
+      const { error } = await supabase
+        .from('assinaturas')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assinaturas'] });
+      queryClient.invalidateQueries({ queryKey: ['assinaturas-com-pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
     },
   });
 }

@@ -98,6 +98,71 @@ export const excecoesDispo = pgTable("excecoes_disponibilidade", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Tabela para Avaliações Físicas (Simplificada - Foco em Musculação)
+export const avaliacoesFisicas = pgTable("avaliacoes_fisicas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  dataAvaliacao: date("data_avaliacao").notNull(),
+  
+  // Medidas Básicas
+  peso: text("peso"),
+  altura: integer("altura"),
+  imc: text("imc"),
+  
+  // Protocolo e Dados Adicionais (Fase 4)
+  protocolo: text("protocolo").default("manual"),
+  genero: text("genero"),
+  idade: integer("idade"),
+  densidadeCorporal: text("densidade_corporal"),
+  pesoIdeal: text("peso_ideal"),
+  classificacaoGordura: text("classificacao_gordura"),
+  
+  // Circunferências Principais (cm) - Shape e Músculos
+  circunferenciaTorax: text("circunferencia_torax"),
+  circunferenciaCintura: text("circunferencia_cintura"),
+  circunferenciaAbdomen: text("circunferencia_abdomen"),
+  circunferenciaQuadril: text("circunferencia_quadril"),
+  circunferenciaBracoDireito: text("circunferencia_braco_direito"),
+  circunferenciaBracoEsquerdo: text("circunferencia_braco_esquerdo"),
+  circunferenciaCoxaDireita: text("circunferencia_coxa_direita"),
+  circunferenciaCoxaEsquerda: text("circunferencia_coxa_esquerda"),
+  circunferenciaPanturrilhaDireita: text("circunferencia_panturrilha_direita"),
+  circunferenciaPanturrilhaEsquerda: text("circunferencia_panturrilha_esquerda"),
+  
+  // Composição Corporal
+  percentualGordura: text("percentual_gordura"),
+  massaMagra: text("massa_magra"),
+  massaGorda: text("massa_gorda"),
+  
+  // Dobras Cutâneas
+  dobraTriceps: text("dobra_triceps"),
+  dobraSubescapular: text("dobra_subescapular"),
+  dobraPeitoral: text("dobra_peitoral"),
+  dobraAxilarMedia: text("dobra_axilar_media"),
+  dobraSuprailiaca: text("dobra_suprailiaca"),
+  dobraAbdominal: text("dobra_abdominal"),
+  dobraCoxa: text("dobra_coxa"),
+  somaDobras: text("soma_dobras"),
+  
+  // Fotos de Progresso
+  fotoFrenteUrl: text("foto_frente_url"),
+  fotoCostasUrl: text("foto_costas_url"),
+  fotoLateralUrl: text("foto_lateral_url"),
+  
+  // Observações
+  observacoes: text("observacoes"),
+  objetivos: text("objetivos"),
+  
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertAvaliacaoFisicaSchema = createInsertSchema(avaliacoesFisicas).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertBlocoHorarioSchema = createInsertSchema(blocosHorarios).omit({
   id: true,
   createdAt: true,
@@ -308,3 +373,226 @@ export type InsertRefeicaoPlano = z.infer<typeof insertRefeicaoPlanoSchema>;
 export type RefeicaoPlano = typeof refeicoesPlano.$inferSelect;
 export type InsertAlimentoRefeicao = z.infer<typeof insertAlimentoRefeicaoSchema>;
 export type AlimentoRefeicao = typeof alimentosRefeicao.$inferSelect;
+
+// ============================================
+// TABELAS DE AVALIAÇÕES FÍSICAS COMPLETAS
+// ============================================
+
+// Tabela de Perimetria Detalhada
+export const perimetriaDetalhada = pgTable("perimetria_detalhada", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  avaliacaoId: varchar("avaliacao_id").notNull().references(() => avaliacoesFisicas.id, { onDelete: 'cascade' }),
+  
+  // Tronco
+  ombro: text("ombro"),
+  toraxInspirado: text("torax_inspirado"),
+  toraxExpirado: text("torax_expirado"),
+  
+  // Membros Superiores
+  punhoDireito: text("punho_direito"),
+  punhoEsquerdo: text("punho_esquerdo"),
+  
+  // Membros Inferiores
+  coxaProximalDireita: text("coxa_proximal_direita"),
+  coxaProximalEsquerda: text("coxa_proximal_esquerda"),
+  coxaMedialDireita: text("coxa_medial_direita"),
+  coxaMedialEsquerda: text("coxa_medial_esquerda"),
+  tornozeloDireito: text("tornozelo_direito"),
+  tornozeloEsquerdo: text("tornozelo_esquerdo"),
+  
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela de Avaliações Neuromotoras
+export const avaliacoesNeuromotoras = pgTable("avaliacoes_neuromotoras", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  avaliacaoId: varchar("avaliacao_id").notNull().references(() => avaliacoesFisicas.id, { onDelete: 'cascade' }),
+  
+  // Força
+  forcaPreensaoManualDir: text("forca_preensao_manual_dir"),
+  forcaPreensaoManualEsq: text("forca_preensao_manual_esq"),
+  
+  // Resistência Muscular
+  flexaoBraco: integer("flexao_braco"),
+  abdominal1min: integer("abdominal_1min"),
+  agachamento: integer("agachamento"),
+  pranchaIsometrica: integer("prancha_isometrica"),
+  
+  // Flexibilidade
+  sentarAlcancar: text("sentar_alcancar"),
+  flexaoQuadrilDir: text("flexao_quadril_dir"),
+  flexaoQuadrilEsq: text("flexao_quadril_esq"),
+  
+  // Agilidade
+  shuttleRun: text("shuttle_run"),
+  teste3Cones: text("teste_3_cones"),
+  
+  // Equilíbrio
+  apoioUnicoPernaDir: integer("apoio_unico_perna_dir"),
+  apoioUnicoPernaEsq: integer("apoio_unico_perna_esq"),
+  
+  // Velocidade
+  corrida20m: text("corrida_20m"),
+  corrida40m: text("corrida_40m"),
+  
+  // Potência
+  saltoVertical: text("salto_vertical"),
+  saltoHorizontal: text("salto_horizontal"),
+  
+  // Coordenação
+  arremessoBola: text("arremesso_bola"),
+  
+  observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela de Avaliações Posturais
+export const avaliacoesPosturais = pgTable("avaliacoes_posturais", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  avaliacaoId: varchar("avaliacao_id").notNull().references(() => avaliacoesFisicas.id, { onDelete: 'cascade' }),
+  
+  // Vista Anterior
+  cabeca: text("cabeca"),
+  ombros: text("ombros"),
+  clavicula: text("clavicula"),
+  quadril: text("quadril"),
+  
+  // Vista Lateral
+  curvaturaLombar: text("curvatura_lombar"),
+  curvaturaDorsal: text("curvatura_dorsal"),
+  curvaturaCervical: text("curvatura_cervical"),
+  
+  // Membros Inferiores
+  joelhos: text("joelhos"),
+  pes: text("pes"),
+  
+  // Observações
+  observacoes: text("observacoes"),
+  
+  // Fotos Posturais
+  fotoFrenteUrl: text("foto_frente_url"),
+  fotoCostasUrl: text("foto_costas_url"),
+  fotoLateralDirUrl: text("foto_lateral_dir_url"),
+  fotoLateralEsqUrl: text("foto_lateral_esq_url"),
+  
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela de Anamneses
+export const anamneses = pgTable("anamneses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }).unique(),
+  
+  // Dados Pessoais
+  profissao: text("profissao"),
+  nivelAtividade: text("nivel_atividade"),
+  
+  // Histórico de Saúde
+  doencasPreexistentes: text("doencas_preexistentes").array(),
+  cirurgias: text("cirurgias"),
+  lesoes: text("lesoes"),
+  medicamentos: text("medicamentos").array(),
+  
+  // Hábitos
+  fumante: text("fumante").default("false"),
+  consumoAlcool: text("consumo_alcool"),
+  horasSono: text("horas_sono"),
+  qualidadeSono: text("qualidade_sono"),
+  
+  // Histórico de Atividade Física
+  praticaAtividade: text("pratica_atividade").default("false"),
+  tipoAtividade: text("tipo_atividade").array(),
+  frequenciaSemanal: integer("frequencia_semanal"),
+  tempoSessao: integer("tempo_sessao"),
+  
+  // Objetivos
+  objetivoPrincipal: text("objetivo_principal"),
+  objetivosSecundarios: text("objetivos_secundarios").array(),
+  
+  // Limitações
+  restricoesMedicas: text("restricoes_medicas"),
+  limitacoesMovimento: text("limitacoes_movimento"),
+  
+  // Observações
+  observacoes: text("observacoes"),
+  
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela de Metas de Avaliações
+export const metasAvaliacoes = pgTable("metas_avaliacoes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  
+  // Metas
+  pesoAlvo: text("peso_alvo"),
+  percentualGorduraAlvo: text("percentual_gordura_alvo"),
+  massaMagraAlvo: text("massa_magra_alvo"),
+  
+  // Prazos
+  dataInicio: date("data_inicio").notNull(),
+  dataAlvo: date("data_alvo").notNull(),
+  prazoSemanas: integer("prazo_semanas"),
+  
+  // Status
+  status: text("status").notNull().default("ativa"),
+  dataAtingida: date("data_atingida"),
+  
+  observacoes: text("observacoes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Schemas de Inserção
+export const insertPerimetriaDetalhadaSchema = createInsertSchema(perimetriaDetalhada).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAvaliacaoNeuromotoraSchema = createInsertSchema(avaliacoesNeuromotoras).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAvaliacaoPosturalSchema = createInsertSchema(avaliacoesPosturais).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAnamneseSchema = createInsertSchema(anamneses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMetaAvaliacaoSchema = createInsertSchema(metasAvaliacoes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Tipos TypeScript
+export type InsertPerimetriaDetalhada = z.infer<typeof insertPerimetriaDetalhadaSchema>;
+export type PerimetriaDetalhada = typeof perimetriaDetalhada.$inferSelect;
+
+export type InsertAvaliacaoNeuromotora = z.infer<typeof insertAvaliacaoNeuromotoraSchema>;
+export type AvaliacaoNeuromotora = typeof avaliacoesNeuromotoras.$inferSelect;
+
+export type InsertAvaliacaoPostural = z.infer<typeof insertAvaliacaoPosturalSchema>;
+export type AvaliacaoPostural = typeof avaliacoesPosturais.$inferSelect;
+
+export type InsertAnamnese = z.infer<typeof insertAnamneseSchema>;
+export type Anamnese = typeof anamneses.$inferSelect;
+
+export type InsertMetaAvaliacao = z.infer<typeof insertMetaAvaliacaoSchema>;
+export type MetaAvaliacao = typeof metasAvaliacoes.$inferSelect;
+
+export type InsertAvaliacaoFisica = z.infer<typeof insertAvaliacaoFisicaSchema>;
+export type AvaliacaoFisica = typeof avaliacoesFisicas.$inferSelect;

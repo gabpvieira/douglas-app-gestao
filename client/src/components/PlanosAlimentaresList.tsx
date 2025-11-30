@@ -1,17 +1,12 @@
-import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Search, 
-  Filter, 
   Edit, 
   Trash2, 
   Users, 
   Calendar, 
   Target, 
-  Activity,
   Eye,
   Copy,
   MoreVertical,
@@ -47,23 +42,6 @@ export function PlanosAlimentaresList({
   onToggleStatus,
   onViewDetails 
 }: PlanosAlimentaresListProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filtroObjetivo, setFiltroObjetivo] = useState('');
-  const [filtroCategoria, setFiltroCategoria] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-
-  const planosFiltrados = planos.filter(plano => {
-    const matchSearch = plano.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       plano.descricao.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchObjetivo = !filtroObjetivo || plano.objetivo === filtroObjetivo;
-    const matchCategoria = !filtroCategoria || plano.categoria === filtroCategoria;
-    const matchStatus = !filtroStatus || 
-                       (filtroStatus === 'ativo' && plano.ativo) ||
-                       (filtroStatus === 'inativo' && !plano.ativo);
-
-    return matchSearch && matchObjetivo && matchCategoria && matchStatus;
-  });
 
   const getObjetivoColor = (objetivo: PlanoAlimentar['objetivo']) => {
     const colors = {
@@ -92,99 +70,11 @@ export function PlanosAlimentaresList({
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const clearFilters = () => {
-    setSearchTerm('');
-    setFiltroObjetivo('');
-    setFiltroCategoria('');
-    setFiltroStatus('');
-  };
-
   return (
     <div className="space-y-6">
-      {/* Barra de Pesquisa e Filtros */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Pesquisar planos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2"
-          >
-            <Filter className="h-4 w-4" />
-            Filtros
-            {(filtroObjetivo || filtroCategoria || filtroStatus) && (
-              <Badge variant="secondary" className="ml-2">
-                {[filtroObjetivo, filtroCategoria, filtroStatus].filter(Boolean).length}
-              </Badge>
-            )}
-          </Button>
-        </div>
-
-        {showFilters && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Objetivo</label>
-                  <select
-                    value={filtroObjetivo}
-                    onChange={(e) => setFiltroObjetivo(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todos</option>
-                    <option value="emagrecimento">Emagrecimento</option>
-                    <option value="ganho_massa">Ganho de Massa</option>
-                    <option value="manutencao">Manutenção</option>
-                    <option value="definicao">Definição</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Categoria</label>
-                  <select
-                    value={filtroCategoria}
-                    onChange={(e) => setFiltroCategoria(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todas</option>
-                    <option value="basico">Básico</option>
-                    <option value="intermediario">Intermediário</option>
-                    <option value="avancado">Avançado</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Status</label>
-                  <select
-                    value={filtroStatus}
-                    onChange={(e) => setFiltroStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todos</option>
-                    <option value="ativo">Ativo</option>
-                    <option value="inativo">Inativo</option>
-                  </select>
-                </div>
-                <div className="flex items-end">
-                  <Button variant="outline" onClick={clearFilters} className="w-full">
-                    Limpar Filtros
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
       {/* Lista de Planos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-        {planosFiltrados.map((plano) => {
+        {planos.map((plano) => {
           const alunosAtribuidos = getAlunosAtribuidos(plano.alunosAtribuidos);
           
           return (
@@ -326,23 +216,16 @@ export function PlanosAlimentaresList({
       </div>
 
       {/* Mensagem quando não há resultados */}
-      {planosFiltrados.length === 0 && (
-        <Card>
+      {planos.length === 0 && (
+        <Card className="border-gray-800 bg-gray-900/50">
           <CardContent className="text-center py-12">
-            <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <Target className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">
               Nenhum plano encontrado
             </h3>
-            <p className="text-gray-600 mb-4">
-              {searchTerm || filtroObjetivo || filtroCategoria || filtroStatus
-                ? 'Tente ajustar os filtros para encontrar planos.'
-                : 'Comece criando seu primeiro plano alimentar.'}
+            <p className="text-gray-400 mb-4">
+              Comece criando seu primeiro plano alimentar.
             </p>
-            {(searchTerm || filtroObjetivo || filtroCategoria || filtroStatus) && (
-              <Button variant="outline" onClick={clearFilters}>
-                Limpar Filtros
-              </Button>
-            )}
           </CardContent>
         </Card>
       )}

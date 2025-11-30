@@ -214,13 +214,28 @@ export function useFichaAtribuicoes(fichaId: string) {
         .from('fichas_alunos')
         .select(`
           *,
-          aluno:alunos(id, nome, email)
+          aluno:alunos!inner(
+            id,
+            user_profile:users_profile!inner(
+              nome,
+              email
+            )
+          )
         `)
         .eq('ficha_id', fichaId)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      
+      // Transformar os dados para o formato esperado
+      return data.map((item: any) => ({
+        ...item,
+        aluno: {
+          id: item.aluno.id,
+          nome: item.aluno.user_profile.nome,
+          email: item.aluno.user_profile.email
+        }
+      }));
     },
     enabled: !!fichaId
   });
