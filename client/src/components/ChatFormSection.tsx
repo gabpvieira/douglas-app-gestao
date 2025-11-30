@@ -38,18 +38,14 @@ export default function ChatFormSection() {
     }
   };
   const [isTyping, setIsTyping] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const successAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     // Scroll apenas dentro do container de mensagens, não na página
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: "smooth",
-        block: "nearest",
-        inline: "nearest"
-      });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   };
 
@@ -107,7 +103,6 @@ export default function ChatFormSection() {
 
   const sendToWebhook = async (data: typeof formData) => {
     try {
-      setIsSubmitting(true);
       const response = await fetch('https://n8nwebhook.chatifyz.com/webhook/douglas-form-lp', {
         method: 'POST',
         headers: {
@@ -117,18 +112,12 @@ export default function ChatFormSection() {
       });
 
       if (response.ok) {
-        // Play success sound
-        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OihUBELTKXh8bllHAU2jdXvzn0pBSh+zPDajzsKElyx6OyrWBQLSKDf8sFuIwUugdDx2Ik2CBhku+zooVARC0yl4fG5ZRwFNo3V7859KQUofsz');
-        audio.play().catch(() => {});
-        
         return true;
       }
       return false;
     } catch (error) {
       console.error('Erro ao enviar formulário:', error);
       return false;
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -205,7 +194,7 @@ export default function ChatFormSection() {
           </div>
 
           {/* Messages Area */}
-          <div className="h-[500px] overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-zinc-900/30 to-zinc-900/50">
+          <div ref={messagesContainerRef} className="h-[500px] overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-zinc-900/30 to-zinc-900/50">
             {messages.map((message, index) => (
               <div
                 key={index}
