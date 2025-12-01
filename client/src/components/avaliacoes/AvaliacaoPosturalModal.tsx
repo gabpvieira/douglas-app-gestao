@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useCriarAvaliacaoPostural, uploadFotoPostural } from '@/hooks/useAvaliacoesPosturais';
 import { useToast } from '@/hooks/use-toast';
+import { compressImage, isValidImageFile, formatFileSize } from '@/lib/imageCompression';
 
 interface AvaliacaoPosturalModalProps {
   isOpen: boolean;
@@ -38,21 +39,51 @@ export function AvaliacaoPosturalModal({
 
   if (!isOpen) return null;
 
-  const handleFileChange = (
+  const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     setter: React.Dispatch<React.SetStateAction<File | null>>
   ) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
+      if (!isValidImageFile(file)) {
         toast({
           title: 'Erro',
-          description: 'Por favor, selecione apenas arquivos de imagem',
+          description: 'Por favor, selecione apenas arquivos de imagem (JPEG, PNG, WebP)',
           variant: 'destructive',
         });
         return;
       }
-      setter(file);
+
+      // Verificar tamanho original
+      const originalSize = formatFileSize(file.size);
+      
+      try {
+        // Comprimir imagem antes de definir no state
+        const compressedFile = await compressImage(file, {
+          maxWidth: 1920,
+          maxHeight: 1920,
+          quality: 0.8,
+          maxSizeMB: 2,
+        });
+
+        const compressedSize = formatFileSize(compressedFile.size);
+        
+        console.log(`Imagem comprimida: ${originalSize} → ${compressedSize}`);
+        
+        setter(compressedFile);
+        
+        toast({
+          title: 'Imagem carregada',
+          description: `Tamanho: ${compressedSize}`,
+        });
+      } catch (error) {
+        console.error('Erro ao comprimir imagem:', error);
+        toast({
+          title: 'Erro',
+          description: 'Erro ao processar imagem. Tente novamente.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -91,11 +122,14 @@ export function AvaliacaoPosturalModal({
       });
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar avaliação postural:', error);
+      const errorMessage = error?.message || 'Erro ao salvar avaliação postural';
       toast({
         title: 'Erro',
-        description: 'Erro ao salvar avaliação postural',
+        description: errorMessage.includes('exceeded') 
+          ? 'Imagem muito grande. Por favor, selecione uma imagem menor.'
+          : errorMessage,
         variant: 'destructive',
       });
     } finally {

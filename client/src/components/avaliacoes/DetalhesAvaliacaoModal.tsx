@@ -72,68 +72,72 @@ export default function DetalhesAvaliacaoModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-800">
-        <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <DialogTitle className="text-xl text-white flex items-center gap-2">
-                <User className="h-5 w-5" />
-                {avaliacao.aluno?.nome}
+      <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-800 p-4 sm:p-6">
+        <DialogHeader className="space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-lg sm:text-xl text-white flex items-center gap-2">
+                <User className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                <span className="truncate">{avaliacao.aluno?.nome}</span>
               </DialogTitle>
-              <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                {avaliacao.data_avaliacao && format(new Date(avaliacao.data_avaliacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              <p className="text-xs sm:text-sm text-gray-400 mt-1 flex items-center gap-2">
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">
+                  {avaliacao.data_avaliacao && format(new Date(avaliacao.data_avaliacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                </span>
               </p>
             </div>
-            <Badge variant="outline" className="border-gray-700 text-gray-300">
+            <Badge variant="outline" className="border-gray-700 text-gray-300 text-xs flex-shrink-0 self-start">
               {getProtocoloLabel(avaliacao.protocolo)}
             </Badge>
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="dados" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700">
-            <TabsTrigger value="dados" className="data-[state=active]:bg-gray-700">
-              Dados da Avaliação
+        <Tabs defaultValue="dados" className="w-full mt-4">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-gray-700 h-auto">
+            <TabsTrigger value="dados" className="data-[state=active]:bg-gray-700 text-xs sm:text-sm py-2">
+              <span className="hidden sm:inline">Dados da Avaliação</span>
+              <span className="sm:hidden">Dados</span>
             </TabsTrigger>
-            <TabsTrigger value="fixar" className="data-[state=active]:bg-gray-700">
-              Fixar Avaliação
+            <TabsTrigger value="fixar" className="data-[state=active]:bg-gray-700 text-xs sm:text-sm py-2">
+              <span className="hidden sm:inline">Fixar Avaliação</span>
+              <span className="sm:hidden">Fixar</span>
             </TabsTrigger>
-            <TabsTrigger value="deletar" className="data-[state=active]:bg-gray-700 data-[state=active]:text-red-400">
+            <TabsTrigger value="deletar" className="data-[state=active]:bg-gray-700 data-[state=active]:text-red-400 text-xs sm:text-sm py-2">
               Deletar
             </TabsTrigger>
           </TabsList>
 
           {/* ABA: DADOS DA AVALIAÇÃO */}
-          <TabsContent value="dados" className="space-y-4 mt-4">
+          <TabsContent value="dados" className="space-y-3 sm:space-y-4 mt-4">
             {/* Dados Básicos */}
             <Card className="border-gray-800 bg-gray-800/50">
-              <CardHeader>
-                <CardTitle className="text-base text-white">Dados Básicos</CardTitle>
+              <CardHeader className="p-3 sm:p-6">
+                <CardTitle className="text-sm sm:text-base text-white">Dados Básicos</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <CardContent className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-6">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Peso</p>
-                  <p className="text-lg font-semibold text-white">{avaliacao.peso} kg</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Peso</p>
+                  <p className="text-sm sm:text-lg font-semibold text-white truncate">{avaliacao.peso} kg</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Altura</p>
-                  <p className="text-lg font-semibold text-white">{avaliacao.altura} cm</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Altura</p>
+                  <p className="text-sm sm:text-lg font-semibold text-white truncate">{avaliacao.altura} cm</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">IMC</p>
-                  <p className="text-lg font-semibold text-white">{avaliacao.imc}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 mb-1">IMC</p>
+                  <p className="text-sm sm:text-lg font-semibold text-white truncate">{avaliacao.imc}</p>
                 </div>
                 {avaliacao.idade && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Idade</p>
-                    <p className="text-lg font-semibold text-white">{avaliacao.idade} anos</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Idade</p>
+                    <p className="text-sm sm:text-lg font-semibold text-white truncate">{avaliacao.idade} anos</p>
                   </div>
                 )}
                 {avaliacao.genero && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Gênero</p>
-                    <p className="text-lg font-semibold text-white capitalize">{avaliacao.genero}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Gênero</p>
+                    <p className="text-sm sm:text-lg font-semibold text-white capitalize truncate">{avaliacao.genero}</p>
                   </div>
                 )}
               </CardContent>
@@ -142,53 +146,53 @@ export default function DetalhesAvaliacaoModal({
             {/* Composição Corporal */}
             {avaliacao.percentual_gordura && (
               <Card className="border-gray-800 bg-gray-800/50">
-                <CardHeader>
-                  <CardTitle className="text-base text-white flex items-center gap-2">
-                    <Activity className="h-4 w-4" />
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-base text-white flex items-center gap-2">
+                    <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Composição Corporal
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CardContent className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-6">
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">% Gordura</p>
-                    <p className="text-lg font-semibold text-blue-400">{avaliacao.percentual_gordura}%</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mb-1">% Gordura</p>
+                    <p className="text-sm sm:text-lg font-semibold text-blue-400 truncate">{avaliacao.percentual_gordura}%</p>
                   </div>
                   {avaliacao.classificacao_gordura && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Classificação</p>
-                      <Badge variant="outline" className="border-gray-700">
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Classificação</p>
+                      <Badge variant="outline" className="border-gray-700 text-xs truncate max-w-full">
                         {avaliacao.classificacao_gordura}
                       </Badge>
                     </div>
                   )}
                   {avaliacao.massa_magra && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Massa Magra</p>
-                      <p className="text-lg font-semibold text-green-500">{avaliacao.massa_magra} kg</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Massa Magra</p>
+                      <p className="text-sm sm:text-lg font-semibold text-green-500 truncate">{avaliacao.massa_magra} kg</p>
                     </div>
                   )}
                   {avaliacao.massa_gorda && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Massa Gorda</p>
-                      <p className="text-lg font-semibold text-red-500">{avaliacao.massa_gorda} kg</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Massa Gorda</p>
+                      <p className="text-sm sm:text-lg font-semibold text-red-500 truncate">{avaliacao.massa_gorda} kg</p>
                     </div>
                   )}
                   {avaliacao.densidade_corporal && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Densidade Corporal</p>
-                      <p className="text-lg font-semibold text-white">{avaliacao.densidade_corporal} g/ml</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Densidade</p>
+                      <p className="text-sm sm:text-lg font-semibold text-white truncate">{avaliacao.densidade_corporal} g/ml</p>
                     </div>
                   )}
                   {avaliacao.peso_ideal && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Peso Ideal</p>
-                      <p className="text-lg font-semibold text-white">{avaliacao.peso_ideal} kg</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Peso Ideal</p>
+                      <p className="text-sm sm:text-lg font-semibold text-white truncate">{avaliacao.peso_ideal} kg</p>
                     </div>
                   )}
                   {avaliacao.soma_dobras && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Soma das Dobras</p>
-                      <p className="text-lg font-semibold text-white">{avaliacao.soma_dobras} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Soma Dobras</p>
+                      <p className="text-sm sm:text-lg font-semibold text-white truncate">{avaliacao.soma_dobras} mm</p>
                     </div>
                   )}
                 </CardContent>
@@ -200,62 +204,62 @@ export default function DetalhesAvaliacaoModal({
               avaliacao.dobra_axilar_media || avaliacao.dobra_suprailiaca || avaliacao.dobra_abdominal || 
               avaliacao.dobra_coxa || avaliacao.dobra_biceps || avaliacao.dobra_panturrilha) && (
               <Card className="border-gray-800 bg-gray-800/50">
-                <CardHeader>
-                  <CardTitle className="text-base text-white">Dobras Cutâneas (mm)</CardTitle>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-base text-white">Dobras Cutâneas (mm)</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-6">
                   {avaliacao.dobra_triceps && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Tríceps</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_triceps} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Tríceps</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.dobra_triceps} mm</p>
                     </div>
                   )}
                   {avaliacao.dobra_biceps && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Bíceps</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_biceps} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Bíceps</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.dobra_biceps} mm</p>
                     </div>
                   )}
                   {avaliacao.dobra_subescapular && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Subescapular</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_subescapular} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Subescapular</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.dobra_subescapular} mm</p>
                     </div>
                   )}
                   {avaliacao.dobra_peitoral && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Peitoral</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_peitoral} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Peitoral</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.dobra_peitoral} mm</p>
                     </div>
                   )}
                   {avaliacao.dobra_axilar_media && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Axilar Média</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_axilar_media} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Axilar Média</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.dobra_axilar_media} mm</p>
                     </div>
                   )}
                   {avaliacao.dobra_suprailiaca && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Suprailíaca</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_suprailiaca} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Suprailíaca</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.dobra_suprailiaca} mm</p>
                     </div>
                   )}
                   {avaliacao.dobra_abdominal && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Abdominal</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_abdominal} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Abdominal</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.dobra_abdominal} mm</p>
                     </div>
                   )}
                   {avaliacao.dobra_coxa && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Coxa</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_coxa} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Coxa</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.dobra_coxa} mm</p>
                     </div>
                   )}
                   {avaliacao.dobra_panturrilha && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Panturrilha</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_panturrilha} mm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Panturrilha</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.dobra_panturrilha} mm</p>
                     </div>
                   )}
                 </CardContent>
@@ -269,14 +273,14 @@ export default function DetalhesAvaliacaoModal({
               avaliacao.circunferencia_antebraco_direito || avaliacao.circunferencia_antebraco_esquerdo ||
               avaliacao.circunferencia_panturrilha_direita || avaliacao.circunferencia_panturrilha_esquerda) && (
               <Card className="border-gray-800 bg-gray-800/50">
-                <CardHeader>
-                  <CardTitle className="text-base text-white">Circunferências (cm)</CardTitle>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-base text-white">Circunferências (cm)</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 p-3 sm:p-6">
                   {avaliacao.circunferencia_pescoco && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Pescoço</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_pescoco} cm</p>
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1 truncate">Pescoço</p>
+                      <p className="text-xs sm:text-sm font-semibold text-white truncate">{avaliacao.circunferencia_pescoco} cm</p>
                     </div>
                   )}
                   {avaliacao.circunferencia_torax && (
@@ -358,11 +362,11 @@ export default function DetalhesAvaliacaoModal({
             {/* Observações */}
             {avaliacao.observacoes && (
               <Card className="border-gray-800 bg-gray-800/50">
-                <CardHeader>
-                  <CardTitle className="text-base text-white">Observações</CardTitle>
+                <CardHeader className="p-3 sm:p-6">
+                  <CardTitle className="text-sm sm:text-base text-white">Observações</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-300 whitespace-pre-wrap">{avaliacao.observacoes}</p>
+                <CardContent className="p-3 sm:p-6">
+                  <p className="text-xs sm:text-sm text-gray-300 whitespace-pre-wrap break-words">{avaliacao.observacoes}</p>
                 </CardContent>
               </Card>
             )}
