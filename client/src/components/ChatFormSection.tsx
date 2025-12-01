@@ -50,20 +50,23 @@ export default function ChatFormSection() {
   };
 
   useEffect(() => {
-    // Pequeno delay para garantir que o DOM foi atualizado
-    const timer = setTimeout(() => {
-      scrollToBottom();
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [messages, isTyping]);
-
-  useEffect(() => {
     // Mensagem inicial - apenas uma vez
     if (messages.length === 0) {
       addBotMessage("Olá! 👋 Que bom ter você aqui! Para iniciar sua jornada na consultoria, preciso de algumas informações. Qual é o seu nome?", 500);
     }
   }, []);
+
+  useEffect(() => {
+    // Scroll apenas se houver mensagens (evita scroll no carregamento inicial)
+    if (messages.length > 0) {
+      // Pequeno delay para garantir que o DOM foi atualizado
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [messages, isTyping]);
 
   const addBotMessage = (text: string, delay = 1000) => {
     setIsTyping(true);

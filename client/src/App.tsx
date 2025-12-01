@@ -38,6 +38,11 @@ import Progresso from "./pages/aluno/Progresso";
 
 // Landing Page Component
 function LandingPage({ onLogin }: { onLogin: () => void }) {
+  // Garantir que a página sempre inicie no topo
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header onLoginClick={onLogin} />
