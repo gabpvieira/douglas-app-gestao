@@ -48,9 +48,63 @@ export default function AdminDashboard() {
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
-    if (hour >= 5 && hour < 12) return 'Bom dia';
-    if (hour >= 12 && hour < 18) return 'Boa tarde';
-    return 'Boa noite';
+    const dayOfWeek = currentTime.toLocaleDateString('pt-BR', { weekday: 'long' });
+    
+    // Frases para manhã (05:00 - 11:59)
+    const morningGreetings = [
+      'Café na mão e foco total. Bom dia, Douglas.',
+      'Começando o dia com energia lá em cima!',
+      'Primeiro a gestão, depois os treinos. Bom dia.',
+      'Pronto para transformar vidas hoje, Douglas?',
+      'Bom dia! Hora de fazer acontecer.',
+      'Que tal começar o dia aumentando a carga nos negócios?'
+    ];
+    
+    // Frases para tarde (12:00 - 17:59)
+    const afternoonGreetings = [
+      'Tarde produtiva por aí, Douglas?',
+      'Ainda dá tempo de ajustar muita coisa hoje.',
+      `${dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1)} a todo vapor, Douglas.`,
+      'Espero que os treinos da manhã tenham sido ótimos.',
+      'Boa tarde! Vamos ver os números?',
+      'Foco total na gestão, Douglas.'
+    ];
+    
+    // Frases para noite (18:00 - 04:59)
+    const nightGreetings = [
+      'Dia longo? O painel continua aqui firme e forte.',
+      'Hora de fechar a agenda ou preparar o amanhã?',
+      'O descanso também faz parte do processo, Douglas.',
+      'Missão cumprida por hoje, Douglas?',
+      'Boa noite! Hora de revisar o dia.',
+      'Que bom te ver, Douglas.'
+    ];
+    
+    let greetings: string[];
+    
+    if (hour >= 5 && hour < 12) {
+      greetings = morningGreetings;
+    } else if (hour >= 12 && hour < 18) {
+      greetings = afternoonGreetings;
+    } else {
+      greetings = nightGreetings;
+    }
+    
+    // Seleciona uma frase aleatória baseada na hora atual (muda a cada hora)
+    const index = hour % greetings.length;
+    return greetings[index];
+  };
+
+  const getSubGreeting = () => {
+    const hour = currentTime.getHours();
+    
+    if (hour >= 5 && hour < 12) {
+      return 'Pronto para aumentar a carga nos negócios hoje?';
+    } else if (hour >= 12 && hour < 18) {
+      return 'Vamos ver como estão as coisas por aqui?';
+    } else {
+      return 'Hora de revisar o dia ou planejar o próximo?';
+    }
   };
 
   const getFormattedTime = () => {
@@ -118,36 +172,62 @@ export default function AdminDashboard() {
 
         {/* Greeting Section */}
         <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/30 rounded-lg p-4 sm:p-6">
-          <h2 className="text-xl sm:text-2xl font-semibold text-white">
-            {getGreeting()}, Douglas
-          </h2>
-          <p className="text-sm sm:text-base text-gray-300 mt-1">
-            {getFormattedTime()} • {currentTime.toLocaleDateString('pt-BR', { 
-              weekday: 'long', 
-              day: 'numeric', 
-              month: 'long' 
-            })}
-          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-base sm:text-lg font-medium text-gray-300">
+                  Olá, Douglas 👋
+                </h2>
+              </div>
+              <p className="text-xl sm:text-2xl font-semibold text-white mb-2">
+                {getGreeting()}
+              </p>
+              <p className="text-sm text-gray-400">
+                {getFormattedTime()} • {currentTime.toLocaleDateString('pt-BR', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long' 
+                })}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {stats.map((stat, index) => (
-            <Card key={index} className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur" data-testid={`card-stat-${index}`}>
-              <div className="flex items-center justify-between">
+            <Card key={index} className="p-4 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur" data-testid={`card-stat-${index}`}>
+              {/* Layout Mobile: Centralizado com ícone acima */}
+              <div className="flex flex-col items-center text-center sm:hidden">
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-3 ${
+                  stat.trend === 'up' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-red-500 to-red-600'
+                }`}>
+                  <div className="text-white">{stat.icon}</div>
+                </div>
+                <p className="text-xs text-gray-400 mb-1">{stat.title}</p>
+                <p className="text-2xl font-bold text-white mb-1">{stat.value}</p>
+                <p className={`text-xs ${
+                  stat.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                }`}>
+                  {stat.change}
+                </p>
+              </div>
+
+              {/* Layout Desktop: Horizontal */}
+              <div className="hidden sm:flex items-center justify-between">
                 <div>
-                  <p className="text-xs sm:text-sm text-gray-400">{stat.title}</p>
-                  <p className="text-lg sm:text-2xl font-bold text-white mt-1">{stat.value}</p>
-                  <p className={`text-[10px] sm:text-sm flex items-center gap-1 mt-1 ${
+                  <p className="text-sm text-gray-400">{stat.title}</p>
+                  <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+                  <p className={`text-sm flex items-center gap-1 mt-1 ${
                     stat.trend === 'up' ? 'text-green-400' : 'text-red-400'
                   }`}>
                     {stat.change}
                   </p>
                 </div>
-                <div className={`h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center ${
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
                   stat.trend === 'up' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-red-500 to-red-600'
                 }`}>
-                  <div className="text-white scale-75 sm:scale-100">{stat.icon}</div>
+                  <div className="text-white">{stat.icon}</div>
                 </div>
               </div>
             </Card>
