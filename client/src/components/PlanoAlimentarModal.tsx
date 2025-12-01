@@ -53,23 +53,98 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
 
   // Banco de alimentos pré-definidos
   const alimentosDisponiveis: Omit<Alimento, 'id' | 'quantidade'>[] = [
+    // Proteínas
     { nome: 'Peito de Frango', unidade: 'g', calorias: 1.65, proteinas: 0.31, carboidratos: 0, gorduras: 0.036, categoria: 'proteinas' },
-    { nome: 'Ovo', unidade: 'unidade', calorias: 70, proteinas: 6, carboidratos: 0.6, gorduras: 5, categoria: 'proteinas' },
+    { nome: 'Frango Desfiado', unidade: 'g', calorias: 1.65, proteinas: 0.31, carboidratos: 0, gorduras: 0.036, categoria: 'proteinas' },
+    { nome: 'Frango Grelhado', unidade: 'g', calorias: 1.65, proteinas: 0.31, carboidratos: 0, gorduras: 0.036, categoria: 'proteinas' },
+    { nome: 'Frango Assado', unidade: 'g', calorias: 1.90, proteinas: 0.27, carboidratos: 0, gorduras: 0.08, categoria: 'proteinas' },
+    { nome: 'Carne Moída', unidade: 'g', calorias: 2.50, proteinas: 0.26, carboidratos: 0, gorduras: 0.15, categoria: 'proteinas' },
+    { nome: 'Carne Vermelha Magra', unidade: 'g', calorias: 2.50, proteinas: 0.26, carboidratos: 0, gorduras: 0.15, categoria: 'proteinas' },
+    { nome: 'Ovo Cozido', unidade: 'unidade', calorias: 70, proteinas: 6, carboidratos: 0.6, gorduras: 5, categoria: 'proteinas' },
+    { nome: 'Ovo Mexido', unidade: 'unidade', calorias: 90, proteinas: 6, carboidratos: 1, gorduras: 7, categoria: 'proteinas' },
+    { nome: 'Omelete', unidade: 'unidade', calorias: 154, proteinas: 11, carboidratos: 2, gorduras: 12, categoria: 'proteinas' },
     { nome: 'Salmão', unidade: 'g', calorias: 2.08, proteinas: 0.25, carboidratos: 0, gorduras: 0.12, categoria: 'proteinas' },
-    { nome: 'Carne Vermelha Magra', unidade: 'g', calorias: 2.5, proteinas: 0.26, carboidratos: 0, gorduras: 0.15, categoria: 'proteinas' },
-    { nome: 'Arroz Integral', unidade: 'g', calorias: 1.23, proteinas: 0.03, carboidratos: 0.25, gorduras: 0.01, categoria: 'cereais' },
-    { nome: 'Arroz Branco', unidade: 'g', calorias: 1.30, proteinas: 0.027, carboidratos: 0.28, gorduras: 0.003, categoria: 'cereais' },
+    { nome: 'Tilápia', unidade: 'g', calorias: 0.96, proteinas: 0.20, carboidratos: 0, gorduras: 0.017, categoria: 'proteinas' },
+    { nome: 'Atum', unidade: 'g', calorias: 1.32, proteinas: 0.30, carboidratos: 0, gorduras: 0.006, categoria: 'proteinas' },
+    { nome: 'Peixe', unidade: 'g', calorias: 1.20, proteinas: 0.22, carboidratos: 0, gorduras: 0.04, categoria: 'proteinas' },
+    
+    // Carboidratos
+    { nome: 'Arroz Integral', unidade: 'g', calorias: 1.23, proteinas: 0.03, carboidratos: 0.25, gorduras: 0.01, categoria: 'carboidratos' },
+    { nome: 'Arroz Branco', unidade: 'g', calorias: 1.30, proteinas: 0.027, carboidratos: 0.28, gorduras: 0.003, categoria: 'carboidratos' },
+    { nome: 'Arroz', unidade: 'g', calorias: 1.30, proteinas: 0.027, carboidratos: 0.28, gorduras: 0.003, categoria: 'carboidratos' },
+    { nome: 'Feijão', unidade: 'g', calorias: 0.77, proteinas: 0.05, carboidratos: 0.14, gorduras: 0.005, categoria: 'carboidratos' },
     { nome: 'Batata Doce', unidade: 'g', calorias: 0.86, proteinas: 0.02, carboidratos: 0.20, gorduras: 0.001, categoria: 'carboidratos' },
     { nome: 'Batata Inglesa', unidade: 'g', calorias: 0.77, proteinas: 0.02, carboidratos: 0.17, gorduras: 0.001, categoria: 'carboidratos' },
+    { nome: 'Mandioca', unidade: 'g', calorias: 1.60, proteinas: 0.014, carboidratos: 0.38, gorduras: 0.003, categoria: 'carboidratos' },
+    { nome: 'Macarrão Integral', unidade: 'g', calorias: 1.24, proteinas: 0.05, carboidratos: 0.26, gorduras: 0.01, categoria: 'carboidratos' },
+    { nome: 'Pão Integral', unidade: 'fatia', calorias: 69, proteinas: 3.5, carboidratos: 12, gorduras: 1, categoria: 'carboidratos' },
+    { nome: 'Tapioca', unidade: 'unidade', calorias: 70, proteinas: 0.1, carboidratos: 17, gorduras: 0.02, categoria: 'carboidratos' },
+    { nome: 'Crepioca', unidade: 'unidade', calorias: 120, proteinas: 7, carboidratos: 17, gorduras: 2, categoria: 'carboidratos' },
+    
+    // Cereais e Grãos
     { nome: 'Aveia', unidade: 'g', calorias: 3.9, proteinas: 0.13, carboidratos: 0.67, gorduras: 0.07, categoria: 'cereais' },
+    { nome: 'Granola', unidade: 'g', calorias: 4.71, proteinas: 0.10, carboidratos: 0.64, gorduras: 0.20, categoria: 'cereais' },
     { nome: 'Quinoa', unidade: 'g', calorias: 3.68, proteinas: 0.14, carboidratos: 0.64, gorduras: 0.06, categoria: 'cereais' },
+    { nome: 'Lentilha', unidade: 'g', calorias: 1.16, proteinas: 0.09, carboidratos: 0.20, gorduras: 0.004, categoria: 'cereais' },
+    { nome: 'Grão de Bico', unidade: 'g', calorias: 1.64, proteinas: 0.09, carboidratos: 0.27, gorduras: 0.03, categoria: 'cereais' },
+    
+    // Frutas
     { nome: 'Banana', unidade: 'unidade', calorias: 89, proteinas: 1, carboidratos: 23, gorduras: 0.3, categoria: 'frutas' },
     { nome: 'Maçã', unidade: 'unidade', calorias: 52, proteinas: 0.3, carboidratos: 14, gorduras: 0.2, categoria: 'frutas' },
+    { nome: 'Morango', unidade: 'g', calorias: 0.32, proteinas: 0.007, carboidratos: 0.077, gorduras: 0.003, categoria: 'frutas' },
+    { nome: 'Pêra', unidade: 'unidade', calorias: 57, proteinas: 0.4, carboidratos: 15, gorduras: 0.1, categoria: 'frutas' },
+    { nome: 'Mamão', unidade: 'g', calorias: 0.43, proteinas: 0.005, carboidratos: 0.11, gorduras: 0.001, categoria: 'frutas' },
+    { nome: 'Mexerica', unidade: 'unidade', calorias: 47, proteinas: 0.8, carboidratos: 12, gorduras: 0.3, categoria: 'frutas' },
+    { nome: 'Laranja', unidade: 'unidade', calorias: 47, proteinas: 0.9, carboidratos: 12, gorduras: 0.1, categoria: 'frutas' },
+    { nome: 'Manga', unidade: 'unidade', calorias: 60, proteinas: 0.8, carboidratos: 15, gorduras: 0.4, categoria: 'frutas' },
+    { nome: 'Melão', unidade: 'g', calorias: 0.34, proteinas: 0.008, carboidratos: 0.08, gorduras: 0.002, categoria: 'frutas' },
+    { nome: 'Melancia', unidade: 'g', calorias: 0.30, proteinas: 0.006, carboidratos: 0.075, gorduras: 0.002, categoria: 'frutas' },
     { nome: 'Abacate', unidade: 'unidade', calorias: 160, proteinas: 2, carboidratos: 9, gorduras: 15, categoria: 'frutas' },
+    
+    // Vegetais
+    { nome: 'Tomate', unidade: 'unidade', calorias: 18, proteinas: 0.9, carboidratos: 3.9, gorduras: 0.2, categoria: 'vegetais' },
+    { nome: 'Abóbora', unidade: 'g', calorias: 0.26, proteinas: 0.01, carboidratos: 0.07, gorduras: 0.001, categoria: 'vegetais' },
+    { nome: 'Cenoura', unidade: 'g', calorias: 0.41, proteinas: 0.009, carboidratos: 0.10, gorduras: 0.002, categoria: 'vegetais' },
+    { nome: 'Beterraba', unidade: 'g', calorias: 0.43, proteinas: 0.016, carboidratos: 0.10, gorduras: 0.002, categoria: 'vegetais' },
+    { nome: 'Chuchu', unidade: 'g', calorias: 0.19, proteinas: 0.008, carboidratos: 0.05, gorduras: 0.001, categoria: 'vegetais' },
     { nome: 'Brócolis', unidade: 'g', calorias: 0.34, proteinas: 0.028, carboidratos: 0.07, gorduras: 0.004, categoria: 'vegetais' },
+    { nome: 'Couve-flor', unidade: 'g', calorias: 0.25, proteinas: 0.019, carboidratos: 0.05, gorduras: 0.003, categoria: 'vegetais' },
+    { nome: 'Rúcula', unidade: 'g', calorias: 0.25, proteinas: 0.026, carboidratos: 0.037, gorduras: 0.007, categoria: 'vegetais' },
+    { nome: 'Ervilha', unidade: 'g', calorias: 0.81, proteinas: 0.05, carboidratos: 0.14, gorduras: 0.004, categoria: 'vegetais' },
+    { nome: 'Pimentão', unidade: 'unidade', calorias: 20, proteinas: 0.9, carboidratos: 4.6, gorduras: 0.2, categoria: 'vegetais' },
+    { nome: 'Abobrinha', unidade: 'g', calorias: 0.17, proteinas: 0.012, carboidratos: 0.033, gorduras: 0.003, categoria: 'vegetais' },
+    { nome: 'Pepino', unidade: 'g', calorias: 0.15, proteinas: 0.007, carboidratos: 0.036, gorduras: 0.001, categoria: 'vegetais' },
     { nome: 'Espinafre', unidade: 'g', calorias: 0.23, proteinas: 0.029, carboidratos: 0.036, gorduras: 0.004, categoria: 'vegetais' },
+    
+    // Laticínios
+    { nome: 'Leite Integral', unidade: 'ml', calorias: 0.61, proteinas: 0.032, carboidratos: 0.048, gorduras: 0.033, categoria: 'laticinios' },
+    { nome: 'Leite Desnatado', unidade: 'ml', calorias: 0.35, proteinas: 0.034, carboidratos: 0.05, gorduras: 0.002, categoria: 'laticinios' },
+    { nome: 'Iogurte Natural', unidade: 'g', calorias: 0.61, proteinas: 0.034, carboidratos: 0.047, gorduras: 0.033, categoria: 'laticinios' },
+    { nome: 'Iogurte Grego Zero', unidade: 'g', calorias: 0.59, proteinas: 0.10, carboidratos: 0.037, gorduras: 0.001, categoria: 'laticinios' },
+    { nome: 'Queijo Mussarela', unidade: 'g', calorias: 2.80, proteinas: 0.22, carboidratos: 0.024, gorduras: 0.21, categoria: 'laticinios' },
+    { nome: 'Queijo Fresco', unidade: 'g', calorias: 2.64, proteinas: 0.18, carboidratos: 0.033, gorduras: 0.20, categoria: 'laticinios' },
+    { nome: 'Queijo Cottage', unidade: 'g', calorias: 0.98, proteinas: 0.11, carboidratos: 0.033, gorduras: 0.043, categoria: 'laticinios' },
+    { nome: 'Queijo Minas Light', unidade: 'g', calorias: 1.70, proteinas: 0.18, carboidratos: 0.05, gorduras: 0.10, categoria: 'laticinios' },
+    { nome: 'Requeijão Light', unidade: 'g', calorias: 1.40, proteinas: 0.08, carboidratos: 0.04, gorduras: 0.10, categoria: 'laticinios' },
+    
+    // Gorduras Saudáveis
     { nome: 'Azeite de Oliva', unidade: 'ml', calorias: 8.84, proteinas: 0, carboidratos: 0, gorduras: 1, categoria: 'gorduras' },
-    { nome: 'Castanha do Pará', unidade: 'unidade', calorias: 33, proteinas: 0.7, carboidratos: 0.6, gorduras: 3.3, categoria: 'gorduras' },
+    { nome: 'Azeite de Abacate', unidade: 'ml', calorias: 8.84, proteinas: 0, carboidratos: 0, gorduras: 1, categoria: 'gorduras' },
+    { nome: 'Castanha de Caju', unidade: 'unidade', calorias: 9, proteinas: 0.3, carboidratos: 0.5, gorduras: 0.7, categoria: 'gorduras' },
+    { nome: 'Castanha-do-Pará', unidade: 'unidade', calorias: 33, proteinas: 0.7, carboidratos: 0.6, gorduras: 3.3, categoria: 'gorduras' },
+    { nome: 'Nozes', unidade: 'unidade', calorias: 27, proteinas: 0.6, carboidratos: 0.6, gorduras: 2.7, categoria: 'gorduras' },
+    { nome: 'Amêndoas', unidade: 'unidade', calorias: 7, proteinas: 0.3, carboidratos: 0.2, gorduras: 0.6, categoria: 'gorduras' },
+    { nome: 'Pasta de Amendoim', unidade: 'g', calorias: 5.88, proteinas: 0.25, carboidratos: 0.20, gorduras: 0.50, categoria: 'gorduras' },
+    { nome: 'Linhaça', unidade: 'g', calorias: 5.34, proteinas: 0.18, carboidratos: 0.29, gorduras: 0.42, categoria: 'gorduras' },
+    { nome: 'Sementes de Chia', unidade: 'g', calorias: 4.86, proteinas: 0.17, carboidratos: 0.42, gorduras: 0.31, categoria: 'gorduras' },
+    { nome: 'Tahine', unidade: 'g', calorias: 5.95, proteinas: 0.17, carboidratos: 0.21, gorduras: 0.54, categoria: 'gorduras' },
+    { nome: 'Margarina Vegetal', unidade: 'g', calorias: 7.17, proteinas: 0.006, carboidratos: 0.009, gorduras: 0.81, categoria: 'gorduras' },
+    
+    // Bebidas
+    { nome: 'Suco Natural', unidade: 'ml', calorias: 0.45, proteinas: 0.007, carboidratos: 0.11, gorduras: 0.002, categoria: 'bebidas' },
+    { nome: 'Café com Adoçante', unidade: 'ml', calorias: 0.02, proteinas: 0.001, carboidratos: 0.003, gorduras: 0, categoria: 'bebidas' },
+    
+    // Suplementos
     { nome: 'Whey Protein', unidade: 'g', calorias: 4, proteinas: 0.83, carboidratos: 0.067, gorduras: 0.033, categoria: 'suplementos' },
     { nome: 'Creatina', unidade: 'g', calorias: 0, proteinas: 0, carboidratos: 0, gorduras: 0, categoria: 'suplementos' }
   ];

@@ -300,6 +300,36 @@ export function useDeleteAvaliacao() {
   });
 }
 
+/**
+ * Toggle fixar/desafixar avaliação
+ */
+export function useTogglePinAvaliacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, fixada }: { id: string; fixada: boolean }) => {
+      const { data, error } = await supabase
+        .from('avaliacoes_fisicas')
+        .update({ fixada })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.avaliacoes });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.avaliacao(data.id) });
+      if (data.aluno_id) {
+        queryClient.invalidateQueries({ 
+          queryKey: QUERY_KEYS.avaliacoesByAluno(data.aluno_id) 
+        });
+      }
+    },
+  });
+}
+
 // ============================================
 // HOOKS DE MUTAÇÃO - PERIMETRIA
 // ============================================

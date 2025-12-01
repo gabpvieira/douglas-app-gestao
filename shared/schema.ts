@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, date, integer, timestamp, jsonb, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, date, integer, timestamp, jsonb, uuid, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -152,6 +152,9 @@ export const avaliacoesFisicas = pgTable("avaliacoes_fisicas", {
   // Observações
   observacoes: text("observacoes"),
   objetivos: text("objetivos"),
+  
+  // Fixar avaliação
+  fixada: boolean("fixada").default(false),
   
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),

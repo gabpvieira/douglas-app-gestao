@@ -11,7 +11,7 @@ import PageHeader from '@/components/PageHeader';
 import NovaAvaliacaoModal from '@/components/avaliacoes/NovaAvaliacaoModal';
 import { ModulosAdicionaisModal } from '@/components/avaliacoes/ModulosAdicionaisModal';
 import DetalhesAvaliacaoModal from '@/components/avaliacoes/DetalhesAvaliacaoModal';
-import { useAvaliacoes } from '@/hooks/useAvaliacoesFisicas';
+import { useAvaliacoes, useTogglePinAvaliacao } from '@/hooks/useAvaliacoesFisicas';
 import { Plus, Calendar, User, Activity, FileText, LayoutGrid, List, Search, Eye, Pin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -26,9 +26,9 @@ export default function AvaliacoesFisicas() {
   const [selectedAvaliacao, setSelectedAvaliacao] = useState<{ id: string; alunoId: string } | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchTerm, setSearchTerm] = useState('');
-  const [pinnedAvaliacoes, setPinnedAvaliacoes] = useState<Set<string>>(new Set());
   
   const { data: avaliacoes, isLoading } = useAvaliacoes();
+  const togglePinMutation = useTogglePinAvaliacao();
 
   // Filtrar avaliações por nome do aluno
   const filteredAvaliacoes = useMemo(() => {
@@ -51,15 +51,13 @@ export default function AvaliacoesFisicas() {
     setDetalhesModalOpen(true);
   };
 
-  const handleTogglePin = (avaliacaoId: string) => {
-    setPinnedAvaliacoes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(avaliacaoId)) {
-        newSet.delete(avaliacaoId);
-      } else {
-        newSet.add(avaliacaoId);
-      }
-      return newSet;
+  const handleTogglePin = async (avaliacaoId: string) => {
+    const avaliacao = avaliacoes?.find(av => av.id === avaliacaoId);
+    if (!avaliacao) return;
+    
+    await togglePinMutation.mutateAsync({
+      id: avaliacaoId,
+      fixada: !avaliacao.fixada
     });
   };
 
@@ -167,7 +165,7 @@ export default function AvaliacoesFisicas() {
                         {/* Aluno e Data */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            {pinnedAvaliacoes.has(avaliacao.id) && (
+                            {avaliacao.fixada && (
                               <Pin className="h-4 w-4 text-blue-500 flex-shrink-0" />
                             )}
                             <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -250,7 +248,7 @@ export default function AvaliacoesFisicas() {
                   <CardHeader className="p-3 pb-2">
                     <div className="space-y-1">
                       <CardTitle className="text-sm flex items-center gap-1.5 text-white leading-tight">
-                        {pinnedAvaliacoes.has(avaliacao.id) && (
+                        {avaliacao.fixada && (
                           <Pin className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
                         )}
                         <User className="h-3.5 w-3.5 flex-shrink-0" />
@@ -382,7 +380,7 @@ export default function AvaliacoesFisicas() {
             open={detalhesModalOpen}
             onOpenChange={setDetalhesModalOpen}
             avaliacaoId={selectedAvaliacaoId}
-            isPinned={pinnedAvaliacoes.has(selectedAvaliacaoId)}
+            isPinned={avaliacoes?.find(av => av.id === selectedAvaliacaoId)?.fixada || false}
             onTogglePin={() => handleTogglePin(selectedAvaliacaoId)}
           />
         )}
