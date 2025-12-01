@@ -29,49 +29,49 @@ const menuItems = [
     icon: LayoutDashboard, 
     label: "Dashboard", 
     href: "/admin",
-    gradient: "from-blue-500 to-cyan-500"
+    gradient: "from-blue-500 to-blue-600"
   },
   { 
     icon: Users, 
     label: "Alunos", 
     href: "/admin/alunos",
-    gradient: "from-purple-500 to-pink-500"
+    gradient: "from-blue-500 to-blue-600"
   },
   { 
     icon: Activity, 
     label: "Avaliações Físicas", 
     href: "/admin/avaliacoes-fisicas",
-    gradient: "from-indigo-500 to-purple-500"
+    gradient: "from-blue-500 to-blue-600"
   },
   { 
     icon: Calendar, 
     label: "Agenda", 
     href: "/admin/agenda",
-    gradient: "from-green-500 to-emerald-500"
+    gradient: "from-blue-500 to-blue-600"
   },
   { 
     icon: Dumbbell, 
     label: "Fichas de Treino", 
     href: "/admin/fichas-treino",
-    gradient: "from-orange-500 to-red-500"
+    gradient: "from-blue-500 to-blue-600"
   },
   { 
     icon: Video, 
     label: "Treinos Vídeo", 
     href: "/admin/treinos-video",
-    gradient: "from-pink-500 to-rose-500"
+    gradient: "from-blue-500 to-blue-600"
   },
   { 
     icon: UtensilsCrossed, 
     label: "Planos Alimentares", 
     href: "/admin/planos",
-    gradient: "from-yellow-500 to-orange-500"
+    gradient: "from-blue-500 to-blue-600"
   },
   { 
     icon: CreditCard, 
     label: "Pagamentos", 
     href: "/admin/pagamentos",
-    gradient: "from-teal-500 to-cyan-500"
+    gradient: "from-blue-500 to-blue-600"
   },
 ];
 
@@ -128,20 +128,20 @@ export default function AdminSidebar({ onLogout, isCollapsed = false, onToggleCo
       `}>
         <div className="flex flex-col h-full relative">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-800/50 bg-slate-900/50 backdrop-blur">
-            <div className={`flex items-center gap-2 transition-all duration-300 ${isCollapsed ? 'md:opacity-0 md:w-0 md:overflow-hidden' : 'opacity-100'}`}>
+          <div className="flex items-center justify-between p-5 border-b border-slate-800/50 bg-slate-900/50 backdrop-blur">
+            <div className={`flex items-center gap-3 transition-all duration-300 ${isCollapsed ? 'md:opacity-0 md:w-0 md:overflow-hidden' : 'opacity-100'}`}>
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg blur-md opacity-40"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl blur-md opacity-40"></div>
                 <img 
                   src={logoImage} 
-                  alt="Personal Douglas" 
-                  className="h-8 w-auto relative z-10 drop-shadow-xl"
+                  alt="Douglas Coimbra" 
+                  className="h-12 w-auto relative z-10 drop-shadow-xl"
                   data-testid="img-sidebar-logo"
                 />
               </div>
               <div>
-                <h2 className="font-bold text-sm bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Personal Douglas</h2>
-                <p className="text-[10px] text-slate-500 font-medium">Admin Panel</p>
+                <h2 className="font-bold text-base bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">Douglas Coimbra</h2>
+                <p className="text-xs text-slate-400 font-medium">Administrador</p>
               </div>
             </div>
             

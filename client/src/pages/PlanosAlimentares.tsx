@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Target, Activity, Users, ChefHat, Filter, Search } from 'lucide-react';
+import { Plus, Target, Activity, Users, ChefHat, Filter, Search, LayoutGrid, List, Eye, Edit, Trash2, Copy, Utensils } from 'lucide-react';
 import { PlanoAlimentarModal } from '@/components/PlanoAlimentarModal';
 import { PlanosAlimentaresList } from '@/components/PlanosAlimentaresList';
 import { PlanoDetalhesModal } from '@/components/PlanoDetalhesModal';
@@ -13,6 +13,8 @@ import { useAlunos } from '@/hooks/useAlunos';
 import { useToast } from '@/hooks/use-toast';
 import { usePlanosAlimentares, useCreatePlanoAlimentar, useUpdatePlanoAlimentar, useDeletePlanoAlimentar } from '@/hooks/usePlanosAlimentares';
 import PageHeader from '@/components/PageHeader';
+
+type ViewMode = 'grid' | 'list';
 
 // Interfaces
 export interface PlanoAlimentar {
@@ -78,6 +80,7 @@ export default function PlanosAlimentares() {
   const [filtroObjetivo, setFiltroObjetivo] = useState<string>('todos');
   const [filtroCategoria, setFiltroCategoria] = useState<string>('todos');
   const [activeTab, setActiveTab] = useState('planos');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
   // Buscar todos os planos (sem filtro de aluno)
   const { data: planosSupabase = [], isLoading: loadingPlanos, error: errorPlanos } = usePlanosAlimentares();
@@ -292,14 +295,16 @@ export default function PlanosAlimentares() {
     setIsDetalhesModalOpen(true);
   };
 
-  const planosFiltrados = planos?.filter(plano => {
-    const matchSearch = plano.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       plano.descricao.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchObjetivo = filtroObjetivo === 'todos' || plano.objetivo === filtroObjetivo;
-    const matchCategoria = filtroCategoria === 'todos' || plano.categoria === filtroCategoria;
-    
-    return matchSearch && matchObjetivo && matchCategoria;
-  }) || [];
+  const planosFiltrados = useMemo(() => {
+    return planos?.filter(plano => {
+      const matchSearch = plano.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         plano.descricao.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchObjetivo = filtroObjetivo === 'todos' || plano.objetivo === filtroObjetivo;
+      const matchCategoria = filtroCategoria === 'todos' || plano.categoria === filtroCategoria;
+      
+      return matchSearch && matchObjetivo && matchCategoria;
+    }) || [];
+  }, [planos, searchTerm, filtroObjetivo, filtroCategoria]);
 
   const estatisticas = {
     totalPlanos: planos?.length || 0,
@@ -315,6 +320,21 @@ export default function PlanosAlimentares() {
     console.error('❌ [Planos] Erro ao carregar:', errorPlanos);
   }
 
+  const getObjetivoBadgeColor = (objetivo: string) => {
+    if (objetivo === 'emagrecimento') return 'bg-red-500/10 text-red-500 border-red-500/20';
+    if (objetivo === 'ganho_massa') return 'bg-green-500/10 text-green-500 border-green-500/20';
+    if (objetivo === 'definicao') return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+    return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+  };
+
+  const getObjetivoLabel = (objetivo: string) => {
+    if (objetivo === 'emagrecimento') return 'Emagrecimento';
+    if (objetivo === 'ganho_massa') return 'Ganho de Massa';
+    if (objetivo === 'definicao') return 'Definição';
+    if (objetivo === 'manutencao') return 'Manutenção';
+    return objetivo;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
       <div className="w-full space-y-4 sm:space-y-6">
@@ -329,15 +349,45 @@ export default function PlanosAlimentares() {
           title="Planos Alimentares"
           description="Gerencie e crie planos alimentares para seus alunos"
           actions={
-            <Button 
-              onClick={handleCriarPlano}
-              data-testid="button-add-plano"
-              className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
-            >
-              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Novo Plano</span>
-              <span className="sm:hidden">Novo</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Toggle View Mode */}
+              <div className="flex items-center gap-1 border border-gray-700 rounded-lg p-1 bg-gray-800/50">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className={`h-7 sm:h-8 px-2 sm:px-3 ${
+                    viewMode === 'grid'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className={`h-7 sm:h-8 px-2 sm:px-3 ${
+                    viewMode === 'list'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </Button>
+              </div>
+              
+              <Button 
+                onClick={handleCriarPlano}
+                data-testid="button-add-plano"
+                className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
+              >
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Novo Plano</span>
+                <span className="sm:hidden">Novo</span>
+              </Button>
+            </div>
           }
         />
 
@@ -469,52 +519,232 @@ export default function PlanosAlimentares() {
           </TabsList>
           
           <TabsContent value="planos" className="space-y-3 sm:space-y-4 mt-6 sm:mt-4">
-            <Card className="border-gray-800 bg-gradient-to-br from-gray-800/50 to-gray-800/30 backdrop-blur shadow-lg">
-              <CardHeader className="p-4 sm:p-6 border-b border-gray-700/50">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg sm:text-xl text-white font-bold flex items-center gap-2">
-                    <ChefHat className="w-5 h-5 text-blue-400" />
-                    Lista de Planos
-                  </CardTitle>
-                  <Badge variant="outline" className="bg-blue-900/30 text-blue-300 border-blue-700/50 text-sm">
-                    {planosFiltrados.length} {planosFiltrados.length === 1 ? 'plano' : 'planos'}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-3 sm:p-6">
-                {loading ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 text-sm">Carregando planos...</p>
-                  </div>
-                ) : planosFiltrados.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 text-sm">
-                      {searchTerm ? 'Nenhum plano encontrado.' : 'Nenhum plano cadastrado.'}
-                    </p>
-                    {!searchTerm && (
-                      <Button 
-                        onClick={handleCriarPlano}
-                        className="mt-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-                        data-testid="button-add-first-plano"
+            {loading ? (
+              <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+                <CardContent className="py-12 text-center">
+                  <p className="text-gray-400 text-sm">Carregando planos...</p>
+                </CardContent>
+              </Card>
+            ) : planosFiltrados.length === 0 ? (
+              <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+                <CardContent className="py-12 text-center p-6">
+                  <ChefHat className="h-12 w-12 mx-auto text-gray-600 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-white">
+                    {searchTerm ? 'Nenhum plano encontrado' : 'Nenhum plano cadastrado'}
+                  </h3>
+                  <p className="text-gray-400 mb-4 text-sm">
+                    {searchTerm 
+                      ? 'Tente buscar por outro termo.'
+                      : 'Comece criando o primeiro plano alimentar.'
+                    }
+                  </p>
+                  {!searchTerm && (
+                    <Button 
+                      onClick={handleCriarPlano}
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                      data-testid="button-add-first-plano"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Plano
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : viewMode === 'list' ? (
+              /* VISUALIZAÇÃO EM LISTA */
+              <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+                <CardContent className="p-0">
+                  <div className="divide-y divide-gray-800">
+                    {planosFiltrados.map((plano) => (
+                      <div
+                        key={plano.id}
+                        className="p-3 sm:p-4 hover:bg-gray-800/50 transition-colors"
                       >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Criar Primeiro Plano
-                      </Button>
-                    )}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                          {/* Nome e Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <ChefHat className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                              <h3 className="font-semibold text-white truncate">{plano.nome}</h3>
+                              {!plano.ativo && (
+                                <Badge variant="outline" className="border-gray-700 text-gray-500 text-xs">
+                                  Inativo
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 mb-2">
+                              <Badge variant="outline" className={`${getObjetivoBadgeColor(plano.objetivo)} text-xs`}>
+                                {getObjetivoLabel(plano.objetivo)}
+                              </Badge>
+                              <span className="flex items-center gap-1">
+                                <Activity className="h-3 w-3" />
+                                {plano.calorias} kcal
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Utensils className="h-3 w-3" />
+                                {plano.refeicoes?.length || 0} refeições
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-1">{plano.descricao}</p>
+                          </div>
+
+                          {/* Macros */}
+                          <div className="grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-4">
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 mb-1">Proteínas</p>
+                              <p className="text-sm font-semibold text-green-400">{plano.proteinas}g</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 mb-1">Carbos</p>
+                              <p className="text-sm font-semibold text-blue-400">{plano.carboidratos}g</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 mb-1">Gorduras</p>
+                              <p className="text-sm font-semibold text-yellow-400">{plano.gorduras}g</p>
+                            </div>
+                          </div>
+
+                          {/* Ações */}
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 sm:flex-initial border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
+                              onClick={() => handleVerDetalhes(plano)}
+                            >
+                              <Eye className="h-3.5 w-3.5 sm:mr-2" />
+                              <span className="hidden sm:inline">Ver</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 sm:flex-initial border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
+                              onClick={() => handleEditarPlano(plano)}
+                            >
+                              <Edit className="h-3.5 w-3.5 sm:mr-2" />
+                              <span className="hidden sm:inline">Editar</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 sm:flex-initial border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
+                              onClick={() => handleDuplicarPlano(plano)}
+                            >
+                              <Copy className="h-3.5 w-3.5 sm:mr-2" />
+                              <span className="hidden sm:inline">Duplicar</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-gray-700 bg-gray-800/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 text-xs"
+                              onClick={() => handleExcluirPlano(plano.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <PlanosAlimentaresList
-                    planos={planosFiltrados}
-                    alunos={alunos}
-                    onEdit={handleEditarPlano}
-                    onDelete={handleExcluirPlano}
-                    onToggleStatus={handleToggleAtivo}
-                    onDuplicate={handleDuplicarPlano}
-                    onViewDetails={handleVerDetalhes}
-                  />
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              /* VISUALIZAÇÃO EM GRID COMPACTO */
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                {planosFiltrados.map((plano) => (
+                  <Card 
+                    key={plano.id} 
+                    className="border-gray-800 bg-gray-900/50 backdrop-blur hover:bg-gray-800/50 transition-all"
+                  >
+                    <CardHeader className="p-3 pb-2">
+                      <div className="space-y-1">
+                        <CardTitle className="text-sm flex items-center gap-1.5 text-white leading-tight">
+                          <ChefHat className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                          <span className="truncate">{plano.nome}</span>
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-1.5 text-gray-400 text-[10px]">
+                          <Badge variant="outline" className={`${getObjetivoBadgeColor(plano.objetivo)} text-[10px] px-1.5 py-0 h-5`}>
+                            {getObjetivoLabel(plano.objetivo)}
+                          </Badge>
+                          {!plano.ativo && (
+                            <Badge variant="outline" className="border-gray-700 text-gray-500 text-[10px] px-1.5 py-0 h-5">
+                              Inativo
+                            </Badge>
+                          )}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2.5 p-3 pt-0">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-400">Calorias</span>
+                          <span className="font-semibold text-white">{plano.calorias} kcal</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div className="bg-gray-800/50 rounded p-1.5">
+                            <p className="text-[10px] text-gray-500 mb-0.5">Prot</p>
+                            <p className="text-xs font-semibold text-green-400">{plano.proteinas}g</p>
+                          </div>
+                          <div className="bg-gray-800/50 rounded p-1.5">
+                            <p className="text-[10px] text-gray-500 mb-0.5">Carb</p>
+                            <p className="text-xs font-semibold text-blue-400">{plano.carboidratos}g</p>
+                          </div>
+                          <div className="bg-gray-800/50 rounded p-1.5">
+                            <p className="text-[10px] text-gray-500 mb-0.5">Gord</p>
+                            <p className="text-xs font-semibold text-yellow-400">{plano.gorduras}g</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                          <Utensils className="h-3 w-3 flex-shrink-0" />
+                          <span>{plano.refeicoes?.length || 0} refeições</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-gray-800 space-y-1.5">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full h-7 border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-[10px]"
+                          onClick={() => handleVerDetalhes(plano)}
+                        >
+                          <Eye className="h-3 w-3 mr-1.5" />
+                          Ver Detalhes
+                        </Button>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-7 border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-[10px]"
+                            onClick={() => handleEditarPlano(plano)}
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Editar
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-7 border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-[10px]"
+                            onClick={() => handleDuplicarPlano(plano)}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Duplicar
+                          </Button>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full h-7 border-gray-700 bg-gray-800/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 text-[10px]"
+                          onClick={() => handleExcluirPlano(plano.id)}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1.5" />
+                          Excluir
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="alunos" className="space-y-3 sm:space-y-4 mt-6 sm:mt-4">
