@@ -86,31 +86,31 @@ export default function AvaliacoesFisicas() {
           description="Gerencie avaliações de composição corporal dos alunos"
           actions={
             <div className="flex items-center gap-2">
-              {/* Toggle View Mode - Desktop only */}
-              <div className="hidden lg:flex items-center gap-1 border border-gray-700 rounded-lg p-1 bg-gray-800/50">
+              {/* Toggle View Mode */}
+              <div className="flex items-center gap-1 border border-gray-700 rounded-lg p-1 bg-gray-800/50">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setViewMode('grid')}
-                  className={`h-8 px-3 ${
+                  className={`h-7 sm:h-8 px-2 sm:px-3 ${
                     viewMode === 'grid'
                       ? 'bg-gray-700 text-white'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  <LayoutGrid className="h-4 w-4" />
+                  <LayoutGrid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className={`h-8 px-3 ${
+                  className={`h-7 sm:h-8 px-2 sm:px-3 ${
                     viewMode === 'list'
                       ? 'bg-gray-700 text-white'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  <List className="h-4 w-4" />
+                  <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
               
@@ -161,9 +161,9 @@ export default function AvaliacoesFisicas() {
                   {filteredAvaliacoes.map((avaliacao) => (
                     <div
                       key={avaliacao.id}
-                      className="p-4 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                      className="p-3 sm:p-4 hover:bg-gray-800/50 transition-colors cursor-pointer"
                     >
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                         {/* Aluno e Data */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
@@ -183,7 +183,7 @@ export default function AvaliacoesFisicas() {
                         </div>
 
                         {/* Métricas */}
-                        <div className="flex items-center gap-6">
+                        <div className="grid grid-cols-3 sm:flex sm:items-center gap-3 sm:gap-6">
                           <div className="text-center">
                             <p className="text-xs text-gray-500 mb-1">Peso</p>
                             <p className="text-sm font-semibold text-white">{avaliacao.peso} kg</p>
@@ -213,24 +213,24 @@ export default function AvaliacoesFisicas() {
                         </div>
 
                         {/* Ações */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white flex-shrink-0"
+                            className="flex-1 sm:flex-initial border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
                             onClick={() => handleOpenDetalhes(avaliacao.id)}
                           >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver Detalhes
+                            <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Ver Detalhes</span>
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white flex-shrink-0"
+                            className="flex-1 sm:flex-initial border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
                             onClick={() => handleOpenModulos(avaliacao.id, avaliacao.alunoId)}
                           >
-                            <FileText className="h-4 w-4 mr-2" />
-                            Módulos
+                            <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Módulos</span>
                           </Button>
                         </div>
                       </div>
