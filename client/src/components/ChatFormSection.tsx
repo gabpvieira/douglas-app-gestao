@@ -39,15 +39,7 @@ export default function ChatFormSection() {
   };
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    // Scroll apenas dentro do container de mensagens, não na página
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-    }
-  };
 
   useEffect(() => {
     // Mensagem inicial - apenas uma vez
@@ -55,13 +47,6 @@ export default function ChatFormSection() {
       addBotMessage("Olá! 👋 Que bom ter você aqui! Para iniciar sua jornada na consultoria, preciso de algumas informações. Qual é o seu nome?", 500);
     }
   }, []);
-
-  useEffect(() => {
-    // Scroll apenas se houver novas mensagens (não no carregamento inicial)
-    if (messages.length > 1) {
-      scrollToBottom();
-    }
-  }, [messages, isTyping]);
 
   const addBotMessage = (text: string, delay = 1000) => {
     setIsTyping(true);
