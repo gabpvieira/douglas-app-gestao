@@ -57,14 +57,9 @@ export default function ChatFormSection() {
   }, []);
 
   useEffect(() => {
-    // Scroll apenas se houver mensagens (evita scroll no carregamento inicial)
-    if (messages.length > 0) {
-      // Pequeno delay para garantir que o DOM foi atualizado
-      const timer = setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-      
-      return () => clearTimeout(timer);
+    // Scroll apenas se houver novas mensagens (não no carregamento inicial)
+    if (messages.length > 1) {
+      scrollToBottom();
     }
   }, [messages, isTyping]);
 
