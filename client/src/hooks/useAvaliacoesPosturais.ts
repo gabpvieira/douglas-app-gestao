@@ -169,17 +169,26 @@ export function useDeletarAvaliacaoPostural() {
 // Upload de foto postural
 export async function uploadFotoPostural(file: File, alunoId: string, tipo: string): Promise<string> {
   const fileExt = file.name.split('.').pop();
-  const fileName = `${alunoId}/${tipo}_${Date.now()}.${fileExt}`;
+  const fileName = `${tipo}_${Date.now()}.${fileExt}`;
+  const filePath = `${alunoId}/${fileName}`;
 
+  // Tentar fazer upload
   const { error: uploadError } = await supabase.storage
     .from('fotos-progresso')
-    .upload(fileName, file);
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
 
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+    console.error('Erro no upload:', uploadError);
+    throw uploadError;
+  }
 
-  const { data: { publicUrl } } = supabase.storage
+  // Obter URL pública
+  const { data } = supabase.storage
     .from('fotos-progresso')
-    .getPublicUrl(fileName);
+    .getPublicUrl(filePath);
 
-  return publicUrl;
+  return data.publicUrl;
 }
