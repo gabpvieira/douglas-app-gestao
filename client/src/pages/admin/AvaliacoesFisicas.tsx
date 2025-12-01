@@ -2,15 +2,17 @@
  * Página de Avaliações Físicas - Admin
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import PageHeader from '@/components/PageHeader';
 import NovaAvaliacaoModal from '@/components/avaliacoes/NovaAvaliacaoModal';
 import { ModulosAdicionaisModal } from '@/components/avaliacoes/ModulosAdicionaisModal';
+import DetalhesAvaliacaoModal from '@/components/avaliacoes/DetalhesAvaliacaoModal';
 import { useAvaliacoes } from '@/hooks/useAvaliacoesFisicas';
-import { Plus, Calendar, User, Activity, FileText, LayoutGrid, List } from 'lucide-react';
+import { Plus, Calendar, User, Activity, FileText, LayoutGrid, List, Search, Eye, Pin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -19,13 +21,46 @@ type ViewMode = 'grid' | 'list';
 export default function AvaliacoesFisicas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modulosModalOpen, setModulosModalOpen] = useState(false);
+  const [detalhesModalOpen, setDetalhesModalOpen] = useState(false);
+  const [selectedAvaliacaoId, setSelectedAvaliacaoId] = useState<string | null>(null);
   const [selectedAvaliacao, setSelectedAvaliacao] = useState<{ id: string; alunoId: string } | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [pinnedAvaliacoes, setPinnedAvaliacoes] = useState<Set<string>>(new Set());
+  
   const { data: avaliacoes, isLoading } = useAvaliacoes();
+
+  // Filtrar avaliações por nome do aluno
+  const filteredAvaliacoes = useMemo(() => {
+    if (!avaliacoes) return [];
+    if (!searchTerm.trim()) return avaliacoes;
+    
+    const search = searchTerm.toLowerCase();
+    return avaliacoes.filter(av => 
+      av.aluno?.nome.toLowerCase().includes(search)
+    );
+  }, [avaliacoes, searchTerm]);
 
   const handleOpenModulos = (avaliacaoId: string, alunoId: string) => {
     setSelectedAvaliacao({ id: avaliacaoId, alunoId });
     setModulosModalOpen(true);
+  };
+
+  const handleOpenDetalhes = (avaliacaoId: string) => {
+    setSelectedAvaliacaoId(avaliacaoId);
+    setDetalhesModalOpen(true);
+  };
+
+  const handleTogglePin = (avaliacaoId: string) => {
+    setPinnedAvaliacoes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(avaliacaoId)) {
+        newSet.delete(avaliacaoId);
+      } else {
+        newSet.add(avaliacaoId);
+      }
+      return newSet;
+    });
   };
 
   const getProtocoloBadge = (protocolo: string) => {
@@ -91,19 +126,39 @@ export default function AvaliacoesFisicas() {
           }
         />
 
+        {/* Filtro de Busca */}
+        <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+          <CardContent className="p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+              <Input
+                placeholder="Buscar por nome do aluno..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+              />
+            </div>
+            {searchTerm && (
+              <p className="text-xs text-gray-400 mt-2">
+                {filteredAvaliacoes.length} {filteredAvaliacoes.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {isLoading ? (
           <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
             <CardContent className="py-12 text-center">
               <p className="text-gray-400 text-sm">Carregando avaliações...</p>
             </CardContent>
           </Card>
-        ) : avaliacoes && avaliacoes.length > 0 ? (
+        ) : filteredAvaliacoes && filteredAvaliacoes.length > 0 ? (
           viewMode === 'list' ? (
             /* VISUALIZAÇÃO EM LISTA */
             <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
               <CardContent className="p-0">
                 <div className="divide-y divide-gray-800">
-                  {avaliacoes.map((avaliacao) => (
+                  {filteredAvaliacoes.map((avaliacao) => (
                     <div
                       key={avaliacao.id}
                       className="p-4 hover:bg-gray-800/50 transition-colors cursor-pointer"
@@ -112,6 +167,9 @@ export default function AvaliacoesFisicas() {
                         {/* Aluno e Data */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
+                            {pinnedAvaliacoes.has(avaliacao.id) && (
+                              <Pin className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            )}
                             <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
                             <h3 className="font-semibold text-white truncate">{avaliacao.aluno?.nome}</h3>
                             <Badge variant="outline" className="border-gray-700 text-gray-300 text-xs flex-shrink-0">
@@ -155,15 +213,26 @@ export default function AvaliacoesFisicas() {
                         </div>
 
                         {/* Ações */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white flex-shrink-0"
-                          onClick={() => handleOpenModulos(avaliacao.id, avaliacao.alunoId)}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Módulos
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white flex-shrink-0"
+                            onClick={() => handleOpenDetalhes(avaliacao.id)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Detalhes
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white flex-shrink-0"
+                            onClick={() => handleOpenModulos(avaliacao.id, avaliacao.alunoId)}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Módulos
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -173,7 +242,7 @@ export default function AvaliacoesFisicas() {
           ) : (
             /* VISUALIZAÇÃO EM GRID COMPACTO */
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-              {avaliacoes.map((avaliacao) => (
+              {filteredAvaliacoes.map((avaliacao) => (
                 <Card 
                   key={avaliacao.id} 
                   className="border-gray-800 bg-gray-900/50 backdrop-blur hover:bg-gray-800/50 transition-all cursor-pointer"
@@ -182,6 +251,9 @@ export default function AvaliacoesFisicas() {
                     <div className="space-y-1">
                       <div className="flex items-start justify-between gap-2">
                         <CardTitle className="text-sm flex items-center gap-1.5 text-white leading-tight">
+                          {pinnedAvaliacoes.has(avaliacao.id) && (
+                            <Pin className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                          )}
                           <User className="h-3.5 w-3.5 flex-shrink-0" />
                           <span className="truncate">{avaliacao.aluno?.nome}</span>
                         </CardTitle>
@@ -242,7 +314,16 @@ export default function AvaliacoesFisicas() {
                       </div>
                     )}
 
-                    <div className="pt-2 border-t border-gray-800">
+                    <div className="pt-2 border-t border-gray-800 space-y-1.5">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full h-7 border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-[10px]"
+                        onClick={() => handleOpenDetalhes(avaliacao.id)}
+                      >
+                        <Eye className="h-3 w-3 mr-1.5" />
+                        Ver Detalhes
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -262,17 +343,24 @@ export default function AvaliacoesFisicas() {
           <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
             <CardContent className="py-12 text-center p-6">
               <Activity className="h-12 w-12 mx-auto text-gray-600 mb-4" />
-              <h3 className="text-lg font-semibold mb-2 text-white">Nenhuma avaliação cadastrada</h3>
+              <h3 className="text-lg font-semibold mb-2 text-white">
+                {searchTerm ? 'Nenhuma avaliação encontrada' : 'Nenhuma avaliação cadastrada'}
+              </h3>
               <p className="text-gray-400 mb-4 text-sm">
-                Comece criando a primeira avaliação física de um aluno.
+                {searchTerm 
+                  ? 'Tente buscar por outro nome de aluno.'
+                  : 'Comece criando a primeira avaliação física de um aluno.'
+                }
               </p>
-              <Button 
-                onClick={() => setModalOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Avaliação
-              </Button>
+              {!searchTerm && (
+                <Button 
+                  onClick={() => setModalOpen(true)}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Avaliação
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
@@ -288,6 +376,16 @@ export default function AvaliacoesFisicas() {
             onOpenChange={setModulosModalOpen}
             avaliacaoId={selectedAvaliacao.id}
             alunoId={selectedAvaliacao.alunoId}
+          />
+        )}
+
+        {selectedAvaliacaoId && (
+          <DetalhesAvaliacaoModal
+            open={detalhesModalOpen}
+            onOpenChange={setDetalhesModalOpen}
+            avaliacaoId={selectedAvaliacaoId}
+            isPinned={pinnedAvaliacoes.has(selectedAvaliacaoId)}
+            onTogglePin={() => handleTogglePin(selectedAvaliacaoId)}
           />
         )}
       </div>
