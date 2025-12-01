@@ -8,14 +8,44 @@ interface ImagemComGradeProps {
 
 export function ImagemComGrade({ src, alt, showGrid = true }: ImagemComGradeProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  if (!src) {
+    return (
+      <div className="relative w-full h-full flex items-center justify-center bg-gray-800">
+        <p className="text-gray-500 text-sm">Sem imagem</p>
+      </div>
+    );
+  }
+
+  if (imageError) {
+    return (
+      <div className="relative w-full h-full flex items-center justify-center bg-gray-800">
+        <p className="text-red-500 text-sm">Erro ao carregar</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full bg-gray-900">
+      {!imageLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      )}
       <img
         src={src}
         alt={alt}
         className="w-full h-full object-contain"
-        onLoad={() => setImageLoaded(true)}
+        onLoad={() => {
+          setImageLoaded(true);
+          setImageError(false);
+        }}
+        onError={() => {
+          console.error('Erro ao carregar imagem:', src);
+          setImageError(true);
+        }}
+        crossOrigin="anonymous"
       />
       {showGrid && imageLoaded && (
         <svg
