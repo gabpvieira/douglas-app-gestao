@@ -82,7 +82,7 @@ export default function DetalhesAvaliacaoModal({
               </DialogTitle>
               <p className="text-sm text-gray-400 mt-1 flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                {avaliacao.dataAvaliacao && format(new Date(avaliacao.dataAvaliacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                {avaliacao.data_avaliacao && format(new Date(avaliacao.data_avaliacao), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
               </p>
             </div>
             <Badge variant="outline" className="border-gray-700 text-gray-300">
@@ -130,11 +130,17 @@ export default function DetalhesAvaliacaoModal({
                     <p className="text-lg font-semibold text-white">{avaliacao.idade} anos</p>
                   </div>
                 )}
+                {avaliacao.genero && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Gênero</p>
+                    <p className="text-lg font-semibold text-white capitalize">{avaliacao.genero}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Composição Corporal */}
-            {avaliacao.percentualGordura && (
+            {avaliacao.percentual_gordura && (
               <Card className="border-gray-800 bg-gray-800/50">
                 <CardHeader>
                   <CardTitle className="text-base text-white flex items-center gap-2">
@@ -145,26 +151,44 @@ export default function DetalhesAvaliacaoModal({
                 <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">% Gordura</p>
-                    <p className="text-lg font-semibold text-blue-400">{avaliacao.percentualGordura}%</p>
+                    <p className="text-lg font-semibold text-blue-400">{avaliacao.percentual_gordura}%</p>
                   </div>
-                  {avaliacao.classificacaoGordura && (
+                  {avaliacao.classificacao_gordura && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Classificação</p>
                       <Badge variant="outline" className="border-gray-700">
-                        {avaliacao.classificacaoGordura}
+                        {avaliacao.classificacao_gordura}
                       </Badge>
                     </div>
                   )}
-                  {avaliacao.massaMagra && (
+                  {avaliacao.massa_magra && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Massa Magra</p>
-                      <p className="text-lg font-semibold text-green-500">{avaliacao.massaMagra} kg</p>
+                      <p className="text-lg font-semibold text-green-500">{avaliacao.massa_magra} kg</p>
                     </div>
                   )}
-                  {avaliacao.massaGorda && (
+                  {avaliacao.massa_gorda && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Massa Gorda</p>
-                      <p className="text-lg font-semibold text-red-500">{avaliacao.massaGorda} kg</p>
+                      <p className="text-lg font-semibold text-red-500">{avaliacao.massa_gorda} kg</p>
+                    </div>
+                  )}
+                  {avaliacao.densidade_corporal && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Densidade Corporal</p>
+                      <p className="text-lg font-semibold text-white">{avaliacao.densidade_corporal} g/ml</p>
+                    </div>
+                  )}
+                  {avaliacao.peso_ideal && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Peso Ideal</p>
+                      <p className="text-lg font-semibold text-white">{avaliacao.peso_ideal} kg</p>
+                    </div>
+                  )}
+                  {avaliacao.soma_dobras && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Soma das Dobras</p>
+                      <p className="text-lg font-semibold text-white">{avaliacao.soma_dobras} mm</p>
                     </div>
                   )}
                 </CardContent>
@@ -172,52 +196,66 @@ export default function DetalhesAvaliacaoModal({
             )}
 
             {/* Dobras Cutâneas */}
-            {(avaliacao.dobraTriceps || avaliacao.dobraSubescapular) && (
+            {(avaliacao.dobra_triceps || avaliacao.dobra_subescapular || avaliacao.dobra_peitoral || 
+              avaliacao.dobra_axilar_media || avaliacao.dobra_suprailiaca || avaliacao.dobra_abdominal || 
+              avaliacao.dobra_coxa || avaliacao.dobra_biceps || avaliacao.dobra_panturrilha) && (
               <Card className="border-gray-800 bg-gray-800/50">
                 <CardHeader>
                   <CardTitle className="text-base text-white">Dobras Cutâneas (mm)</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {avaliacao.dobraTriceps && (
+                  {avaliacao.dobra_triceps && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Tríceps</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobraTriceps} mm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_triceps} mm</p>
                     </div>
                   )}
-                  {avaliacao.dobraSubescapular && (
+                  {avaliacao.dobra_biceps && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Bíceps</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_biceps} mm</p>
+                    </div>
+                  )}
+                  {avaliacao.dobra_subescapular && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Subescapular</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobraSubescapular} mm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_subescapular} mm</p>
                     </div>
                   )}
-                  {avaliacao.dobraPeitoral && (
+                  {avaliacao.dobra_peitoral && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Peitoral</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobraPeitoral} mm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_peitoral} mm</p>
                     </div>
                   )}
-                  {avaliacao.dobraAxilarMedia && (
+                  {avaliacao.dobra_axilar_media && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Axilar Média</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobraAxilarMedia} mm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_axilar_media} mm</p>
                     </div>
                   )}
-                  {avaliacao.dobraSuprailiaca && (
+                  {avaliacao.dobra_suprailiaca && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Suprailíaca</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobraSuprailiaca} mm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_suprailiaca} mm</p>
                     </div>
                   )}
-                  {avaliacao.dobraAbdominal && (
+                  {avaliacao.dobra_abdominal && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Abdominal</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobraAbdominal} mm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_abdominal} mm</p>
                     </div>
                   )}
-                  {avaliacao.dobraCoxa && (
+                  {avaliacao.dobra_coxa && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Coxa</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.dobraCoxa} mm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_coxa} mm</p>
+                    </div>
+                  )}
+                  {avaliacao.dobra_panturrilha && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Panturrilha</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.dobra_panturrilha} mm</p>
                     </div>
                   )}
                 </CardContent>
@@ -225,58 +263,92 @@ export default function DetalhesAvaliacaoModal({
             )}
 
             {/* Circunferências */}
-            {(avaliacao.circunferenciaTorax || avaliacao.circunferenciaCintura) && (
+            {(avaliacao.circunferencia_torax || avaliacao.circunferencia_cintura || avaliacao.circunferencia_abdomen ||
+              avaliacao.circunferencia_quadril || avaliacao.circunferencia_braco_direito || avaliacao.circunferencia_braco_esquerdo ||
+              avaliacao.circunferencia_coxa_direita || avaliacao.circunferencia_coxa_esquerda || avaliacao.circunferencia_pescoco ||
+              avaliacao.circunferencia_antebraco_direito || avaliacao.circunferencia_antebraco_esquerdo ||
+              avaliacao.circunferencia_panturrilha_direita || avaliacao.circunferencia_panturrilha_esquerda) && (
               <Card className="border-gray-800 bg-gray-800/50">
                 <CardHeader>
                   <CardTitle className="text-base text-white">Circunferências (cm)</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {avaliacao.circunferenciaTorax && (
+                  {avaliacao.circunferencia_pescoco && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Pescoço</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_pescoco} cm</p>
+                    </div>
+                  )}
+                  {avaliacao.circunferencia_torax && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Tórax</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.circunferenciaTorax} cm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_torax} cm</p>
                     </div>
                   )}
-                  {avaliacao.circunferenciaCintura && (
+                  {avaliacao.circunferencia_cintura && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Cintura</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.circunferenciaCintura} cm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_cintura} cm</p>
                     </div>
                   )}
-                  {avaliacao.circunferenciaAbdomen && (
+                  {avaliacao.circunferencia_abdomen && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Abdômen</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.circunferenciaAbdomen} cm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_abdomen} cm</p>
                     </div>
                   )}
-                  {avaliacao.circunferenciaQuadril && (
+                  {avaliacao.circunferencia_quadril && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Quadril</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.circunferenciaQuadril} cm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_quadril} cm</p>
                     </div>
                   )}
-                  {avaliacao.circunferenciaBracoDireito && (
+                  {avaliacao.circunferencia_braco_direito && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Braço Direito</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.circunferenciaBracoDireito} cm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_braco_direito} cm</p>
                     </div>
                   )}
-                  {avaliacao.circunferenciaBracoEsquerdo && (
+                  {avaliacao.circunferencia_braco_esquerdo && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Braço Esquerdo</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.circunferenciaBracoEsquerdo} cm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_braco_esquerdo} cm</p>
                     </div>
                   )}
-                  {avaliacao.circunferenciaCoxaDireita && (
+                  {avaliacao.circunferencia_antebraco_direito && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Antebraço Direito</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_antebraco_direito} cm</p>
+                    </div>
+                  )}
+                  {avaliacao.circunferencia_antebraco_esquerdo && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Antebraço Esquerdo</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_antebraco_esquerdo} cm</p>
+                    </div>
+                  )}
+                  {avaliacao.circunferencia_coxa_direita && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Coxa Direita</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.circunferenciaCoxaDireita} cm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_coxa_direita} cm</p>
                     </div>
                   )}
-                  {avaliacao.circunferenciaCoxaEsquerda && (
+                  {avaliacao.circunferencia_coxa_esquerda && (
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Coxa Esquerda</p>
-                      <p className="text-sm font-semibold text-white">{avaliacao.circunferenciaCoxaEsquerda} cm</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_coxa_esquerda} cm</p>
+                    </div>
+                  )}
+                  {avaliacao.circunferencia_panturrilha_direita && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Panturrilha Direita</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_panturrilha_direita} cm</p>
+                    </div>
+                  )}
+                  {avaliacao.circunferencia_panturrilha_esquerda && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Panturrilha Esquerda</p>
+                      <p className="text-sm font-semibold text-white">{avaliacao.circunferencia_panturrilha_esquerda} cm</p>
                     </div>
                   )}
                 </CardContent>

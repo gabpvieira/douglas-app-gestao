@@ -172,13 +172,13 @@ export default function AvaliacoesFisicas() {
                             )}
                             <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
                             <h3 className="font-semibold text-white truncate">{avaliacao.aluno?.nome}</h3>
-                            <Badge variant="outline" className="border-gray-700 text-gray-300 text-xs flex-shrink-0">
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <Calendar className="h-3 w-3" />
+                            <span>{avaliacao.dataAvaliacao && format(new Date(avaliacao.dataAvaliacao), "dd/MM/yyyy", { locale: ptBR })}</span>
+                            <Badge variant="outline" className="border-gray-700 text-gray-300 text-xs">
                               {getProtocoloBadge(avaliacao.protocolo || 'manual')}
                             </Badge>
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
-                            <Calendar className="h-3 w-3" />
-                            {avaliacao.dataAvaliacao && format(new Date(avaliacao.dataAvaliacao), "dd/MM/yyyy", { locale: ptBR })}
                           </div>
                         </div>
 
@@ -249,23 +249,21 @@ export default function AvaliacoesFisicas() {
                 >
                   <CardHeader className="p-3 pb-2">
                     <div className="space-y-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-sm flex items-center gap-1.5 text-white leading-tight">
-                          {pinnedAvaliacoes.has(avaliacao.id) && (
-                            <Pin className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
-                          )}
-                          <User className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span className="truncate">{avaliacao.aluno?.nome}</span>
-                        </CardTitle>
-                        <Badge variant="outline" className="border-gray-700 text-gray-300 text-[10px] px-1.5 py-0 h-5 flex-shrink-0">
-                          {getProtocoloBadge(avaliacao.protocolo || 'manual')}
-                        </Badge>
-                      </div>
-                      <CardDescription className="flex items-center gap-1 text-gray-400 text-[10px]">
+                      <CardTitle className="text-sm flex items-center gap-1.5 text-white leading-tight">
+                        {pinnedAvaliacoes.has(avaliacao.id) && (
+                          <Pin className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                        )}
+                        <User className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{avaliacao.aluno?.nome}</span>
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-1.5 text-gray-400 text-[10px]">
                         <Calendar className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">
                           {avaliacao.dataAvaliacao && format(new Date(avaliacao.dataAvaliacao), "dd/MM/yyyy", { locale: ptBR })}
                         </span>
+                        <Badge variant="outline" className="border-gray-700 text-gray-300 text-[10px] px-1.5 py-0 h-5 flex-shrink-0">
+                          {getProtocoloBadge(avaliacao.protocolo || 'manual')}
+                        </Badge>
                       </CardDescription>
                     </div>
                   </CardHeader>
