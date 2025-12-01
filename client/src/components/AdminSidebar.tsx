@@ -129,19 +129,19 @@ export default function AdminSidebar({ onLogout, isCollapsed = false, onToggleCo
         <div className="flex flex-col h-full relative">
           {/* Header */}
           <div className="flex items-center justify-between p-5 border-b border-slate-800/50 bg-slate-900/50 backdrop-blur">
-            <div className={`flex items-center gap-3 transition-all duration-300 ${isCollapsed ? 'md:opacity-0 md:w-0 md:overflow-hidden' : 'opacity-100'}`}>
-              <div className="relative">
+            <div className={`flex items-center gap-3 transition-all duration-300 min-w-0 ${isCollapsed ? 'md:opacity-0 md:w-0 md:overflow-hidden' : 'opacity-100'}`}>
+              <div className="relative flex-shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl blur-md opacity-40"></div>
                 <img 
                   src={logoImage} 
                   alt="Douglas Coimbra" 
-                  className="h-12 w-auto relative z-10 drop-shadow-xl"
+                  className="h-12 w-12 object-contain relative z-10 drop-shadow-xl"
                   data-testid="img-sidebar-logo"
                 />
               </div>
-              <div>
-                <h2 className="font-bold text-base bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent">Douglas Coimbra</h2>
-                <p className="text-xs text-slate-400 font-medium">Administrador</p>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-bold text-base bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent truncate">Douglas Coimbra</h2>
+                <p className="text-xs text-slate-400 font-medium truncate">Administrador</p>
               </div>
             </div>
             

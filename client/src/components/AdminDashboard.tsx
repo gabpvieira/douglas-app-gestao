@@ -174,11 +174,6 @@ export default function AdminDashboard() {
         <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/30 rounded-lg p-4 sm:p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <h2 className="text-base sm:text-lg font-medium text-gray-300">
-                  Olá, Douglas 👋
-                </h2>
-              </div>
               <p className="text-xl sm:text-2xl font-semibold text-white mb-2">
                 {getGreeting()}
               </p>

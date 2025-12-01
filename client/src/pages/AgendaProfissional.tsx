@@ -37,9 +37,10 @@ import {
   User,
   MapPin,
   Video,
-  Phone
+  Phone,
+  CalendarDays
 } from 'lucide-react';
-import { format, addDays, subDays, isSameDay, startOfMonth, endOfMonth, isToday } from 'date-fns';
+import { format, addDays, subDays, isSameDay, startOfMonth, endOfMonth, isToday, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAgendamentos, useUpdateAgendamento, useDeleteAgendamento, useCreateAgendamento } from '@/hooks/useAgenda';
 import { useAlunos } from '@/hooks/useAlunos';
@@ -48,6 +49,7 @@ import PageHeader from '@/components/PageHeader';
 
 export default function AgendaProfissional() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [selectedAgendamento, setSelectedAgendamento] = useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -70,8 +72,10 @@ export default function AgendaProfissional() {
   const startDate = format(startOfMonth(selectedDate), 'yyyy-MM-dd');
   const endDate = format(endOfMonth(selectedDate), 'yyyy-MM-dd');
   
-  const { data: agendamentosData = [], isLoading: loadingAgendamentos } = useAgendamentos(startDate, endDate);
+  const { data: agendamentosData, isLoading: loadingAgendamentos } = useAgendamentos(startDate, endDate);
   const { data: alunosData = [], isLoading: loadingAlunos } = useAlunos();
+  
+  const agendamentos = (agendamentosData || []) as any[];
   
   const updateAgendamento = useUpdateAgendamento();
   const deleteAgendamento = useDeleteAgendamento();
@@ -80,21 +84,38 @@ export default function AgendaProfissional() {
   const isLoading = loadingAgendamentos || loadingAlunos;
 
   // Filtrar agendamentos do dia selecionado
-  const agendamentosDoDia = agendamentosData
-    .filter(a => isSameDay(new Date(a.dataAgendamento), selectedDate))
-    .sort((a, b) => {
-      const horaA = (a as any).horaInicio || '00:00';
-      const horaB = (b as any).horaInicio || '00:00';
+  const agendamentosDoDia = agendamentos
+    .filter((a: any) => isSameDay(new Date(a.dataAgendamento), selectedDate))
+    .sort((a: any, b: any) => {
+      const horaA = a.horaInicio || '00:00';
+      const horaB = b.horaInicio || '00:00';
       return horaA.localeCompare(horaB);
     });
 
   // Calcular estatísticas
   const stats = {
-    total: agendamentosData.length,
-    agendados: agendamentosData.filter(a => a.status === 'agendado').length,
-    confirmados: agendamentosData.filter(a => a.status === 'confirmado').length,
-    concluidos: agendamentosData.filter(a => a.status === 'concluido').length
+    total: agendamentos.length,
+    agendados: agendamentos.filter((a: any) => a.status === 'agendado').length,
+    confirmados: agendamentos.filter((a: any) => a.status === 'confirmado').length,
+    concluidos: agendamentos.filter((a: any) => a.status === 'concluido').length
   };
+
+  // Calcular semana atual
+  const weekStart = startOfWeek(selectedDate, { locale: ptBR });
+  const weekEnd = endOfWeek(selectedDate, { locale: ptBR });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+  // Agrupar agendamentos por dia da semana
+  const agendamentosPorDia = weekDays.map(day => ({
+    date: day,
+    agendamentos: agendamentos
+      .filter((a: any) => isSameDay(new Date(a.dataAgendamento), day))
+      .sort((a: any, b: any) => {
+        const horaA = a.horaInicio || '00:00';
+        const horaB = b.horaInicio || '00:00';
+        return horaA.localeCompare(horaB);
+      })
+  }));
 
   // Navegação de datas
   const handlePreviousDay = () => {
@@ -103,6 +124,14 @@ export default function AgendaProfissional() {
 
   const handleNextDay = () => {
     setSelectedDate(addDays(selectedDate, 1));
+  };
+
+  const handlePreviousWeek = () => {
+    setSelectedDate(subWeeks(selectedDate, 1));
+  };
+
+  const handleNextWeek = () => {
+    setSelectedDate(addWeeks(selectedDate, 1));
   };
 
   const handleToday = () => {
@@ -201,9 +230,8 @@ export default function AgendaProfissional() {
         horaInicio: newAgendamentoData.horaInicio,
         horaFim: newAgendamentoData.horaFim,
         tipo: newAgendamentoData.tipo,
-        observacoes: newAgendamentoData.observacoes,
-        status: 'agendado'
-      });
+        observacoes: newAgendamentoData.observacoes
+      } as any);
       setIsNewModalOpen(false);
       toast({
         title: 'Sucesso',
@@ -327,6 +355,40 @@ export default function AgendaProfissional() {
           </Card>
         </div>
 
+        {/* View Mode Toggle */}
+        <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex gap-2">
+                <Button
+                  variant={viewMode === 'day' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('day')}
+                  className={viewMode === 'day' 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }
+                >
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  Dia
+                </Button>
+                <Button
+                  variant={viewMode === 'week' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('week')}
+                  className={viewMode === 'week' 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }
+                >
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  Semana
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Date Navigation */}
         <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
           <CardContent className="p-4 sm:p-6">
@@ -334,7 +396,7 @@ export default function AgendaProfissional() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handlePreviousDay}
+                onClick={viewMode === 'day' ? handlePreviousDay : handlePreviousWeek}
                 className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white"
                 disabled={isLoading}
               >
@@ -342,21 +404,34 @@ export default function AgendaProfissional() {
               </Button>
 
               <div className="flex-1 text-center">
-                <h2 className="text-lg sm:text-2xl font-bold text-white">
-                  {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                </h2>
-                <div className="text-xs sm:text-sm text-gray-400 mt-1">
-                  <span>{format(selectedDate, "EEEE", { locale: ptBR })}</span>
-                  {isToday(selectedDate) && (
-                    <Badge className="ml-2 bg-blue-600 text-white">Hoje</Badge>
-                  )}
-                </div>
+                {viewMode === 'day' ? (
+                  <>
+                    <h2 className="text-lg sm:text-2xl font-bold text-white">
+                      {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </h2>
+                    <div className="text-xs sm:text-sm text-gray-400 mt-1">
+                      <span>{format(selectedDate, "EEEE", { locale: ptBR })}</span>
+                      {isToday(selectedDate) && (
+                        <Badge className="ml-2 bg-blue-600 text-white">Hoje</Badge>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-lg sm:text-2xl font-bold text-white">
+                      {format(weekStart, "d 'de' MMM", { locale: ptBR })} - {format(weekEnd, "d 'de' MMM 'de' yyyy", { locale: ptBR })}
+                    </h2>
+                    <div className="text-xs sm:text-sm text-gray-400 mt-1">
+                      Semana {format(selectedDate, 'w', { locale: ptBR })}
+                    </div>
+                  </>
+                )}
               </div>
 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleNextDay}
+                onClick={viewMode === 'day' ? handleNextDay : handleNextWeek}
                 className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white"
                 disabled={isLoading}
               >
@@ -393,7 +468,7 @@ export default function AgendaProfissional() {
         )}
 
         {/* Agendamentos do Dia */}
-        {!isLoading && (
+        {!isLoading && viewMode === 'day' && (
           <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -518,6 +593,103 @@ export default function AgendaProfissional() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* Visualização Semanal */}
+        {!isLoading && viewMode === 'week' && (
+          <div className="grid grid-cols-1 lg:grid-cols-7 gap-3 sm:gap-4">
+            {agendamentosPorDia.map(({ date, agendamentos }) => {
+              const isCurrentDay = isToday(date);
+              const isSelectedDay = isSameDay(date, selectedDate);
+              
+              return (
+                <Card 
+                  key={date.toISOString()} 
+                  className={`border-gray-800 bg-gray-900/50 backdrop-blur transition-all ${
+                    isCurrentDay ? 'ring-2 ring-blue-500/50' : ''
+                  } ${isSelectedDay ? 'ring-2 ring-blue-400' : ''}`}
+                >
+                  <CardContent className="p-3 sm:p-4">
+                    {/* Cabeçalho do Dia */}
+                    <div className="text-center mb-3 pb-3 border-b border-gray-800">
+                      <div className="text-xs text-gray-400 uppercase mb-1">
+                        {format(date, 'EEE', { locale: ptBR })}
+                      </div>
+                      <div className={`text-2xl font-bold ${isCurrentDay ? 'text-blue-400' : 'text-white'}`}>
+                        {format(date, 'd')}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {format(date, 'MMM', { locale: ptBR })}
+                      </div>
+                      {isCurrentDay && (
+                        <Badge className="mt-2 bg-blue-600 text-white text-xs">Hoje</Badge>
+                      )}
+                    </div>
+
+                    {/* Lista de Agendamentos */}
+                    <div className="space-y-2">
+                      {agendamentos.length === 0 ? (
+                        <div className="text-center py-4">
+                          <CalendarIcon className="h-6 w-6 text-gray-700 mx-auto mb-2" />
+                          <p className="text-xs text-gray-600">Sem agendamentos</p>
+                        </div>
+                      ) : (
+                        agendamentos.map((agendamento: any) => {
+                          const TipoIcon = getTipoIcon(agendamento.tipo || 'presencial');
+                          
+                          return (
+                            <Card
+                              key={agendamento.id}
+                              className="border-gray-700 bg-gray-800/30 hover:bg-gray-800/50 transition-all cursor-pointer group"
+                              onClick={() => handleOpenDetail(agendamento)}
+                            >
+                              <CardContent className="p-2">
+                                {/* Horário */}
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Clock className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                                  <span className="text-xs font-medium text-white">
+                                    {agendamento.horaInicio?.substring(0, 5)}
+                                  </span>
+                                </div>
+
+                                {/* Aluno */}
+                                <div className="flex items-start gap-2 mb-2">
+                                  <User className="h-3 w-3 text-gray-500 flex-shrink-0 mt-0.5" />
+                                  <p className="text-xs text-gray-300 line-clamp-2 flex-1">
+                                    {agendamento.aluno?.nome || 'N/A'}
+                                  </p>
+                                </div>
+
+                                {/* Status e Tipo */}
+                                <div className="flex items-center justify-between gap-2">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-[10px] px-1.5 py-0.5 ${getStatusColor(agendamento.status)}`}
+                                  >
+                                    {getStatusIcon(agendamento.status)}
+                                  </Badge>
+                                  <TipoIcon className="h-3 w-3 text-gray-500" />
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Contador de Agendamentos */}
+                    {agendamentos.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-800 text-center">
+                        <span className="text-xs text-gray-500">
+                          {agendamentos.length} {agendamentos.length === 1 ? 'agendamento' : 'agendamentos'}
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
       </div>
 
