@@ -255,7 +255,6 @@ export default function ChatFormSection() {
                       "Digite sua resposta..."
                     }
                     className="flex-1 bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-zinc-600 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    autoFocus
                     maxLength={currentStep === 1 ? 15 : undefined}
                   />
                   <Button
