@@ -10,14 +10,17 @@ import PageHeader from '@/components/PageHeader';
 import NovaAvaliacaoModal from '@/components/avaliacoes/NovaAvaliacaoModal';
 import { ModulosAdicionaisModal } from '@/components/avaliacoes/ModulosAdicionaisModal';
 import { useAvaliacoes } from '@/hooks/useAvaliacoesFisicas';
-import { Plus, Calendar, User, Activity, FileText } from 'lucide-react';
+import { Plus, Calendar, User, Activity, FileText, LayoutGrid, List } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+type ViewMode = 'grid' | 'list';
 
 export default function AvaliacoesFisicas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modulosModalOpen, setModulosModalOpen] = useState(false);
   const [selectedAvaliacao, setSelectedAvaliacao] = useState<{ id: string; alunoId: string } | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const { data: avaliacoes, isLoading } = useAvaliacoes();
 
   const handleOpenModulos = (avaliacaoId: string, alunoId: string) => {
@@ -47,14 +50,44 @@ export default function AvaliacoesFisicas() {
           title="Avaliações Físicas"
           description="Gerencie avaliações de composição corporal dos alunos"
           actions={
-            <Button 
-              onClick={() => setModalOpen(true)}
-              className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
-            >
-              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Nova Avaliação</span>
-              <span className="sm:hidden">Nova</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Toggle View Mode - Desktop only */}
+              <div className="hidden lg:flex items-center gap-1 border border-gray-700 rounded-lg p-1 bg-gray-800/50">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className={`h-8 px-3 ${
+                    viewMode === 'grid'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className={`h-8 px-3 ${
+                    viewMode === 'list'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <Button 
+                onClick={() => setModalOpen(true)}
+                className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
+              >
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Nova Avaliação</span>
+                <span className="sm:hidden">Nova</span>
+              </Button>
+            </div>
           }
         />
 
@@ -65,91 +98,166 @@ export default function AvaliacoesFisicas() {
             </CardContent>
           </Card>
         ) : avaliacoes && avaliacoes.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {avaliacoes.map((avaliacao) => (
-              <Card 
-                key={avaliacao.id} 
-                className="border-gray-800 bg-gray-900/50 backdrop-blur hover:bg-gray-800/50 transition-all cursor-pointer"
-              >
-                <CardHeader className="p-4 sm:p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-white">
-                        <User className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{avaliacao.aluno?.nome}</span>
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-1 text-gray-400 text-xs sm:text-sm">
+          viewMode === 'list' ? (
+            /* VISUALIZAÇÃO EM LISTA */
+            <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+              <CardContent className="p-0">
+                <div className="divide-y divide-gray-800">
+                  {avaliacoes.map((avaliacao) => (
+                    <div
+                      key={avaliacao.id}
+                      className="p-4 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        {/* Aluno e Data */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <h3 className="font-semibold text-white truncate">{avaliacao.aluno?.nome}</h3>
+                            <Badge variant="outline" className="border-gray-700 text-gray-300 text-xs flex-shrink-0">
+                              {getProtocoloBadge(avaliacao.protocolo || 'manual')}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                            <Calendar className="h-3 w-3" />
+                            {avaliacao.dataAvaliacao && format(new Date(avaliacao.dataAvaliacao), "dd/MM/yyyy", { locale: ptBR })}
+                          </div>
+                        </div>
+
+                        {/* Métricas */}
+                        <div className="flex items-center gap-6">
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500 mb-1">Peso</p>
+                            <p className="text-sm font-semibold text-white">{avaliacao.peso} kg</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-gray-500 mb-1">IMC</p>
+                            <p className="text-sm font-semibold text-white">{avaliacao.imc}</p>
+                          </div>
+                          {avaliacao.percentualGordura && (
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 mb-1">% Gordura</p>
+                              <p className="text-sm font-semibold text-blue-400">{avaliacao.percentualGordura}%</p>
+                            </div>
+                          )}
+                          {avaliacao.massaMagra && (
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 mb-1">Massa Magra</p>
+                              <p className="text-sm font-semibold text-green-500">{avaliacao.massaMagra} kg</p>
+                            </div>
+                          )}
+                          {avaliacao.massaGorda && (
+                            <div className="text-center">
+                              <p className="text-xs text-gray-500 mb-1">Massa Gorda</p>
+                              <p className="text-sm font-semibold text-red-500">{avaliacao.massaGorda} kg</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Ações */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white flex-shrink-0"
+                          onClick={() => handleOpenModulos(avaliacao.id, avaliacao.alunoId)}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Módulos
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            /* VISUALIZAÇÃO EM GRID COMPACTO */
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {avaliacoes.map((avaliacao) => (
+                <Card 
+                  key={avaliacao.id} 
+                  className="border-gray-800 bg-gray-900/50 backdrop-blur hover:bg-gray-800/50 transition-all cursor-pointer"
+                >
+                  <CardHeader className="p-3 pb-2">
+                    <div className="space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-sm flex items-center gap-1.5 text-white leading-tight">
+                          <User className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="truncate">{avaliacao.aluno?.nome}</span>
+                        </CardTitle>
+                        <Badge variant="outline" className="border-gray-700 text-gray-300 text-[10px] px-1.5 py-0 h-5 flex-shrink-0">
+                          {getProtocoloBadge(avaliacao.protocolo || 'manual')}
+                        </Badge>
+                      </div>
+                      <CardDescription className="flex items-center gap-1 text-gray-400 text-[10px]">
                         <Calendar className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">
-                          {avaliacao.dataAvaliacao && format(new Date(avaliacao.dataAvaliacao), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                          {avaliacao.dataAvaliacao && format(new Date(avaliacao.dataAvaliacao), "dd/MM/yyyy", { locale: ptBR })}
                         </span>
                       </CardDescription>
                     </div>
-                    <Badge variant="outline" className="border-gray-700 text-gray-300 text-xs flex-shrink-0 ml-2">
-                      {getProtocoloBadge(avaliacao.protocolo || 'manual')}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-xs text-gray-500">Peso</p>
-                      <p className="text-base sm:text-lg font-semibold text-white">{avaliacao.peso} kg</p>
+                  </CardHeader>
+                  <CardContent className="space-y-2.5 p-3 pt-0">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] text-gray-500">Peso</p>
+                        <p className="text-sm font-semibold text-white">{avaliacao.peso} kg</p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] text-gray-500">IMC</p>
+                        <p className="text-sm font-semibold text-white">{avaliacao.imc}</p>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs text-gray-500">IMC</p>
-                      <p className="text-base sm:text-lg font-semibold text-white">{avaliacao.imc}</p>
-                    </div>
-                  </div>
 
-                  {avaliacao.percentualGordura && (
-                    <div className="space-y-2 pt-2 border-t border-gray-800">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Activity className="h-4 w-4 text-blue-500" />
-                          <span className="text-sm font-medium text-gray-300">% Gordura</span>
+                    {avaliacao.percentualGordura && (
+                      <div className="space-y-1.5 pt-2 border-t border-gray-800">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Activity className="h-3.5 w-3.5 text-blue-500" />
+                            <span className="text-xs font-medium text-gray-300">% Gordura</span>
+                          </div>
+                          <span className="text-sm font-bold text-white">{avaliacao.percentualGordura}%</span>
                         </div>
-                        <span className="text-base sm:text-lg font-bold text-white">{avaliacao.percentualGordura}%</span>
+                        {avaliacao.classificacaoGordura && (
+                          <Badge 
+                            variant={getClassificacaoColor(avaliacao.classificacaoGordura)} 
+                            className="w-full justify-center text-[10px] py-0.5"
+                          >
+                            {avaliacao.classificacaoGordura}
+                          </Badge>
+                        )}
                       </div>
-                      {avaliacao.classificacaoGordura && (
-                        <Badge 
-                          variant={getClassificacaoColor(avaliacao.classificacaoGordura)} 
-                          className="w-full justify-center text-xs"
-                        >
-                          {avaliacao.classificacaoGordura}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
+                    )}
 
-                  {avaliacao.massaMagra && avaliacao.massaGorda && (
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-800">
-                      <div className="space-y-1">
-                        <p className="text-xs text-gray-500">Massa Magra</p>
-                        <p className="text-sm font-semibold text-green-500">{avaliacao.massaMagra} kg</p>
+                    {avaliacao.massaMagra && avaliacao.massaGorda && (
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-800">
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] text-gray-500">M. Magra</p>
+                          <p className="text-xs font-semibold text-green-500">{avaliacao.massaMagra} kg</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] text-gray-500">M. Gorda</p>
+                          <p className="text-xs font-semibold text-red-500">{avaliacao.massaGorda} kg</p>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-gray-500">Massa Gorda</p>
-                        <p className="text-sm font-semibold text-red-500">{avaliacao.massaGorda} kg</p>
-                      </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div className="pt-2 border-t border-gray-800">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs sm:text-sm"
-                      onClick={() => handleOpenModulos(avaliacao.id, avaliacao.alunoId)}
-                    >
-                      <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                      Módulos Adicionais
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <div className="pt-2 border-t border-gray-800">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full h-7 border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-[10px]"
+                        onClick={() => handleOpenModulos(avaliacao.id, avaliacao.alunoId)}
+                      >
+                        <FileText className="h-3 w-3 mr-1.5" />
+                        Módulos
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )
         ) : (
           <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
             <CardContent className="py-12 text-center p-6">
