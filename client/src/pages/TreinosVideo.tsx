@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Video, Users, Clock, Search, Filter } from 'lucide-react';
+import { Plus, Video, Users, Clock, Search, Filter, LayoutGrid, List, Play, Edit, Trash2, Target } from 'lucide-react';
 import { TreinoVideoModal } from '@/components/TreinoVideoModal';
 import { TreinoVideosList } from '@/components/TreinoVideosList';
 import { VideoPlayerModal } from '@/components/VideoPlayerModal';
 import { useTreinosVideo, useDeleteTreinoVideo, useUpdateTreinoVideo, useUploadTreinoVideo, useReplaceVideoFile } from '@/hooks/useTreinosVideo';
 import { useAlunos } from '@/hooks/useAlunos';
 import PageHeader from '@/components/PageHeader';
+
+type ViewMode = 'grid' | 'list';
 
 interface Aluno {
   id: string;
@@ -39,6 +41,7 @@ export function TreinosVideo() {
   const [treinoEditando, setTreinoEditando] = useState<TreinoVideo | null>(null);
   const [treinoVisualizando, setTreinoVisualizando] = useState<TreinoVideo | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
   const { data: videosSupabase = [], isLoading: loadingTreinos, refetch } = useTreinosVideo();
   const { data: alunosSupabase = [], isLoading: loadingAlunos } = useAlunos();
@@ -97,10 +100,15 @@ export function TreinosVideo() {
     email: aluno.email
   }));
 
-  const filteredTreinos = treinos.filter(treino =>
-    treino.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    treino.divisaoMuscular.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTreinos = useMemo(() => {
+    if (!searchTerm.trim()) return treinos;
+    
+    const search = searchTerm.toLowerCase();
+    return treinos.filter(treino =>
+      treino.titulo.toLowerCase().includes(search) ||
+      treino.divisaoMuscular.toLowerCase().includes(search)
+    );
+  }, [treinos, searchTerm]);
 
   const handleNovoTreino = () => {
     setTreinoEditando(null);
@@ -204,6 +212,15 @@ export function TreinosVideo() {
   const duracaoTotal = treinos.reduce((acc, t) => acc + (t.duracao || 0), 0);
   const loading = loadingTreinos || loadingAlunos || uploadVideo.isPending || updateTreino.isPending || replaceVideo.isPending;
 
+  const formatarDuracao = (segundos: number) => {
+    const minutos = Math.floor(segundos / 60);
+    const segs = segundos % 60;
+    if (minutos > 0) {
+      return segs > 0 ? `${minutos}min ${segs}s` : `${minutos}min`;
+    }
+    return `${segs}s`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
       <div className="w-full space-y-4 sm:space-y-6">
@@ -211,15 +228,45 @@ export function TreinosVideo() {
           title="Treinos em Vídeo"
           description="Gerencie os treinos em vídeo e controle o acesso dos alunos"
           actions={
-            <Button 
-              onClick={handleNovoTreino}
-              data-testid="button-add-video"
-              className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
-            >
-              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Novo Treino</span>
-              <span className="sm:hidden">Novo</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Toggle View Mode */}
+              <div className="flex items-center gap-1 border border-gray-700 rounded-lg p-1 bg-gray-800/50">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className={`h-7 sm:h-8 px-2 sm:px-3 ${
+                    viewMode === 'grid'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className={`h-7 sm:h-8 px-2 sm:px-3 ${
+                    viewMode === 'list'
+                      ? 'bg-gray-700 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </Button>
+              </div>
+              
+              <Button 
+                onClick={handleNovoTreino}
+                data-testid="button-add-video"
+                className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
+              >
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Novo Treino</span>
+                <span className="sm:hidden">Novo</span>
+              </Button>
+            </div>
           }
         />
 
@@ -271,73 +318,242 @@ export function TreinosVideo() {
           </Card>
         </div>
 
-        {/* Filters */}
+        {/* Filtro de Busca */}
         <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
-          <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3 h-3 sm:w-4 sm:h-4" />
-                <Input
-                  placeholder="Buscar por título ou divisão muscular..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 sm:pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-xs sm:text-sm"
-                  data-testid="input-search-videos"
-                />
-              </div>
-              <Button 
-                variant="outline" 
-                data-testid="button-filter-videos" 
-                className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs sm:text-sm"
-              >
-                <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                Filtros
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Videos List */}
-        <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl text-white">
-              Lista de Treinos ({filteredTreinos.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            {loading ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 text-sm">Carregando treinos...</p>
-              </div>
-            ) : filteredTreinos.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 text-sm">
-                  {searchTerm ? 'Nenhum treino encontrado.' : 'Nenhum treino cadastrado.'}
-                </p>
-                {!searchTerm && (
-                  <Button 
-                    onClick={handleNovoTreino}
-                    className="mt-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-                    data-testid="button-add-first-video"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Primeiro Treino
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <TreinoVideosList
-                treinos={filteredTreinos}
-                alunos={alunos}
-                onEditarTreino={handleEditarTreino}
-                onExcluirTreino={handleExcluirTreino}
-                onToggleAtivo={handleToggleAtivo}
-                onGerenciarAcesso={handleGerenciarAcesso}
-                onVerVideo={handleVerVideo}
+          <CardContent className="p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+              <Input
+                placeholder="Buscar por título ou divisão muscular..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                data-testid="input-search-videos"
               />
+            </div>
+            {searchTerm && (
+              <p className="text-xs text-gray-400 mt-2">
+                {filteredTreinos.length} {filteredTreinos.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}
+              </p>
             )}
           </CardContent>
         </Card>
+
+        {/* Videos List/Grid */}
+        {loading ? (
+          <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+            <CardContent className="py-12 text-center">
+              <p className="text-gray-400 text-sm">Carregando treinos...</p>
+            </CardContent>
+          </Card>
+        ) : filteredTreinos.length === 0 ? (
+          <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+            <CardContent className="py-12 text-center p-6">
+              <Video className="h-12 w-12 mx-auto text-gray-600 mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-white">
+                {searchTerm ? 'Nenhum treino encontrado' : 'Nenhum treino cadastrado'}
+              </h3>
+              <p className="text-gray-400 mb-4 text-sm">
+                {searchTerm 
+                  ? 'Tente buscar por outro termo.'
+                  : 'Comece adicionando o primeiro treino em vídeo.'
+                }
+              </p>
+              {!searchTerm && (
+                <Button 
+                  onClick={handleNovoTreino}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                  data-testid="button-add-first-video"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Treino
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : viewMode === 'list' ? (
+          /* VISUALIZAÇÃO EM LISTA */
+          <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+            <CardContent className="p-0">
+              <div className="divide-y divide-gray-800">
+                {filteredTreinos.map((treino) => (
+                  <div
+                    key={treino.id}
+                    className="p-3 sm:p-4 hover:bg-gray-800/50 transition-colors"
+                  >
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                      {/* Thumbnail */}
+                      <div 
+                        className="relative w-full sm:w-40 h-32 sm:h-24 rounded-lg overflow-hidden bg-gray-800 flex-shrink-0 cursor-pointer group"
+                        onClick={() => handleVerVideo(treino)}
+                      >
+                        {treino.thumbnail ? (
+                          <img 
+                            src={treino.thumbnail} 
+                            alt={treino.titulo}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Video className="h-8 w-8 text-gray-600" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Play className="h-8 w-8 text-white" />
+                        </div>
+                        {treino.duracao > 0 && (
+                          <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-0.5 rounded text-xs text-white">
+                            {formatarDuracao(treino.duracao)}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info e Ações */}
+                      <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-white truncate mb-1">{treino.titulo}</h3>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 mb-2">
+                            {treino.divisaoMuscular && (
+                              <span className="flex items-center gap-1">
+                                <Target className="h-3 w-3" />
+                                {treino.divisaoMuscular}
+                              </span>
+                            )}
+                            {treino.duracao > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatarDuracao(treino.duracao)}
+                              </span>
+                            )}
+                          </div>
+                          {treino.descricao && (
+                            <p className="text-xs text-gray-500 line-clamp-2">{treino.descricao}</p>
+                          )}
+                        </div>
+
+                        {/* Ações */}
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 sm:flex-initial border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
+                            onClick={() => handleVerVideo(treino)}
+                          >
+                            <Play className="h-3.5 w-3.5 sm:mr-2" />
+                            <span className="hidden sm:inline">Assistir</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 sm:flex-initial border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs"
+                            onClick={() => handleEditarTreino(treino)}
+                          >
+                            <Edit className="h-3.5 w-3.5 sm:mr-2" />
+                            <span className="hidden sm:inline">Editar</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-700 bg-gray-800/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 text-xs"
+                            onClick={() => handleExcluirTreino(treino.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          /* VISUALIZAÇÃO EM GRID COMPACTO */
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            {filteredTreinos.map((treino) => (
+              <Card 
+                key={treino.id} 
+                className="border-gray-800 bg-gray-900/50 backdrop-blur hover:bg-gray-800/50 transition-all overflow-hidden"
+              >
+                {/* Thumbnail */}
+                <div 
+                  className="relative w-full h-40 bg-gray-800 cursor-pointer group"
+                  onClick={() => handleVerVideo(treino)}
+                >
+                  {treino.thumbnail ? (
+                    <img 
+                      src={treino.thumbnail} 
+                      alt={treino.titulo}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Video className="h-10 w-10 text-gray-600" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Play className="h-10 w-10 text-white" />
+                  </div>
+                  {treino.duracao > 0 && (
+                    <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded text-xs text-white font-medium">
+                      {formatarDuracao(treino.duracao)}
+                    </div>
+                  )}
+                </div>
+
+                <CardHeader className="p-3 pb-2">
+                  <CardTitle className="text-sm text-white leading-tight line-clamp-2">
+                    {treino.titulo}
+                  </CardTitle>
+                  {treino.divisaoMuscular && (
+                    <CardDescription className="flex items-center gap-1.5 text-gray-400 text-[10px] mt-1">
+                      <Target className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{treino.divisaoMuscular}</span>
+                    </CardDescription>
+                  )}
+                </CardHeader>
+
+                <CardContent className="space-y-2 p-3 pt-0">
+                  {treino.descricao && (
+                    <p className="text-xs text-gray-500 line-clamp-2">{treino.descricao}</p>
+                  )}
+
+                  <div className="pt-2 border-t border-gray-800 space-y-1.5">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full h-7 border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-[10px]"
+                      onClick={() => handleVerVideo(treino)}
+                    >
+                      <Play className="h-3 w-3 mr-1.5" />
+                      Assistir
+                    </Button>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-7 border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-[10px]"
+                        onClick={() => handleEditarTreino(treino)}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-7 border-gray-700 bg-gray-800/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 text-[10px]"
+                        onClick={() => handleExcluirTreino(treino.id)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Excluir
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Modal de Edição */}
         <TreinoVideoModal

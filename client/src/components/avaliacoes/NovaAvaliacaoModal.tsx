@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import SelecionarProtocoloStep from './SelecionarProtocoloStep';
 import FormularioPollock7Dobras from './FormularioPollock7Dobras';
 import FormularioPollock3Dobras from './FormularioPollock3Dobras';
+import FormularioAvaliacaoManual, { type DadosAvaliacaoManual } from './FormularioAvaliacaoManual';
 import ResultadosAvaliacaoCard from './ResultadosAvaliacaoCard';
 import { useCreateAvaliacao } from '@/hooks/useAvaliacoesFisicas';
 import type { ResultadoAvaliacao } from '@/lib/avaliacaoCalculos';
@@ -164,6 +165,14 @@ export default function NovaAvaliacaoModal({
 
           {step === 2 && protocolo === 'pollock_3_dobras' && (
             <FormularioPollock3Dobras
+              alunoId={alunoId}
+              onSubmit={handleDadosSubmit}
+              onVoltar={handleVoltar}
+            />
+          )}
+
+          {step === 2 && protocolo === 'manual' && (
+            <FormularioAvaliacaoManual
               alunoId={alunoId}
               onSubmit={handleDadosSubmit}
               onVoltar={handleVoltar}
