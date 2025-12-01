@@ -82,9 +82,15 @@ export function useAvaliacoes() {
 
       if (error) throw error;
 
-      // Transformar dados para formato mais amigável
+      // Transformar dados para formato mais amigável com camelCase
       return data.map(av => ({
         ...av,
+        alunoId: av.aluno.id,
+        dataAvaliacao: av.data_avaliacao,
+        percentualGordura: av.percentual_gordura,
+        massaMagra: av.massa_magra,
+        massaGorda: av.massa_gorda,
+        classificacaoGordura: av.classificacao_gordura,
         aluno: {
           id: av.aluno.id,
           nome: av.aluno.user_profile.nome,
@@ -229,13 +235,16 @@ export function useCreateAvaliacao() {
 
       return avaliacao;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.avaliacoes });
+    onSuccess: async (_, variables) => {
+      // Invalidar todas as queries relacionadas
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.avaliacoes });
       if (variables.avaliacao.aluno_id) {
-        queryClient.invalidateQueries({ 
+        await queryClient.invalidateQueries({ 
           queryKey: QUERY_KEYS.avaliacoesByAluno(variables.avaliacao.aluno_id) 
         });
       }
+      // Forçar refetch imediato
+      await queryClient.refetchQueries({ queryKey: QUERY_KEYS.avaliacoes });
     },
   });
 }
