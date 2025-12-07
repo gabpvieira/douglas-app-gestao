@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Calendar, Clock, User, Edit, Trash2, Filter } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -101,30 +102,31 @@ export function AgendamentosList({
     });
   };
 
-  const handleDeleteAgendamento = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este agendamento?')) {
-      try {
-        // Removido: chamada de API
-        // const response = await fetch(`/api/admin/agendamentos/${id}`, {
-        //   method: 'DELETE',
-        // });
+  const [agendamentoParaDeletar, setAgendamentoParaDeletar] = useState<string | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-        // if (!response.ok) {
-        //   throw new Error('Erro ao excluir agendamento');
-        // }
+  const handleDeleteAgendamento = (id: string) => {
+    setAgendamentoParaDeletar(id);
+    setConfirmDeleteOpen(true);
+  };
 
-        onDeleteAgendamento(id);
-        toast({
-          title: "Sucesso",
-          description: "Agendamento excluído com sucesso",
-        });
-      } catch (error) {
-        toast({
-          title: "Erro",
-          description: "Erro ao excluir agendamento",
-          variant: "destructive",
-        });
-      }
+  const confirmarDelecao = async () => {
+    if (!agendamentoParaDeletar) return;
+
+    try {
+      onDeleteAgendamento(agendamentoParaDeletar);
+      toast({
+        title: "Sucesso",
+        description: "Agendamento excluído com sucesso",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir agendamento",
+        variant: "destructive",
+      });
+    } finally {
+      setAgendamentoParaDeletar(null);
     }
   };
 
@@ -303,6 +305,17 @@ export function AgendamentosList({
           })
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        onConfirm={confirmarDelecao}
+        title="Excluir Agendamento"
+        description="Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+      />
     </div>
   );
 }

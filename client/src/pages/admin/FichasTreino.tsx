@@ -9,6 +9,7 @@ import { FichaTreinoModal } from '@/components/FichaTreinoModal';
 import { FichasTreinoList } from '@/components/FichasTreinoList';
 import { AtribuirFichaModal } from '@/components/AtribuirFichaModal';
 import { VerAlunosFichaModal } from '@/components/VerAlunosFichaModal';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useFichasTreino, useCreateFichaTreino, useUpdateFichaTreino, useDeleteFichaTreino, useAtribuirFicha, useFichasStats } from '@/hooks/useFichasTreino';
 import { useToast } from '@/hooks/use-toast';
 
@@ -47,6 +48,8 @@ export default function FichasTreino() {
   const [fichaEditando, setFichaEditando] = useState<any>(null);
   const [fichaParaAtribuir, setFichaParaAtribuir] = useState<any>(null);
   const [fichaVerAlunos, setFichaVerAlunos] = useState<any>(null);
+  const [fichaParaDeletar, setFichaParaDeletar] = useState<any>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const { toast } = useToast();
@@ -157,23 +160,33 @@ export default function FichasTreino() {
     }
   };
 
-  const handleExcluirFicha = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir esta ficha de treino?')) {
-      try {
-        await deleteFicha.mutateAsync(id);
-        toast({
-          title: "Ficha excluída!",
-          description: "A ficha de treino foi excluída com sucesso.",
-        });
-        refetch();
-      } catch (error) {
-        console.error('Erro ao excluir ficha:', error);
-        toast({
-          title: "Erro ao excluir",
-          description: "Ocorreu um erro ao excluir a ficha. Tente novamente.",
-          variant: "destructive"
-        });
-      }
+  const handleExcluirFicha = (id: string) => {
+    const ficha = fichas.find(f => f.id === id);
+    if (!ficha) return;
+    
+    setFichaParaDeletar(ficha);
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmarDelecao = async () => {
+    if (!fichaParaDeletar) return;
+
+    try {
+      await deleteFicha.mutateAsync(fichaParaDeletar.id);
+      toast({
+        title: "Ficha excluída!",
+        description: "A ficha de treino foi excluída com sucesso.",
+      });
+      refetch();
+    } catch (error) {
+      console.error('Erro ao excluir ficha:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Ocorreu um erro ao excluir a ficha. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+      setFichaParaDeletar(null);
     }
   };
 
@@ -271,7 +284,7 @@ export default function FichasTreino() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
+    <div className="min-h-screen bg-gray-950 p-3 sm:p-6">
       <div className="w-full space-y-4 sm:space-y-6">
         <PageHeader
           title="Fichas de Treino"
@@ -308,7 +321,7 @@ export default function FichasTreino() {
               
               <Button 
                 onClick={handleNovaFicha}
-                className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
               >
                 <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Nova Ficha</span>
@@ -318,52 +331,63 @@ export default function FichasTreino() {
           }
         />
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Compact Design */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-400">Total de Fichas</p>
-                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{totalFichas}</p>
-                <p className="text-[10px] sm:text-sm text-green-400 mt-1">
-                  {fichasAtivas} ativas
-                </p>
+          {/* Total de Fichas */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Dumbbell className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600">
-                <Dumbbell className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Total de Fichas</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{totalFichas}</p>
+                <p className="text-[10px] text-gray-500">{fichasAtivas} ativas</p>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-400">Total Exercícios</p>
-                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{totalExercicios}</p>
-                <p className="text-[10px] sm:text-sm text-gray-400 mt-1">
-                  cadastrados
-                </p>
+          {/* Total Exercícios */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Target className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500 to-purple-600">
-                <Calendar className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Total Exercícios</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{totalExercicios}</p>
+                <p className="text-[10px] text-gray-500">cadastrados</p>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur col-span-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-400">Alunos com Fichas</p>
-                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{alunosComFichas}</p>
-                <p className="text-[10px] sm:text-sm text-gray-400 mt-1">
-                  alunos ativos
-                </p>
+          {/* Fichas Ativas */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <TrendingUp className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600">
-                <Users className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Fichas Ativas</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{fichasAtivas}</p>
+                <p className="text-[10px] text-gray-500">em uso</p>
               </div>
             </div>
-          </Card>
+          </div>
+
+          {/* Alunos com Fichas */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Users className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Alunos com Fichas</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{alunosComFichas}</p>
+                <p className="text-[10px] text-gray-500">alunos ativos</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Filtro de Busca */}
@@ -409,7 +433,7 @@ export default function FichasTreino() {
               {!searchTerm && (
                 <Button 
                   onClick={handleNovaFicha}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Nova Ficha
@@ -645,6 +669,21 @@ export default function FichasTreino() {
             ficha={fichaVerAlunos}
           />
         )}
+
+        <ConfirmDialog
+          open={confirmDeleteOpen}
+          onOpenChange={setConfirmDeleteOpen}
+          onConfirm={confirmarDelecao}
+          title="Excluir Ficha de Treino"
+          description={
+            fichaParaDeletar
+              ? `Tem certeza que deseja excluir a ficha "${fichaParaDeletar.nome}"? Esta ação não pode ser desfeita.`
+              : ''
+          }
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="destructive"
+        />
       </div>
     </div>
   );

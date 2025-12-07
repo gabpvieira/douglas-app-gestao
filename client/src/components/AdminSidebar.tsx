@@ -28,58 +28,48 @@ const menuItems = [
   { 
     icon: LayoutDashboard, 
     label: "Dashboard", 
-    href: "/admin",
-    gradient: "from-blue-500 to-blue-600"
+    href: "/admin"
   },
   { 
     icon: Users, 
     label: "Alunos", 
-    href: "/admin/alunos",
-    gradient: "from-blue-500 to-blue-600"
+    href: "/admin/alunos"
   },
   { 
     icon: Activity, 
     label: "Avaliações Físicas", 
-    href: "/admin/avaliacoes-fisicas",
-    gradient: "from-blue-500 to-blue-600"
+    href: "/admin/avaliacoes-fisicas"
   },
   { 
     icon: Calendar, 
     label: "Agenda", 
-    href: "/admin/agenda",
-    gradient: "from-blue-500 to-blue-600"
+    href: "/admin/agenda"
   },
   { 
     icon: Dumbbell, 
     label: "Fichas de Treino", 
-    href: "/admin/fichas-treino",
-    gradient: "from-blue-500 to-blue-600"
+    href: "/admin/fichas-treino"
   },
   { 
     icon: Video, 
     label: "Treinos Vídeo", 
-    href: "/admin/treinos-video",
-    gradient: "from-blue-500 to-blue-600"
+    href: "/admin/treinos-video"
   },
   { 
     icon: UtensilsCrossed, 
     label: "Planos Alimentares", 
-    href: "/admin/planos",
-    gradient: "from-blue-500 to-blue-600"
+    href: "/admin/planos"
   },
   { 
     icon: CreditCard, 
     label: "Pagamentos", 
-    href: "/admin/pagamentos",
-    gradient: "from-blue-500 to-blue-600"
+    href: "/admin/pagamentos"
   },
 ];
 
 export default function AdminSidebar({ onLogout, isCollapsed = false, onToggleCollapse }: AdminSidebarProps) {
   const [location] = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, opacity: 0 });
-  const navRef = useRef<HTMLUListElement>(null);
   
   const handleToggleDesktop = () => {
     if (onToggleCollapse) {
@@ -87,61 +77,38 @@ export default function AdminSidebar({ onLogout, isCollapsed = false, onToggleCo
     }
   };
 
-  // Atualizar posição do indicador quando a rota mudar
-  useEffect(() => {
-    if (!navRef.current) return;
-    
-    const activeIndex = menuItems.findIndex(item => 
-      location === item.href || (item.href === '/admin' && location === '/admin/dashboard')
-    );
-    
-    if (activeIndex !== -1) {
-      const buttons = navRef.current.querySelectorAll('li');
-      const activeButton = buttons[activeIndex];
-      
-      if (activeButton) {
-        const { offsetTop, offsetHeight } = activeButton as HTMLElement;
-        setIndicatorStyle({
-          top: offsetTop + (offsetHeight / 2) - 4, // Ajustado para centralizar a bolinha menor
-          opacity: 1
-        });
-      }
-    }
-  }, [location]);
-
   return (
     <>
       {/* Mobile backdrop */}
       {isMobileOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-[100] md:hidden"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
       
       {/* Sidebar */}
       <aside className={`
-        fixed left-0 top-0 z-50 h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white transition-all duration-300 ease-in-out shadow-2xl border-r border-slate-800/50
+        fixed left-0 top-0 z-[101] h-screen bg-gray-950 text-white transition-all duration-300 ease-in-out border-r border-gray-800/50
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:translate-x-0
-        ${isCollapsed ? 'md:w-16' : 'md:w-56'}
+        md:translate-x-0 md:z-40
+        ${isCollapsed ? 'md:w-16' : 'md:w-64'}
       `}>
-        <div className="flex flex-col h-full relative">
+        <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-800/50 bg-slate-900/50 backdrop-blur">
+          <div className="flex items-center justify-between px-4 py-5 border-b border-gray-800/50">
             <div className={`flex items-center gap-3 transition-all duration-300 min-w-0 ${isCollapsed ? 'md:opacity-0 md:w-0 md:overflow-hidden' : 'opacity-100'}`}>
-              <div className="relative flex-shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl blur-md opacity-40"></div>
+              <div className="flex-shrink-0">
                 <img 
                   src={logoImage} 
                   alt="Douglas Coimbra" 
-                  className="h-12 w-12 object-contain relative z-10 drop-shadow-xl"
+                  className="h-10 w-10 object-contain rounded-lg"
                   data-testid="img-sidebar-logo"
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="font-bold text-base bg-gradient-to-r from-blue-400 to-blue-500 bg-clip-text text-transparent truncate">Douglas Coimbra</h2>
-                <p className="text-xs text-slate-400 font-medium truncate">Administrador</p>
+                <h2 className="font-semibold text-sm text-white truncate">Douglas Coimbra</h2>
+                <p className="text-xs text-gray-400 truncate">Administrador</p>
               </div>
             </div>
             
@@ -150,7 +117,7 @@ export default function AdminSidebar({ onLogout, isCollapsed = false, onToggleCo
               variant="ghost"
               size="sm"
               onClick={handleToggleDesktop}
-              className="hidden md:flex text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl transition-all"
+              className="hidden md:flex text-gray-400 hover:text-white hover:bg-gray-800/50 h-8 w-8 p-0"
               data-testid="button-toggle-sidebar-desktop"
               title={isCollapsed ? "Expandir menu" : "Recolher menu"}
             >
@@ -162,7 +129,7 @@ export default function AdminSidebar({ onLogout, isCollapsed = false, onToggleCo
               variant="ghost"
               size="sm"
               onClick={() => setIsMobileOpen(false)}
-              className="md:hidden text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl"
+              className="md:hidden text-gray-400 hover:text-white hover:bg-gray-800/50 h-8 w-8 p-0"
               data-testid="button-close-sidebar"
             >
               <X className="w-4 h-4" />
@@ -170,64 +137,38 @@ export default function AdminSidebar({ onLogout, isCollapsed = false, onToggleCo
           </div>
 
           {/* Menu Items */}
-          <nav className="flex-1 p-3 overflow-y-auto relative">
-            {/* Animated Indicator Ball - Right Side */}
-            <div 
-              className="absolute right-3 w-2 h-2 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50 transition-all duration-500 ease-out pointer-events-none"
-              style={{
-                top: `${indicatorStyle.top}px`,
-                opacity: indicatorStyle.opacity,
-                transform: `translateY(0) scale(${indicatorStyle.opacity})`,
-              }}
-            >
-              <div className="absolute inset-0 rounded-full bg-blue-400 animate-pulse"></div>
-            </div>
-
-            <ul ref={navRef} className="space-y-0.5 relative z-10">
-              {menuItems.map((item, index) => {
+          <nav className="flex-1 px-3 py-4 overflow-y-auto">
+            <ul className="space-y-1">
+              {menuItems.map((item) => {
                 const isActive = location === item.href || 
                   (item.href === '/admin' && location === '/admin/dashboard');
                 
                 return (
-                  <li key={item.href} className="group">
+                  <li key={item.href}>
                     <Link href={item.href}>
                       <button
                         onClick={() => setIsMobileOpen(false)}
                         className={`
-                          w-full gap-2 text-left transition-all duration-300 rounded-lg p-2 relative overflow-hidden
-                          ${isCollapsed ? 'md:justify-center md:px-1' : 'flex items-center'}
+                          w-full text-left transition-all duration-200 rounded-lg px-3 py-2.5 group
+                          ${isCollapsed ? 'md:justify-center md:px-2' : 'flex items-center gap-3'}
                           ${isActive 
-                            ? 'text-white' 
-                            : 'text-slate-400 hover:text-white'
+                            ? 'bg-blue-600 text-white' 
+                            : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
                           }
                         `}
                         data-testid={`button-nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
                         title={isCollapsed ? item.label : undefined}
                       >
-                        {/* Background gradient on hover */}
-                        <div className={`
-                          absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300
-                          ${isActive ? 'opacity-5' : ''}
-                        `}></div>
-                        
-                        <div className="flex items-center gap-2 relative z-10">
-                          <div className={`
-                            w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 flex-shrink-0
-                            ${isActive 
-                              ? `bg-gradient-to-br ${item.gradient} shadow-md` 
-                              : 'bg-slate-800/50 group-hover:bg-slate-800'
-                            }
-                          `}>
-                            <item.icon className={`w-4 h-4 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                          </div>
-                          <span className={`
-                            text-sm font-medium transition-all duration-300 
-                            ${isCollapsed ? 'md:hidden' : 'block'}
-                            ${isActive ? 'text-white' : ''}
-                          `}>
-                            {item.label}
-                          </span>
-                        </div>
+                        <item.icon 
+                          className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} 
+                          strokeWidth={1.5}
+                        />
+                        <span className={`
+                          text-sm font-medium transition-all duration-300 
+                          ${isCollapsed ? 'md:hidden' : 'block'}
+                        `}>
+                          {item.label}
+                        </span>
                       </button>
                     </Link>
                   </li>
@@ -237,52 +178,47 @@ export default function AdminSidebar({ onLogout, isCollapsed = false, onToggleCo
           </nav>
 
           {/* Footer */}
-          <div className="p-3 border-t border-slate-800/50 bg-slate-900/30 backdrop-blur">
+          <div className="px-3 py-4 border-t border-gray-800/50">
             <button
               onClick={onLogout}
               type="button"
               className={`
-                group w-full gap-2 text-slate-400 hover:text-white transition-all duration-300 rounded-lg p-2 relative overflow-hidden cursor-pointer
-                ${isCollapsed ? 'md:justify-center md:px-1' : 'flex items-center'}
+                group w-full text-left transition-all duration-200 rounded-lg px-3 py-2.5 text-gray-400 hover:text-white hover:bg-gray-800/50
+                ${isCollapsed ? 'md:justify-center md:px-2' : 'flex items-center gap-3'}
               `}
               data-testid="button-sidebar-logout"
               title={isCollapsed ? "Sair" : undefined}
             >
-              {/* Background gradient on hover */}
-              <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-pink-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
-              
-              <div className="flex items-center gap-2 relative pointer-events-none">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800/50 group-hover:bg-red-500/20 transition-all duration-300 flex-shrink-0">
-                  <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
-                </div>
-                <span className={`text-sm font-medium transition-opacity duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
-                  Sair
-                </span>
-              </div>
+              <LogOut className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-white" strokeWidth={1.5} />
+              <span className={`text-sm font-medium transition-all duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
+                Sair
+              </span>
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Mobile toggle button */}
-      <button
-        onClick={() => setIsMobileOpen(true)}
-        className="fixed top-4 left-4 z-30 md:hidden p-2 rounded-lg bg-slate-900/90 backdrop-blur text-white hover:bg-slate-800 transition-colors shadow-lg"
-        data-testid="button-open-sidebar"
-        aria-label="Abrir menu"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
+      {/* Mobile toggle button - Only show when sidebar is closed */}
+      {!isMobileOpen && (
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          className="fixed top-3 left-3 z-20 md:hidden p-2.5 rounded-lg bg-gray-900/95 backdrop-blur-sm text-white hover:bg-gray-800 transition-colors shadow-lg border border-gray-800"
+          data-testid="button-open-sidebar"
+          aria-label="Abrir menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Desktop collapsed toggle button */}
       {isCollapsed && (
         <button
           onClick={handleToggleDesktop}
-          className="hidden md:block fixed top-4 left-4 z-30 p-2 rounded-lg bg-slate-900/90 backdrop-blur text-white hover:bg-slate-800 transition-colors shadow-lg"
+          className="hidden md:block fixed top-3 left-3 z-20 p-2.5 rounded-lg bg-gray-900/95 backdrop-blur-sm text-white hover:bg-gray-800 transition-colors shadow-lg border border-gray-800"
           data-testid="button-expand-sidebar-desktop"
           aria-label="Expandir menu"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-5 h-5" />
         </button>
       )}
     </>

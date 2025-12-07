@@ -37,7 +37,7 @@ export default function AvaliacoesPosturais() {
 
   if (!alunoId || !avaliacaoFisicaId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+      <div className="min-h-screen bg-gray-950 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-[#1a1f2e] rounded-lg p-8 text-center">
             <p className="text-gray-400">Parâmetros inválidos</p>
@@ -54,7 +54,7 @@ export default function AvaliacoesPosturais() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+    <div className="min-h-screen bg-gray-950 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

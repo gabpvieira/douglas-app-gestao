@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Users, Calendar, Trash2, User, Mail, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useFichaAtribuicoes, useRemoverAtribuicao } from '@/hooks/useFichasTreino';
 import { useToast } from '@/hooks/use-toast';
@@ -45,21 +47,26 @@ export function VerAlunosFichaModal({ isOpen, onClose, ficha }: VerAlunosFichaMo
   const { data: atribuicoes = [], isLoading } = useFichaAtribuicoes(ficha.id);
   const removerAtribuicao = useRemoverAtribuicao();
   const { toast } = useToast();
+  const [atribuicaoParaRemover, setAtribuicaoParaRemover] = useState<{ id: string; nomeAluno: string } | null>(null);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
 
-  const handleRemoverAtribuicao = async (atribuicaoId: string, nomeAluno: string) => {
-    if (!window.confirm(`Tem certeza que deseja remover a ficha de ${nomeAluno}?`)) {
-      return;
-    }
+  const handleRemoverAtribuicao = (atribuicaoId: string, nomeAluno: string) => {
+    setAtribuicaoParaRemover({ id: atribuicaoId, nomeAluno });
+    setConfirmRemoveOpen(true);
+  };
+
+  const confirmarRemocao = async () => {
+    if (!atribuicaoParaRemover) return;
 
     try {
       await removerAtribuicao.mutateAsync({
         fichaId: ficha.id,
-        atribuicaoId
+        atribuicaoId: atribuicaoParaRemover.id
       });
 
       toast({
         title: "Atribuição removida",
-        description: `A ficha foi removida de ${nomeAluno} com sucesso.`,
+        description: `A ficha foi removida de ${atribuicaoParaRemover.nomeAluno} com sucesso.`,
       });
     } catch (error) {
       console.error('Erro ao remover atribuição:', error);
@@ -68,6 +75,8 @@ export function VerAlunosFichaModal({ isOpen, onClose, ficha }: VerAlunosFichaMo
         description: "Ocorreu um erro ao remover a atribuição. Tente novamente.",
         variant: "destructive"
       });
+    } finally {
+      setAtribuicaoParaRemover(null);
     }
   };
 
@@ -198,6 +207,21 @@ export function VerAlunosFichaModal({ isOpen, onClose, ficha }: VerAlunosFichaMo
             Fechar
           </Button>
         </div>
+
+        <ConfirmDialog
+          open={confirmRemoveOpen}
+          onOpenChange={setConfirmRemoveOpen}
+          onConfirm={confirmarRemocao}
+          title="Remover Atribuição"
+          description={
+            atribuicaoParaRemover
+              ? `Tem certeza que deseja remover a ficha de ${atribuicaoParaRemover.nomeAluno}?`
+              : ''
+          }
+          confirmText="Remover"
+          cancelText="Cancelar"
+          variant="destructive"
+        />
       </DialogContent>
     </Dialog>
   );

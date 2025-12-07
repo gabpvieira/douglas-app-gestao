@@ -50,21 +50,25 @@ interface FormularioPollock7DobrasProps {
   alunoId?: string;
   onSubmit: (dados: any) => void;
   onVoltar: () => void;
+  dadosIniciais?: any;
 }
 
 export default function FormularioPollock7Dobras({ 
   alunoId, 
   onSubmit, 
-  onVoltar 
+  onVoltar,
+  dadosIniciais 
 }: FormularioPollock7DobrasProps) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
+    defaultValues: dadosIniciais || {
       alunoId: alunoId || '',
       dataAvaliacao: new Date().toISOString().split('T')[0],
       genero: 'masculino',
     },
   });
+
+  const selectedAlunoId = watch('alunoId');
 
   // Buscar lista de alunos
   const { data: alunos } = useQuery({
@@ -163,7 +167,7 @@ export default function FormularioPollock7Dobras({
           {!alunoId && (
             <div className="space-y-2">
               <Label htmlFor="alunoId">Aluno *</Label>
-              <Select onValueChange={handleAlunoChange}>
+              <Select value={selectedAlunoId} onValueChange={handleAlunoChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o aluno" />
                 </SelectTrigger>

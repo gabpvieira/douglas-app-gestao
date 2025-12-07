@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, Clock, Calculator, Target, AlertCircle, Zap, Calendar, TrendingUp, Users } from 'lucide-react';
+import { Plus, Trash2, Clock, Calculator, Target, AlertCircle, Zap, Calendar, TrendingUp, Users, Search, X } from 'lucide-react';
 import { PlanoAlimentar, Refeicao, Alimento, Aluno } from '@/pages/PlanosAlimentares';
 
 interface PlanoAlimentarModalProps {
@@ -50,6 +50,7 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
   const [novaRestricao, setNovaRestricao] = useState('');
   const [novoSuplemento, setNovoSuplemento] = useState('');
   const [activeTab, setActiveTab] = useState('informacoes');
+  const [buscaAlimentos, setBuscaAlimentos] = useState<{ [refeicaoId: string]: { [alimentoId: string]: string } }>({});
 
   // Banco de alimentos pré-definidos
   const alimentosDisponiveis: Omit<Alimento, 'id' | 'quantidade'>[] = [
@@ -272,6 +273,33 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
         ? { ...ref, alimentos: [...ref.alimentos, novoAlimento] }
         : ref
     ));
+  };
+
+  const filtrarAlimentos = (refeicaoId: string, alimentoId: string) => {
+    const busca = buscaAlimentos[refeicaoId]?.[alimentoId] || '';
+    if (!busca.trim()) return alimentosDisponiveis;
+    
+    const buscaLower = busca.toLowerCase().trim();
+    return alimentosDisponiveis.filter(alimento => 
+      alimento.nome.toLowerCase().includes(buscaLower) ||
+      alimento.categoria.toLowerCase().includes(buscaLower)
+    );
+  };
+
+  const setBuscaAlimento = (refeicaoId: string, alimentoId: string, valor: string) => {
+    setBuscaAlimentos(prev => ({
+      ...prev,
+      [refeicaoId]: {
+        ...prev[refeicaoId],
+        [alimentoId]: valor
+      }
+    }));
+  };
+
+  const selecionarAlimento = (refeicaoId: string, alimentoId: string, nomeAlimento: string) => {
+    atualizarAlimento(refeicaoId, alimentoId, 'nome', nomeAlimento);
+    // Limpar busca após seleção
+    setBuscaAlimento(refeicaoId, alimentoId, '');
   };
 
   const removerAlimento = (refeicaoId: string, alimentoId: string) => {
@@ -944,23 +972,45 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                     <div className="space-y-3">
                       {refeicao.alimentos.map((alimento) => (
                         <div key={alimento.id} className="grid grid-cols-1 md:grid-cols-6 gap-3 p-3 bg-gray-700 rounded-lg">
-                          <div className="space-y-1">
+                          <div className="space-y-1 relative">
                             <Label className="text-xs text-gray-300">Alimento</Label>
-                            <Select
-                              value={alimento.nome}
-                              onValueChange={(value) => atualizarAlimento(refeicao.id, alimento.id, 'nome', value)}
-                            >
-                              <SelectTrigger className="bg-gray-600 border-gray-500 text-white text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="bg-gray-600 border-gray-500">
-                                {alimentosDisponiveis.map((alimentoDisp) => (
-                                  <SelectItem key={alimentoDisp.nome} value={alimentoDisp.nome}>
-                                    {alimentoDisp.nome}
-                                  </SelectItem>
+                            <div className="relative">
+                              <Input
+                                value={buscaAlimentos[refeicao.id]?.[alimento.id] || alimento.nome}
+                                onChange={(e) => setBuscaAlimento(refeicao.id, alimento.id, e.target.value)}
+                                placeholder="Buscar alimento..."
+                                className="bg-gray-600 border-gray-500 text-white text-xs pr-8"
+                              />
+                              {buscaAlimentos[refeicao.id]?.[alimento.id] && (
+                                <button
+                                  onClick={() => setBuscaAlimento(refeicao.id, alimento.id, '')}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+                            {buscaAlimentos[refeicao.id]?.[alimento.id] && (
+                              <div className="absolute z-50 w-full mt-1 max-h-60 overflow-auto bg-gray-600 border border-gray-500 rounded-md shadow-lg">
+                                {filtrarAlimentos(refeicao.id, alimento.id).map((alimentoDisp) => (
+                                  <button
+                                    key={alimentoDisp.nome}
+                                    onClick={() => selecionarAlimento(refeicao.id, alimento.id, alimentoDisp.nome)}
+                                    className="w-full text-left px-3 py-2 text-xs text-white hover:bg-gray-700 flex items-center justify-between"
+                                  >
+                                    <span>{alimentoDisp.nome}</span>
+                                    <Badge variant="outline" className="text-[10px] border-gray-500">
+                                      {alimentoDisp.categoria}
+                                    </Badge>
+                                  </button>
                                 ))}
-                              </SelectContent>
-                            </Select>
+                                {filtrarAlimentos(refeicao.id, alimento.id).length === 0 && (
+                                  <div className="px-3 py-2 text-xs text-gray-400">
+                                    Nenhum alimento encontrado
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs text-gray-300">Quantidade</Label>

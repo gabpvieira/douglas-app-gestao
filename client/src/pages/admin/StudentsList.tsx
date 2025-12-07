@@ -204,8 +204,9 @@ export default function StudentsList() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
-      <div className="w-full space-y-4 sm:space-y-6">
+    <>
+    <div className="min-h-screen bg-gray-950 p-3 sm:p-6">
+      <div className="w-full space-y-4">
         <PageHeader
           title="Alunos"
           description="Gerencie todos os alunos do sistema"
@@ -213,107 +214,100 @@ export default function StudentsList() {
             <Button 
               onClick={handleOpenAddModal}
               data-testid="button-add-student" 
-              className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm"
             >
-              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Novo Aluno</span>
-              <span className="sm:hidden">Novo</span>
+              <Plus className="w-4 h-4" />
+              Novo Aluno
             </Button>
           }
         />
 
-        {/* Filters */}
-        <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
-          <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3 h-3 sm:w-4 sm:h-4" />
-                <Input
-                  placeholder="Buscar por nome ou email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 sm:pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-xs sm:text-sm"
-                  data-testid="input-search-students"
-                />
-              </div>
-              <Button variant="outline" data-testid="button-filter-students" className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs sm:text-sm">
-                <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                Filtros
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Search Bar - Minimal */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+          <Input
+            placeholder="Buscar por nome ou email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-gray-900/30 border-gray-800 text-white placeholder:text-gray-500 text-sm h-10"
+            data-testid="input-search-students"
+          />
+        </div>
 
-        {/* Students List */}
-        <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl text-white">
-              Lista de Alunos ({filteredStudents.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            {isLoading ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 text-sm">Carregando alunos...</p>
-              </div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 text-sm">
-                  {searchTerm ? 'Nenhum aluno encontrado.' : 'Nenhum aluno cadastrado.'}
-                </p>
-                {!searchTerm && (
-                  <Button 
-                    onClick={handleOpenAddModal}
-                    className="mt-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white" 
-                    data-testid="button-add-first-student"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Primeiro Aluno
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-3 sm:space-y-4">
-                {filteredStudents.map((student) => (
-                  <div 
-                    key={student.id} 
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border border-gray-700 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors gap-3"
+        {/* Students List - Flat Design */}
+        <Card className="border-gray-800 bg-[#0b132d]">
+          <div className="p-4 border-b border-gray-800">
+            <h2 className="text-sm font-medium text-white">
+              {filteredStudents.length} {filteredStudents.length === 1 ? 'aluno' : 'alunos'}
+            </h2>
+          </div>
+          
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-sm">Carregando...</p>
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-sm mb-4">
+                {searchTerm ? 'Nenhum aluno encontrado' : 'Nenhum aluno cadastrado'}
+              </p>
+              {!searchTerm && (
+                <Button 
+                  onClick={handleOpenAddModal}
+                  className="bg-blue-600 hover:bg-blue-700 text-white" 
+                  data-testid="button-add-first-student"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Primeiro Aluno
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-800">
+              {filteredStudents.map((student) => (
+                <div 
+                  key={student.id} 
+                  className="flex items-center justify-between p-4 hover:bg-gray-800/20 transition-colors"
                     data-testid={`card-student-${student.id}`}
                   >
-                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Avatar className="h-10 w-10 flex-shrink-0">
                         <AvatarImage src={student.fotoUrl || undefined} />
-                        <AvatarFallback className="bg-gray-700 text-white text-sm" data-testid={`text-student-initials-${student.id}`}>
+                        <AvatarFallback className="bg-gray-700 text-white text-xs" data-testid={`text-student-initials-${student.id}`}>
                           {getInitials(student.nome)}
                         </AvatarFallback>
                       </Avatar>
                       
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-white text-sm sm:text-base truncate" data-testid={`text-student-name-${student.id}`}>
+                        <h3 className="font-medium text-white text-sm truncate" data-testid={`text-student-name-${student.id}`}>
                           {student.nome}
                         </h3>
-                        <p className="text-xs sm:text-sm text-gray-400 truncate" data-testid={`text-student-email-${student.id}`}>
+                        <p className="text-xs text-gray-500 truncate" data-testid={`text-student-email-${student.id}`}>
                           {student.email}
                         </p>
-                        <div className="flex flex-wrap gap-1 sm:gap-2 text-[10px] sm:text-xs text-gray-500 mt-1">
-                          <span data-testid={`text-student-age-${student.id}`}>
-                            {calculateAge(student.dataNascimento)} anos
-                          </span>
-                          <span className="hidden sm:inline">•</span>
-                          <span data-testid={`text-student-height-${student.id}`}>
-                            {student.altura || 'N/A'}cm
-                          </span>
-                          <span className="hidden sm:inline">•</span>
-                          <span data-testid={`text-student-gender-${student.id}`}>
-                            {student.genero || 'N/A'}
-                          </span>
-                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="hidden md:flex items-center gap-3 text-xs text-gray-500">
+                        <span data-testid={`text-student-age-${student.id}`}>
+                          {calculateAge(student.dataNascimento)} anos
+                        </span>
+                        <span>•</span>
+                        <span data-testid={`text-student-height-${student.id}`}>
+                          {student.altura || 'N/A'}cm
+                        </span>
+                      </div>
+                      
                       <Badge 
-                        className={`${getStatusColor(student.status)} text-[10px] sm:text-xs`}
+                        variant="outline"
+                        className={`text-xs border-0 ${
+                          student.status === 'ativo' 
+                            ? 'bg-green-500/10 text-green-400' 
+                            : student.status === 'pendente'
+                            ? 'bg-yellow-500/10 text-yellow-400'
+                            : 'bg-gray-500/10 text-gray-400'
+                        }`}
                         data-testid={`badge-student-status-${student.id}`}
                       >
                         {getStatusLabel(student.status)}
@@ -325,18 +319,18 @@ export default function StudentsList() {
                           variant="ghost"
                           onClick={() => handleViewStudent(student)}
                           data-testid={`button-view-student-${student.id}`}
-                          className="text-gray-400 hover:text-white hover:bg-gray-700 h-7 w-7 sm:h-8 sm:w-8 p-0"
+                          className="text-gray-400 hover:text-white h-8 w-8 p-0"
                         >
-                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <Eye className="w-4 h-4" />
                         </Button>
                         <Button 
                           size="sm" 
                           variant="ghost"
                           onClick={() => handleEditStudent(student)}
-                          className="text-gray-400 hover:text-white hover:bg-gray-700 h-7 w-7 sm:h-8 sm:w-8 p-0"
+                          className="text-gray-400 hover:text-white h-8 w-8 p-0"
                           data-testid={`button-edit-student-${student.id}`}
                         >
-                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <Edit className="w-4 h-4" />
                         </Button>
                         <Button 
                           size="sm" 
@@ -348,9 +342,9 @@ export default function StudentsList() {
                           }}
                           disabled={deleteAluno.isPending}
                           data-testid={`button-delete-student-${student.id}`}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-7 w-7 sm:h-8 sm:w-8 p-0"
+                          className="text-gray-400 hover:text-red-400 h-8 w-8 p-0"
                         >
-                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
@@ -358,10 +352,11 @@ export default function StudentsList() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Modal de Visualização */}
+          </Card>
+        </div>
+      </div>
+      
+      {/* Modals */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -770,7 +765,6 @@ export default function StudentsList() {
           )}
         </DialogContent>
       </Dialog>
-      </div>
-    </div>
+    </>
   );
 }

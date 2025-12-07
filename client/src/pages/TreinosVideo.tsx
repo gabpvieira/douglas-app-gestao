@@ -7,6 +7,7 @@ import { Plus, Video, Users, Clock, Search, Filter, LayoutGrid, List, Play, Edit
 import { TreinoVideoModal } from '@/components/TreinoVideoModal';
 import { TreinoVideosList } from '@/components/TreinoVideosList';
 import { VideoPlayerModal } from '@/components/VideoPlayerModal';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useTreinosVideo, useDeleteTreinoVideo, useUpdateTreinoVideo, useUploadTreinoVideo, useReplaceVideoFile } from '@/hooks/useTreinosVideo';
 import { useAlunos } from '@/hooks/useAlunos';
 import PageHeader from '@/components/PageHeader';
@@ -40,6 +41,8 @@ export function TreinosVideo() {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [treinoEditando, setTreinoEditando] = useState<TreinoVideo | null>(null);
   const [treinoVisualizando, setTreinoVisualizando] = useState<TreinoVideo | null>(null);
+  const [treinoParaDeletar, setTreinoParaDeletar] = useState<TreinoVideo | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
@@ -170,10 +173,24 @@ export function TreinosVideo() {
     }
   };
 
-  const handleExcluirTreino = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este treino?')) {
-      await deleteTreino.mutateAsync(id);
+  const handleExcluirTreino = (id: string) => {
+    const treino = treinos.find(t => t.id === id);
+    if (!treino) return;
+    
+    setTreinoParaDeletar(treino);
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmarDelecao = async () => {
+    if (!treinoParaDeletar) return;
+
+    try {
+      await deleteTreino.mutateAsync(treinoParaDeletar.id);
       await refetch();
+    } catch (error) {
+      console.error('Erro ao deletar treino:', error);
+    } finally {
+      setTreinoParaDeletar(null);
     }
   };
 
@@ -210,6 +227,7 @@ export function TreinosVideo() {
   const treinosAtivos = treinos.length;
   const totalAlunosComAcesso = alunos.length;
   const duracaoTotal = treinos.reduce((acc, t) => acc + (t.duracao || 0), 0);
+  const duracaoMedia = totalTreinos > 0 ? Math.floor(duracaoTotal / totalTreinos) : 0;
   const loading = loadingTreinos || loadingAlunos || uploadVideo.isPending || updateTreino.isPending || replaceVideo.isPending;
 
   const formatarDuracao = (segundos: number) => {
@@ -222,7 +240,7 @@ export function TreinosVideo() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
+    <div className="min-h-screen bg-gray-950 p-3 sm:p-6">
       <div className="w-full space-y-4 sm:space-y-6">
         <PageHeader
           title="Treinos em Vídeo"
@@ -260,7 +278,7 @@ export function TreinosVideo() {
               <Button 
                 onClick={handleNovoTreino}
                 data-testid="button-add-video"
-                className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
               >
                 <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Novo Treino</span>
@@ -270,52 +288,63 @@ export function TreinosVideo() {
           }
         />
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Compact Design */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-400">Total de Treinos</p>
-                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{totalTreinos}</p>
-                <p className="text-[10px] sm:text-sm text-green-400 mt-1">
-                  {treinosAtivos} ativos
-                </p>
+          {/* Total de Treinos */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Video className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-600">
-                <Video className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Total de Treinos</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{totalTreinos}</p>
+                <p className="text-[10px] text-gray-500">{treinosAtivos} ativos</p>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-400">Alunos com Acesso</p>
-                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{totalAlunosComAcesso}</p>
-                <p className="text-[10px] sm:text-sm text-gray-400 mt-1">
-                  de {alunos.length} alunos
-                </p>
+          {/* Alunos com Acesso */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Users className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600">
-                <Users className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Alunos com Acesso</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{totalAlunosComAcesso}</p>
+                <p className="text-[10px] text-gray-500">de {alunos.length} alunos</p>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur col-span-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-400">Duração Total</p>
-                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{formatarDuracaoTotal(duracaoTotal)}</p>
-                <p className="text-[10px] sm:text-sm text-gray-400 mt-1">
-                  tempo total de vídeos
-                </p>
+          {/* Duração Total */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Clock className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500 to-purple-600">
-                <Clock className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Duração Total</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{formatarDuracaoTotal(duracaoTotal)}</p>
+                <p className="text-[10px] text-gray-500">tempo total</p>
               </div>
             </div>
-          </Card>
+          </div>
+
+          {/* Duração Média */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Target className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Duração Média</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{formatarDuracao(duracaoMedia)}</p>
+                <p className="text-[10px] text-gray-500">por vídeo</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Filtro de Busca */}
@@ -362,7 +391,7 @@ export function TreinosVideo() {
               {!searchTerm && (
                 <Button 
                   onClick={handleNovoTreino}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                   data-testid="button-add-first-video"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -583,6 +612,21 @@ export function TreinosVideo() {
             videoDate={treinoVisualizando.dataCriacao?.toISOString?.() || new Date().toISOString()}
           />
         )}
+
+        <ConfirmDialog
+          open={confirmDeleteOpen}
+          onOpenChange={setConfirmDeleteOpen}
+          onConfirm={confirmarDelecao}
+          title="Excluir Treino em Vídeo"
+          description={
+            treinoParaDeletar
+              ? `Tem certeza que deseja excluir o treino "${treinoParaDeletar.titulo}"? Esta ação não pode ser desfeita.`
+              : ''
+          }
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="destructive"
+        />
       </div>
     </div>
   );

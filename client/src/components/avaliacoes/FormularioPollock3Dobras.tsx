@@ -37,16 +37,18 @@ interface FormularioPollock3DobrasProps {
   alunoId?: string;
   onSubmit: (dados: any) => void;
   onVoltar: () => void;
+  dadosIniciais?: any;
 }
 
 export default function FormularioPollock3Dobras({ 
   alunoId, 
   onSubmit, 
-  onVoltar 
+  onVoltar,
+  dadosIniciais 
 }: FormularioPollock3DobrasProps) {
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
+    defaultValues: dadosIniciais || {
       alunoId: alunoId || '',
       dataAvaliacao: new Date().toISOString().split('T')[0],
       genero: 'masculino',
@@ -54,6 +56,7 @@ export default function FormularioPollock3Dobras({
   });
 
   const genero = watch('genero');
+  const selectedAlunoId = watch('alunoId');
 
   const { data: alunos } = useQuery({
     queryKey: ['alunos-select'],
@@ -139,7 +142,7 @@ export default function FormularioPollock3Dobras({
           {!alunoId && (
             <div className="space-y-2">
               <Label>Aluno *</Label>
-              <Select onValueChange={handleAlunoChange}>
+              <Select value={selectedAlunoId} onValueChange={handleAlunoChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o aluno" />
                 </SelectTrigger>

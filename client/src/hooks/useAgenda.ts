@@ -82,9 +82,10 @@ export function useAgendamentos(dataInicio?: string, dataFim?: string) {
         .from('agendamentos_presenciais')
         .select(`
           *,
-          alunos(
+          alunos!inner(
             id,
-            users_profile(nome, email)
+            user_profile_id,
+            users_profile!inner(nome, email)
           )
         `)
         .order('data_agendamento', { ascending: true });
@@ -110,28 +111,32 @@ export function useAgendamentos(dataInicio?: string, dataFim?: string) {
         throw new Error('Falha ao buscar agendamentos');
       }
 
-      const mappedData = (data || []).map((item: any) => ({
-        id: item.id,
-        alunoId: item.aluno_id,
-        blocoHorarioId: null, // agendamentos_presenciais não usa blocos
-        dataAgendamento: item.data_agendamento,
-        status: item.status,
-        observacoes: item.observacoes,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        horaInicio: item.hora_inicio,
-        horaFim: item.hora_fim,
-        tipo: item.tipo,
-        aluno: item.alunos?.users_profile ? {
-          id: item.alunos.id,
-          nome: item.alunos.users_profile.nome,
-          email: item.alunos.users_profile.email
-        } : {
-          id: item.aluno_id,
-          nome: 'Aluno não encontrado',
-          email: ''
-        }
-      }));
+      const mappedData = (data || []).map((item: any) => {
+        console.log('🔄 Mapeando agendamento:', item);
+        
+        return {
+          id: item.id,
+          alunoId: item.aluno_id,
+          blocoHorarioId: null,
+          dataAgendamento: item.data_agendamento,
+          status: item.status,
+          observacoes: item.observacoes,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          horaInicio: item.hora_inicio,
+          horaFim: item.hora_fim,
+          tipo: item.tipo,
+          aluno: item.alunos?.users_profile ? {
+            id: item.alunos.id,
+            nome: item.alunos.users_profile.nome,
+            email: item.alunos.users_profile.email
+          } : {
+            id: item.aluno_id,
+            nome: 'Aluno não encontrado',
+            email: ''
+          }
+        };
+      });
 
       console.log('✅ Dados mapeados:', mappedData);
 

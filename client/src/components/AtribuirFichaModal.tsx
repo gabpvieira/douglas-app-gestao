@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { UserPlus, X, Search, Trash2, Calendar } from 'lucide-react';
 import { useAlunos } from '@/hooks/useAlunos';
 import { useFichaAtribuicoes, useRemoverAtribuicao } from '@/hooks/useFichasTreino';
@@ -34,6 +35,8 @@ export function AtribuirFichaModal({ isOpen, onClose, onConfirm, ficha }: Atribu
   const [dataFim, setDataFim] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [atribuicaoParaRemover, setAtribuicaoParaRemover] = useState<{ id: string; alunoNome: string } | null>(null);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: alunosSupabase = [] } = useAlunos();
@@ -199,26 +202,12 @@ export function AtribuirFichaModal({ isOpen, onClose, onConfirm, ficha }: Atribu
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={async () => {
-                        if (window.confirm('Remover esta atribuição?')) {
-                          try {
-                            await removerAtribuicao.mutateAsync({
-                              fichaId: ficha.id,
-                              atribuicaoId: atribuicao.id
-                            });
-                            toast({
-                              title: "Atribuição removida",
-                              description: "O aluno foi removido da ficha com sucesso."
-                            });
-                            refetchAtribuicoes();
-                          } catch (error) {
-                            toast({
-                              title: "Erro",
-                              description: "Não foi possível remover a atribuição.",
-                              variant: "destructive"
-                            });
-                          }
-                        }
+                      onClick={() => {
+                        setAtribuicaoParaRemover({
+                          id: atribuicao.id,
+                          alunoNome: atribuicao.aluno?.nome || 'este aluno'
+                        });
+                        setConfirmRemoveOpen(true);
                       }}
                       className="text-red-400 hover:text-red-300 hover:bg-red-950/30"
                     >
@@ -300,6 +289,43 @@ export function AtribuirFichaModal({ isOpen, onClose, onConfirm, ficha }: Atribu
             Atribuir Ficha
           </Button>
         </div>
+
+        <ConfirmDialog
+          open={confirmRemoveOpen}
+          onOpenChange={setConfirmRemoveOpen}
+          onConfirm={async () => {
+            if (!atribuicaoParaRemover) return;
+            
+            try {
+              await removerAtribuicao.mutateAsync({
+                fichaId: ficha.id,
+                atribuicaoId: atribuicaoParaRemover.id
+              });
+              toast({
+                title: "Atribuição removida",
+                description: "O aluno foi removido da ficha com sucesso."
+              });
+              refetchAtribuicoes();
+            } catch (error) {
+              toast({
+                title: "Erro",
+                description: "Não foi possível remover a atribuição.",
+                variant: "destructive"
+              });
+            } finally {
+              setAtribuicaoParaRemover(null);
+            }
+          }}
+          title="Remover Atribuição"
+          description={
+            atribuicaoParaRemover
+              ? `Tem certeza que deseja remover a atribuição de ${atribuicaoParaRemover.alunoNome}?`
+              : ''
+          }
+          confirmText="Remover"
+          cancelText="Cancelar"
+          variant="destructive"
+        />
       </DialogContent>
     </Dialog>
   );

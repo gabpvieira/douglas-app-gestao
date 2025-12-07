@@ -19,20 +19,22 @@ interface FormularioAvaliacaoManualProps {
   alunoId?: string;
   onSubmit: (dados: any) => void;
   onVoltar: () => void;
+  dadosIniciais?: any;
 }
 
 export default function FormularioAvaliacaoManual({
   alunoId,
   onSubmit,
-  onVoltar
+  onVoltar,
+  dadosIniciais
 }: FormularioAvaliacaoManualProps) {
-  const [selectedAlunoId, setSelectedAlunoId] = useState(alunoId || '');
-  const [dataAvaliacao, setDataAvaliacao] = useState(new Date().toISOString().split('T')[0]);
-  const [peso, setPeso] = useState('');
-  const [altura, setAltura] = useState('');
-  const [idade, setIdade] = useState('');
-  const [genero, setGenero] = useState<'masculino' | 'feminino'>('masculino');
-  const [percentualGordura, setPercentualGordura] = useState('');
+  const [selectedAlunoId, setSelectedAlunoId] = useState(dadosIniciais?.alunoId || alunoId || '');
+  const [dataAvaliacao, setDataAvaliacao] = useState(dadosIniciais?.dataAvaliacao || new Date().toISOString().split('T')[0]);
+  const [peso, setPeso] = useState(dadosIniciais?.peso?.toString() || '');
+  const [altura, setAltura] = useState(dadosIniciais?.altura?.toString() || '');
+  const [idade, setIdade] = useState(dadosIniciais?.idade?.toString() || '');
+  const [genero, setGenero] = useState<'masculino' | 'feminino'>(dadosIniciais?.genero || 'masculino');
+  const [percentualGordura, setPercentualGordura] = useState(dadosIniciais?.resultado?.percentualGordura?.toString() || '');
   
   // Circunferências
   const [circunferenciaTorax, setCircunferenciaTorax] = useState('');

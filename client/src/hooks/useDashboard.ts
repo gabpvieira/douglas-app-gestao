@@ -9,6 +9,8 @@ interface DashboardStats {
   receitaMensal: number;
   totalPagamentosAprovados: number;
   totalPagamentosPendentes: number;
+  fichasTreinoAtivas: number;
+  agendamentosDoMes: number;
 }
 
 // Hook para estatísticas do dashboard
@@ -91,6 +93,35 @@ export function useDashboardStats() {
       const totalPagamentosAprovados = pagamentosAprovados.length;
       const totalPagamentosPendentes = pagamentos?.filter((p: any) => p.status === 'pendente').length || 0;
       
+      // Buscar fichas de treino ativas
+      const { data: fichasTreino, error: fichasError } = await supabase
+        .from('fichas_treino')
+        .select('id, ativo')
+        .eq('ativo', true);
+
+      if (fichasError) {
+        console.error('❌ [Dashboard] Erro ao buscar fichas de treino:', fichasError);
+      } else {
+        console.log('✅ [Dashboard] Fichas de treino ativas:', fichasTreino?.length);
+      }
+
+      const fichasTreinoAtivas = fichasTreino?.length || 0;
+
+      // Buscar agendamentos do mês atual
+      const { data: agendamentos, error: agendamentosError } = await supabase
+        .from('agendamentos_presenciais')
+        .select('id, data_hora')
+        .gte('data_hora', primeiroDiaMes)
+        .lte('data_hora', ultimoDiaMes);
+
+      if (agendamentosError) {
+        console.error('❌ [Dashboard] Erro ao buscar agendamentos:', agendamentosError);
+      } else {
+        console.log('✅ [Dashboard] Agendamentos do mês:', agendamentos?.length);
+      }
+
+      const agendamentosDoMes = agendamentos?.length || 0;
+
       const stats = {
         totalAlunos,
         alunosAtivos,
@@ -98,7 +129,9 @@ export function useDashboardStats() {
         alunosInativos,
         receitaMensal,
         totalPagamentosAprovados,
-        totalPagamentosPendentes
+        totalPagamentosPendentes,
+        fichasTreinoAtivas,
+        agendamentosDoMes
       };
       
       console.log('✨ [Dashboard] Estatísticas finais:', stats);

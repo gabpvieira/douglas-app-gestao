@@ -14,7 +14,13 @@ import {
   Video,
   Calendar,
   CreditCard,
-  ArrowRight
+  ArrowRight,
+  UserCheck,
+  Wallet,
+  Activity,
+  UserX,
+  Dumbbell,
+  CalendarCheck
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAlunos } from "@/hooks/useAlunos";
@@ -119,29 +125,49 @@ export default function AdminDashboard() {
       title: "Total de Alunos",
       value: loadingStats ? "..." : String(dashboardStats?.totalAlunos || 0),
       change: loadingStats ? "..." : `${dashboardStats?.alunosAtivos || 0} ativos`,
-      icon: <Users className="w-6 h-6" />,
-      trend: "up"
+      icon: <Users className="w-5 h-5" />,
+      trend: "up",
+      color: "bg-blue-600"
     },
     {
       title: "Receita Mensal",
       value: loadingStats ? "..." : `R$ ${(dashboardStats?.receitaMensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
       change: loadingStats ? "..." : `${dashboardStats?.totalPagamentosAprovados || 0} pagamentos`,
-      icon: <DollarSign className="w-6 h-6" />,
-      trend: "up"
+      icon: <Wallet className="w-5 h-5" />,
+      trend: "up",
+      color: "bg-blue-600"
     },
     {
       title: "Alunos Ativos",
       value: loadingStats ? "..." : String(dashboardStats?.alunosAtivos || 0),
       change: loadingStats ? "..." : `${dashboardStats?.alunosPendentes || 0} pendentes`,
-      icon: <TrendingUp className="w-6 h-6" />,
-      trend: "up"
+      icon: <Activity className="w-5 h-5" />,
+      trend: "up",
+      color: "bg-blue-600"
+    },
+    {
+      title: "Fichas de Treino",
+      value: loadingStats ? "..." : String(dashboardStats?.fichasTreinoAtivas || 0),
+      change: loadingStats ? "..." : "ativas",
+      icon: <Dumbbell className="w-5 h-5" />,
+      trend: "up",
+      color: "bg-blue-600"
+    },
+    {
+      title: "Agendamentos",
+      value: loadingStats ? "..." : String(dashboardStats?.agendamentosDoMes || 0),
+      change: loadingStats ? "..." : "este mês",
+      icon: <CalendarCheck className="w-5 h-5" />,
+      trend: "up",
+      color: "bg-blue-600"
     },
     {
       title: "Inativos",
       value: loadingStats ? "..." : String(dashboardStats?.alunosInativos || 0),
       change: loadingStats ? "..." : `${dashboardStats?.totalPagamentosPendentes || 0} pag. pendentes`,
-      icon: <AlertTriangle className="w-6 h-6" />,
-      trend: "down"
+      icon: <UserX className="w-5 h-5" />,
+      trend: "down",
+      color: "bg-blue-600"
     }
   ];
 
@@ -162,7 +188,7 @@ export default function AdminDashboard() {
     .slice(0, 10); // Mostrar apenas os 10 primeiros
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
+    <div className="min-h-screen bg-gray-950 p-3 sm:p-6">
       <div className="w-full space-y-4 sm:space-y-6">
         {/* Header */}
         <PageHeader
@@ -171,193 +197,167 @@ export default function AdminDashboard() {
         />
 
         {/* Greeting Section */}
-        <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-800/30 rounded-lg p-4 sm:p-6">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-xl sm:text-2xl font-semibold text-white mb-2">
-                {getGreeting()}
-              </p>
-              <p className="text-sm text-gray-400">
-                {getFormattedTime()} • {currentTime.toLocaleDateString('pt-BR', { 
-                  weekday: 'long', 
-                  day: 'numeric', 
-                  month: 'long' 
-                })}
-              </p>
-            </div>
+        <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
+          <div className="text-center sm:text-left">
+            <h2 className="text-2xl font-semibold text-white mb-1">
+              {getGreeting()}
+            </h2>
+            <p className="text-sm text-gray-400">
+              {getFormattedTime()} • {currentTime.toLocaleDateString('pt-BR', { 
+                weekday: 'long', 
+                day: 'numeric', 
+                month: 'long' 
+              })}
+            </p>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Stats Cards - Flat Design */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {stats.map((stat, index) => (
-            <Card key={index} className="p-4 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur" data-testid={`card-stat-${index}`}>
-              {/* Layout Mobile: Centralizado com ícone acima */}
-              <div className="flex flex-col items-center text-center sm:hidden">
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-3 ${
-                  stat.trend === 'up' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-red-500 to-red-600'
-                }`}>
-                  <div className="text-white">{stat.icon}</div>
+            <Card key={index} className="border-gray-800 bg-blue-950/30 hover:bg-blue-950/40 transition-colors" data-testid={`card-stat-${index}`}>
+              <div className="p-4 flex flex-col items-center text-center">
+                <div className={`h-9 w-9 rounded-lg flex items-center justify-center mb-3 ${stat.color}`}>
+                  <div className="text-white">
+                    {stat.icon}
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400 mb-1">{stat.title}</p>
-                <p className="text-2xl font-bold text-white mb-1">{stat.value}</p>
-                <p className={`text-xs ${
-                  stat.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">
+                  {stat.title}
+                </p>
+                <p className="text-2xl font-bold text-white mb-1.5">
+                  {stat.value}
+                </p>
+                <p className={`text-xs font-medium ${
+                  stat.trend === 'up' ? 'text-blue-400' : 'text-gray-400'
                 }`}>
                   {stat.change}
                 </p>
-              </div>
-
-              {/* Layout Desktop: Horizontal */}
-              <div className="hidden sm:flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-400">{stat.title}</p>
-                  <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
-                  <p className={`text-sm flex items-center gap-1 mt-1 ${
-                    stat.trend === 'up' ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {stat.change}
-                  </p>
-                </div>
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
-                  stat.trend === 'up' ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-red-500 to-red-600'
-                }`}>
-                  <div className="text-white">{stat.icon}</div>
-                </div>
               </div>
             </Card>
           ))}
         </div>
 
-        {/* Quick Actions Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Quick Actions - Minimal Flat Design */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Adicionar Novo Aluno */}
           <Card 
-            className="group relative overflow-hidden border-gray-800 bg-gradient-to-br from-blue-900/20 to-blue-800/10 hover:from-blue-900/30 hover:to-blue-800/20 backdrop-blur transition-all duration-300 cursor-pointer"
+            className="group border-gray-800 bg-gray-900/30 hover:border-gray-700 transition-colors cursor-pointer"
             onClick={() => setLocation('/admin/alunos')}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-600/0 group-hover:from-blue-500/10 group-hover:to-blue-600/10 transition-all duration-300" />
-            <div className="relative p-4 sm:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <UserPlus className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
-              </div>
-              <h3 className="text-sm sm:text-base font-semibold text-white mb-1">Novo Aluno</h3>
-              <p className="text-xs sm:text-sm text-gray-400">Cadastrar novo aluno no sistema</p>
+            <div className="p-5 flex flex-col items-center text-center">
+              <UserPlus className="h-6 w-6 text-gray-400 group-hover:text-white transition-colors mb-3" />
+              <h3 className="text-sm font-medium text-white mb-1">Novo Aluno</h3>
+              <p className="text-xs text-gray-500">Cadastrar aluno</p>
             </div>
           </Card>
 
           {/* Adicionar Novo Treino */}
           <Card 
-            className="group relative overflow-hidden border-gray-800 bg-gradient-to-br from-purple-900/20 to-purple-800/10 hover:from-purple-900/30 hover:to-purple-800/20 backdrop-blur transition-all duration-300 cursor-pointer"
+            className="group border-gray-800 bg-gray-900/30 hover:border-gray-700 transition-colors cursor-pointer"
             onClick={() => setLocation('/admin/treinos-video')}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-purple-600/0 group-hover:from-purple-500/10 group-hover:to-purple-600/10 transition-all duration-300" />
-            <div className="relative p-4 sm:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <Video className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
-              </div>
-              <h3 className="text-sm sm:text-base font-semibold text-white mb-1">Novo Treino</h3>
-              <p className="text-xs sm:text-sm text-gray-400">Adicionar vídeo de treino</p>
+            <div className="p-5 flex flex-col items-center text-center">
+              <Video className="h-6 w-6 text-gray-400 group-hover:text-white transition-colors mb-3" />
+              <h3 className="text-sm font-medium text-white mb-1">Novo Treino</h3>
+              <p className="text-xs text-gray-500">Adicionar vídeo</p>
             </div>
           </Card>
 
           {/* Ver Agenda */}
           <Card 
-            className="group relative overflow-hidden border-gray-800 bg-gradient-to-br from-green-900/20 to-green-800/10 hover:from-green-900/30 hover:to-green-800/20 backdrop-blur transition-all duration-300 cursor-pointer"
+            className="group border-gray-800 bg-gray-900/30 hover:border-gray-700 transition-colors cursor-pointer"
             onClick={() => setLocation('/admin/agenda')}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-green-600/0 group-hover:from-green-500/10 group-hover:to-green-600/10 transition-all duration-300" />
-            <div className="relative p-4 sm:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-green-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
-              </div>
-              <h3 className="text-sm sm:text-base font-semibold text-white mb-1">Ver Agenda</h3>
-              <p className="text-xs sm:text-sm text-gray-400">Gerenciar atendimentos</p>
+            <div className="p-5 flex flex-col items-center text-center">
+              <Calendar className="h-6 w-6 text-gray-400 group-hover:text-white transition-colors mb-3" />
+              <h3 className="text-sm font-medium text-white mb-1">Ver Agenda</h3>
+              <p className="text-xs text-gray-500">Atendimentos</p>
             </div>
           </Card>
 
           {/* Gerenciar Pagamentos */}
           <Card 
-            className="group relative overflow-hidden border-gray-800 bg-gradient-to-br from-orange-900/20 to-orange-800/10 hover:from-orange-900/30 hover:to-orange-800/20 backdrop-blur transition-all duration-300 cursor-pointer"
+            className="group border-gray-800 bg-gray-900/30 hover:border-gray-700 transition-colors cursor-pointer"
             onClick={() => setLocation('/admin/pagamentos')}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/10 group-hover:to-orange-600/10 transition-all duration-300" />
-            <div className="relative p-4 sm:p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                  <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
-              </div>
-              <h3 className="text-sm sm:text-base font-semibold text-white mb-1">Pagamentos</h3>
-              <p className="text-xs sm:text-sm text-gray-400">Controlar financeiro</p>
+            <div className="p-5 flex flex-col items-center text-center">
+              <CreditCard className="h-6 w-6 text-gray-400 group-hover:text-white transition-colors mb-3" />
+              <h3 className="text-sm font-medium text-white mb-1">Pagamentos</h3>
+              <p className="text-xs text-gray-500">Controle financeiro</p>
             </div>
           </Card>
         </div>
 
-        {/* Students Management */}
-        <Card className="p-4 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-white">Gestão de Alunos</h2>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <div className="relative flex-1 sm:flex-none">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                <Input
-                  placeholder="Buscar alunos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 sm:pl-10 sm:w-64 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-xs sm:text-sm"
-                  data-testid="input-search-students"
-                />
-              </div>
-              <Button variant="outline" size="sm" data-testid="button-filter" className="border-gray-700 bg-gray-800/50 text-gray-300 hover:bg-gray-800 hover:text-white text-xs sm:text-sm">
-                <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                Filtros
+        {/* Students Management - Minimal Flat Design */}
+        <Card className="border-gray-800 bg-gray-900/30">
+          <div className="p-5 border-b border-gray-800">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h2 className="text-base font-medium text-white">Alunos Recentes</h2>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setLocation('/admin/alunos')}
+                className="text-xs text-gray-400 hover:text-white"
+              >
+                Ver todos
+                <ArrowRight className="w-3 h-3 ml-1" />
               </Button>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Input
+                placeholder="Buscar alunos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 text-sm h-9"
+                data-testid="input-search-students"
+              />
             </div>
           </div>
 
           {/* Students List */}
-          <div className="space-y-2">
+          <div className="divide-y divide-gray-800">
             {loadingAlunos ? (
-              <div className="py-8 text-center text-gray-500">
-                Carregando alunos...
+              <div className="py-8 text-center text-sm text-gray-500">
+                Carregando...
               </div>
             ) : filteredStudents.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-sm text-gray-500">
                 {searchTerm ? 'Nenhum aluno encontrado' : 'Nenhum aluno cadastrado'}
               </div>
             ) : (
               filteredStudents.map((student) => (
                 <div 
                   key={student.id} 
-                  className="flex items-center gap-3 p-4 rounded-lg border border-gray-800 bg-gray-800/30 hover:bg-gray-800/50 transition-colors"
+                  className="flex items-center gap-3 p-4 hover:bg-gray-800/30 transition-colors cursor-pointer"
                   data-testid={`card-student-${student.id}`}
+                  onClick={() => setLocation('/admin/alunos')}
                 >
-                  <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
+                  <Avatar className="w-9 h-9">
                     <AvatarImage src={student.fotoUrl || undefined} />
-                    <AvatarFallback className="bg-gray-700 text-white text-sm">
+                    <AvatarFallback className="bg-gray-700 text-white text-xs">
                       {getInitials(student.nome)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-white text-sm sm:text-base truncate">
+                    <div className="font-medium text-white text-sm truncate">
                       {student.nome}
                     </div>
-                    <div className="text-xs sm:text-sm text-gray-400 truncate">
+                    <div className="text-xs text-gray-500 truncate">
                       {student.email}
                     </div>
                   </div>
-                  <Badge className={`${getStatusColor(student.status)} text-xs whitespace-nowrap`}>
+                  <Badge 
+                    variant="outline"
+                    className={`text-xs border-0 ${
+                      student.status === 'ativo' 
+                        ? 'bg-green-500/10 text-green-400' 
+                        : student.status === 'pendente'
+                        ? 'bg-yellow-500/10 text-yellow-400'
+                        : 'bg-gray-500/10 text-gray-400'
+                    }`}
+                  >
                     {student.status}
                   </Badge>
                 </div>

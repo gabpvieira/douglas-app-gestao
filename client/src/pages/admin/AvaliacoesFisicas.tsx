@@ -11,8 +11,10 @@ import PageHeader from '@/components/PageHeader';
 import NovaAvaliacaoModal from '@/components/avaliacoes/NovaAvaliacaoModal';
 import { ModulosAdicionaisModal } from '@/components/avaliacoes/ModulosAdicionaisModal';
 import DetalhesAvaliacaoModal from '@/components/avaliacoes/DetalhesAvaliacaoModal';
-import { useAvaliacoes, useTogglePinAvaliacao } from '@/hooks/useAvaliacoesFisicas';
-import { Plus, Calendar, User, Activity, FileText, LayoutGrid, List, Search, Eye, Pin } from 'lucide-react';
+import { useAvaliacoes, useTogglePinAvaliacao, useDeleteAvaliacao } from '@/hooks/useAvaliacoesFisicas';
+import { Plus, Calendar, User, Activity, FileText, LayoutGrid, List, Search, Eye, Pin, Edit, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -24,11 +26,16 @@ export default function AvaliacoesFisicas() {
   const [detalhesModalOpen, setDetalhesModalOpen] = useState(false);
   const [selectedAvaliacaoId, setSelectedAvaliacaoId] = useState<string | null>(null);
   const [selectedAvaliacao, setSelectedAvaliacao] = useState<{ id: string; alunoId: string } | null>(null);
+  const [avaliacaoEditando, setAvaliacaoEditando] = useState<any | null>(null);
+  const [avaliacaoParaDeletar, setAvaliacaoParaDeletar] = useState<any | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   
   const { data: avaliacoes, isLoading } = useAvaliacoes();
   const togglePinMutation = useTogglePinAvaliacao();
+  const deleteAvaliacaoMutation = useDeleteAvaliacao();
+  const { toast } = useToast();
 
   // Filtrar avaliações por nome do aluno
   const filteredAvaliacoes = useMemo(() => {
@@ -61,6 +68,40 @@ export default function AvaliacoesFisicas() {
     });
   };
 
+  const handleEditarAvaliacao = (avaliacao: any) => {
+    setAvaliacaoEditando(avaliacao);
+    setModalOpen(true);
+  };
+
+  const handleDeletarAvaliacao = (avaliacaoId: string) => {
+    const avaliacao = avaliacoes?.find(av => av.id === avaliacaoId);
+    if (!avaliacao) return;
+
+    setAvaliacaoParaDeletar(avaliacao);
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmarDelecao = async () => {
+    if (!avaliacaoParaDeletar) return;
+
+    try {
+      await deleteAvaliacaoMutation.mutateAsync(avaliacaoParaDeletar.id);
+      toast({
+        title: 'Sucesso',
+        description: 'Avaliação excluída com sucesso',
+      });
+    } catch (error) {
+      console.error('Erro ao deletar avaliação:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir a avaliação',
+        variant: 'destructive',
+      });
+    } finally {
+      setAvaliacaoParaDeletar(null);
+    }
+  };
+
   const getProtocoloBadge = (protocolo: string) => {
     if (protocolo === 'pollock_7_dobras') return '7 Dobras';
     if (protocolo === 'pollock_3_dobras') return '3 Dobras';
@@ -77,7 +118,7 @@ export default function AvaliacoesFisicas() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
+    <div className="min-h-screen bg-gray-950 p-3 sm:p-6">
       <div className="w-full space-y-4 sm:space-y-6">
         <PageHeader
           title="Avaliações Físicas"
@@ -114,7 +155,7 @@ export default function AvaliacoesFisicas() {
               
               <Button 
                 onClick={() => setModalOpen(true)}
-                className="gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm"
+                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm"
               >
                 <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Nova Avaliação</span>
@@ -219,7 +260,7 @@ export default function AvaliacoesFisicas() {
                             onClick={() => handleOpenDetalhes(avaliacao.id)}
                           >
                             <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Ver Detalhes</span>
+                            <span className="hidden sm:inline">Ver</span>
                           </Button>
                           <Button
                             variant="outline"
@@ -229,6 +270,23 @@ export default function AvaliacoesFisicas() {
                           >
                             <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
                             <span className="hidden sm:inline">Módulos</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 sm:flex-initial border-gray-700 bg-gray-800/50 text-blue-400 hover:bg-blue-900/20 hover:text-blue-300 text-xs"
+                            onClick={() => handleEditarAvaliacao(avaliacao)}
+                          >
+                            <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Editar</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-700 bg-gray-800/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 text-xs"
+                            onClick={() => handleDeletarAvaliacao(avaliacao.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
                       </div>
@@ -329,6 +387,26 @@ export default function AvaliacoesFisicas() {
                         <FileText className="h-3 w-3 mr-1.5" />
                         Módulos
                       </Button>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 border-gray-700 bg-gray-800/50 text-blue-400 hover:bg-blue-900/20 hover:text-blue-300 text-[10px]"
+                          onClick={() => handleEditarAvaliacao(avaliacao)}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Editar
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 border-gray-700 bg-gray-800/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 text-[10px]"
+                          onClick={() => handleDeletarAvaliacao(avaliacao.id)}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Excluir
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -351,7 +429,7 @@ export default function AvaliacoesFisicas() {
               {!searchTerm && (
                 <Button 
                   onClick={() => setModalOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Nova Avaliação
@@ -363,7 +441,13 @@ export default function AvaliacoesFisicas() {
 
         <NovaAvaliacaoModal
           open={modalOpen}
-          onOpenChange={setModalOpen}
+          onOpenChange={(open) => {
+            setModalOpen(open);
+            if (!open) {
+              setAvaliacaoEditando(null);
+            }
+          }}
+          avaliacaoEditando={avaliacaoEditando}
         />
 
         {selectedAvaliacao && (
@@ -384,6 +468,21 @@ export default function AvaliacoesFisicas() {
             onTogglePin={() => handleTogglePin(selectedAvaliacaoId)}
           />
         )}
+
+        <ConfirmDialog
+          open={confirmDeleteOpen}
+          onOpenChange={setConfirmDeleteOpen}
+          onConfirm={confirmarDelecao}
+          title="Excluir Avaliação Física"
+          description={
+            avaliacaoParaDeletar
+              ? `Tem certeza que deseja excluir a avaliação de ${avaliacaoParaDeletar.aluno?.nome}? Esta ação não pode ser desfeita.`
+              : ''
+          }
+          confirmText="Excluir"
+          cancelText="Cancelar"
+          variant="destructive"
+        />
       </div>
     </div>
   );

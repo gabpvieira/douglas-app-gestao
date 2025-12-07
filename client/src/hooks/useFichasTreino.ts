@@ -160,8 +160,31 @@ export function useDeleteFichaTreino() {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      // Remover exercícios primeiro
-      await supabase.from('exercicios_ficha').delete().eq('ficha_id', id);
+      // Verificar se há atribuições ativas
+      const { data: atribuicoes, error: atribuicoesError } = await supabase
+        .from('fichas_alunos')
+        .select('id')
+        .eq('ficha_id', id);
+      
+      if (atribuicoesError) throw atribuicoesError;
+      
+      // Se houver atribuições, remover primeiro
+      if (atribuicoes && atribuicoes.length > 0) {
+        const { error: deleteAtribuicoesError } = await supabase
+          .from('fichas_alunos')
+          .delete()
+          .eq('ficha_id', id);
+        
+        if (deleteAtribuicoesError) throw deleteAtribuicoesError;
+      }
+      
+      // Remover exercícios (embora o CASCADE deveria fazer isso automaticamente)
+      const { error: deleteExerciciosError } = await supabase
+        .from('exercicios_ficha')
+        .delete()
+        .eq('ficha_id', id);
+      
+      if (deleteExerciciosError) throw deleteExerciciosError;
       
       // Remover ficha
       const { error } = await supabase
@@ -175,6 +198,10 @@ export function useDeleteFichaTreino() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fichas-treino'] });
       queryClient.invalidateQueries({ queryKey: ['fichas-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['fichas-atribuicoes'] });
+    },
+    onError: (error) => {
+      console.error('Erro ao deletar ficha:', error);
     }
   });
 }

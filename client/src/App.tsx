@@ -74,7 +74,7 @@ function AdminLayout({ userName, onLogout }: {
       />
       <main className={`
         min-h-screen transition-all duration-300 ease-in-out
-        ${isSidebarCollapsed ? 'md:ml-16' : 'md:ml-56'}
+        ${isSidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}
       `}>
         <Switch>
           <Route path="/admin/dashboard">

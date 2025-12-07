@@ -9,6 +9,7 @@ import { Table, TableHead, TableHeader, TableRow, TableBody, TableCell } from "@
 import { useNotification } from "@/hooks/useNotification";
 import PageHeader from "@/components/PageHeader";
 import { AlunoAutocomplete } from "@/components/AlunoAutocomplete";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { DollarSign, Users, AlertCircle, Plus, Loader2 } from "lucide-react";
 import {
   useAssinaturasComPagamentos,
@@ -66,6 +67,8 @@ export default function PagamentosAdmin() {
   const [quantidade, setQuantidade] = useState(1);
   const [metodoPagamento, setMetodoPagamento] = useState<'credit_card' | 'debit_card' | 'pix' | 'boleto'>('pix');
   const [inicio, setInicio] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [assinaturaParaDeletar, setAssinaturaParaDeletar] = useState<{ id: string; nome: string } | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const receitaMensalEstimativa = useMemo(() => {
     if (!assinaturas) return 0;
@@ -174,77 +177,89 @@ export default function PagamentosAdmin() {
     }
   };
 
-  const handleDeletarAssinatura = async (assinaturaId: string, alunoNome: string) => {
-    if (!window.confirm(`Tem certeza que deseja DELETAR permanentemente a assinatura de ${alunoNome}?\n\nEsta ação não pode ser desfeita e todos os pagamentos relacionados serão removidos.`)) {
-      return;
-    }
+  const handleDeletarAssinatura = (assinaturaId: string, alunoNome: string) => {
+    setAssinaturaParaDeletar({ id: assinaturaId, nome: alunoNome });
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmarDelecao = async () => {
+    if (!assinaturaParaDeletar) return;
 
     try {
-      await deleteAssinatura.mutateAsync(assinaturaId);
-      notify.success("Assinatura deletada", `A assinatura de ${alunoNome} foi removida permanentemente`);
+      await deleteAssinatura.mutateAsync(assinaturaParaDeletar.id);
+      notify.success("Assinatura deletada", `A assinatura de ${assinaturaParaDeletar.nome} foi removida permanentemente`);
     } catch (error: any) {
       notify.error("Erro ao deletar assinatura", error.message);
+    } finally {
+      setAssinaturaParaDeletar(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 p-3 sm:p-6">
+    <div className="min-h-screen bg-gray-950 p-3 sm:p-6">
       <div className="w-full space-y-4 sm:space-y-6">
         <PageHeader
           title="Pagamentos"
           description="Gestão de assinaturas e cobranças"
         />
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-400">Receita Mensal</p>
-                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{formatCurrency(receitaMensalEstimativa)}</p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Estimativa</p>
+        {/* Stats Cards - Compact Design */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Receita Mensal */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <DollarSign className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
               </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600">
-                <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
-            <CardHeader className="p-0 mb-3">
-              <CardTitle className="text-sm sm:text-base text-white flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Assinantes por Tipo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 space-y-2">
-              <div className="flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-gray-400">Online</span>
-                <Badge variant="secondary" className="bg-blue-900/30 text-blue-300 border-blue-700/50 text-[10px] sm:text-xs">{porPlano.online}</Badge>
-              </div>
-              <div className="flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-gray-400">Presencial</span>
-                <Badge variant="secondary" className="bg-purple-900/30 text-purple-300 border-purple-700/50 text-[10px] sm:text-xs">{porPlano.presencial}</Badge>
-              </div>
-              <div className="flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-gray-400">Personalizado</span>
-                <Badge variant="secondary" className="bg-gray-700 text-white text-[10px] sm:text-xs">{porPlano.personalizado}</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="p-3 sm:p-6 border-gray-800 bg-gray-900/50 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs sm:text-sm text-gray-400">Pendências</p>
-                <p className="text-lg sm:text-2xl font-bold text-white mt-1">{pendencias}</p>
-                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Aguardando</p>
-              </div>
-              <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br from-yellow-500 to-yellow-600">
-                <AlertCircle className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Receita Mensal</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{formatCurrency(receitaMensalEstimativa)}</p>
+                <p className="text-[10px] text-gray-500">estimativa</p>
               </div>
             </div>
-          </Card>
+          </div>
+
+          {/* Assinantes Online */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Users className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Assinantes Online</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{porPlano.online}</p>
+                <p className="text-[10px] text-gray-500">planos online</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Assinantes Presencial */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Users className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Assinantes Presencial</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{porPlano.presencial}</p>
+                <p className="text-[10px] text-gray-500">planos presenciais</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Pendências */}
+          <div className="rounded-lg bg-gray-900/50 border border-gray-800/50 p-3 sm:p-4 hover:bg-gray-900/70 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-8 w-8 text-gray-400" strokeWidth={1.5} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400 mb-0.5">Pendências</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{pendencias}</p>
+                <p className="text-[10px] text-gray-500">aguardando</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Criar Cobrança */}
@@ -265,7 +280,7 @@ export default function PagamentosAdmin() {
               />
               {alunoSelecionado && (
                 <div className="flex items-center gap-2 p-2 bg-gray-800/50 rounded-lg border border-gray-700">
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
                     <Users className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -373,7 +388,7 @@ export default function PagamentosAdmin() {
               <Button 
                 onClick={criarCobranca}
                 disabled={!alunoSelecionado || createAssinaturaComPagamento.isPending}
-                className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {createAssinaturaComPagamento.isPending ? (
                   <>
@@ -602,6 +617,21 @@ export default function PagamentosAdmin() {
             </CardContent>
           </Card>
         )}
+
+        <ConfirmDialog
+          open={confirmDeleteOpen}
+          onOpenChange={setConfirmDeleteOpen}
+          onConfirm={confirmarDelecao}
+          title="Deletar Assinatura"
+          description={
+            assinaturaParaDeletar
+              ? `Tem certeza que deseja DELETAR permanentemente a assinatura de ${assinaturaParaDeletar.nome}? Esta ação não pode ser desfeita e todos os pagamentos relacionados serão removidos.`
+              : ''
+          }
+          confirmText="Deletar"
+          cancelText="Cancelar"
+          variant="destructive"
+        />
       </div>
     </div>
   );
