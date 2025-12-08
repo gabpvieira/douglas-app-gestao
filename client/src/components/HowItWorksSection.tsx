@@ -37,12 +37,7 @@ export default function HowItWorksSection() {
   ];
 
   return (
-    <section id="como-funciona" className="relative py-20 md:py-32 bg-gradient-to-b from-black via-zinc-950 to-zinc-900">
-      {/* Gradient Transition from Previous Section */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black to-transparent pointer-events-none" />
-      
-      {/* Gradient Transition to Next Section */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent via-zinc-950 to-black pointer-events-none" />
+    <section id="como-funciona" className="relative py-20 md:py-32" style={{ backgroundColor: '#030712' }}>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
@@ -60,16 +55,16 @@ export default function HowItWorksSection() {
           {steps.map((step, index) => (
             <div
               key={index}
-              className="group relative bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-6 md:p-8 hover:border-[#3c8af6]/50 transition-all duration-300"
+              className="group relative bg-gray-900/50 border border-gray-800/50 rounded-2xl p-6 md:p-8 hover:border-blue-500/50 transition-all duration-300"
             >
               {/* Icon and Title */}
               <div className="flex items-start gap-4 mb-6">
-                <div className="w-14 h-14 bg-zinc-800/50 rounded-xl flex items-center justify-center text-[#3c8af6] group-hover:bg-[#3c8af6]/10 transition-colors duration-300 flex-shrink-0">
+                <div className="w-14 h-14 bg-gray-800/50 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-500/10 transition-colors duration-300 flex-shrink-0">
                   {step.icon}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg md:text-xl font-bold text-white mb-2">{step.title}</h3>
-                  <div className="inline-flex items-center gap-2 bg-zinc-800/50 rounded-full px-3 py-1.5 text-xs text-zinc-400">
+                  <div className="inline-flex items-center gap-2 bg-gray-800/50 rounded-full px-3 py-1.5 text-xs text-gray-400">
                     {step.badgeIcon}
                     <span>{step.badge}</span>
                   </div>
@@ -77,14 +72,9 @@ export default function HowItWorksSection() {
               </div>
 
               {/* Description */}
-              <p className="text-zinc-400 leading-relaxed text-sm md:text-base">
+              <p className="text-gray-400 leading-relaxed text-sm md:text-base">
                 {step.description}
               </p>
-
-              {/* Connecting Line (except last item) */}
-              {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-1/2 -right-5 w-10 h-px bg-gradient-to-r from-zinc-700 to-transparent" />
-              )}
             </div>
           ))}
         </div>

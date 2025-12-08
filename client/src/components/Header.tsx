@@ -64,7 +64,7 @@ export default function Header({ onLoginClick }: HeaderProps) {
             </nav>
 
             {/* Desktop Action Button */}
-            <div className="hidden lg:flex items-center">
+            <div className="hidden lg:flex items-center gap-3">
               <Button 
                 onClick={onLoginClick}
                 className="bg-[#3c8af6] hover:bg-[#2b7ae5] text-white shadow-lg shadow-[#3c8af6]/20"
@@ -137,7 +137,10 @@ export default function Header({ onLoginClick }: HeaderProps) {
               {/* Action Button */}
               <div className="mt-6 pt-6 border-t border-zinc-800/50">
                 <Button 
-                  onClick={onLoginClick}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onLoginClick?.();
+                  }}
                   className="w-full bg-gradient-to-r from-[#3c8af6] to-[#2b7ae5] hover:from-[#2b7ae5] hover:to-[#1a6ad4] text-white shadow-lg shadow-[#3c8af6]/20"
                   data-testid="button-header-login-mobile"
                 >

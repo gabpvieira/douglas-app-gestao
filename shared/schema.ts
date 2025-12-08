@@ -27,6 +27,7 @@ export const alunos = pgTable("alunos", {
   altura: integer("altura"),
   genero: text("genero"),
   status: text("status").notNull().default("ativo"),
+  senha: text("senha").notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });

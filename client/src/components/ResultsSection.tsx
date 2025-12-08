@@ -58,15 +58,7 @@ export default function ResultsSection() {
   const visibleIndices = getVisibleImages();
 
   return (
-    <section id="resultados" className="relative py-20 md:py-32 bg-black overflow-hidden">
-      {/* Gradient Transition from How It Works Section */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black to-transparent pointer-events-none z-10" />
-      
-      {/* Gradient Transition to Pricing Section */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-b from-transparent via-zinc-950 to-zinc-900 pointer-events-none z-10" />
-      
-      {/* Background Glow Effect */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#3c8af6]/5 rounded-full blur-3xl pointer-events-none" />
+    <section id="resultados" className="relative py-20 md:py-32 overflow-hidden" style={{ backgroundColor: '#030712' }}>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}

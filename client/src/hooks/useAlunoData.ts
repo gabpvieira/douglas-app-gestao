@@ -6,14 +6,17 @@ export function useAlunoProfile() {
   return useQuery({
     queryKey: ["aluno-profile"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("❌ Usuário não autenticado");
+      // Buscar usuário autenticado via Supabase Auth
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error("❌ Usuário não autenticado:", authError);
         throw new Error("Usuário não autenticado");
       }
 
       console.log("🔍 Buscando perfil para auth_uid:", user.id);
 
+      // Buscar dados completos do perfil e aluno
       const { data, error } = await supabase
         .from("users_profile")
         .select(`
@@ -28,7 +31,7 @@ export function useAlunoProfile() {
         throw error;
       }
 
-      console.log("✅ Perfil encontrado:", data);
+      console.log("✅ Perfil completo encontrado:", data);
       return data;
     },
   });

@@ -11,18 +11,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-black via-zinc-950 to-zinc-900">
-      {/* Geometric Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 2px 2px, rgb(250 250 250) 1px, transparent 0)`,
-          backgroundSize: '48px 48px'
-        }} />
-      </div>
-
-      {/* Gradient Orbs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#3c8af6]/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#3c8af6]/10 rounded-full blur-3xl" />
+    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#030712' }}>
       
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 md:pt-28 pb-20">
@@ -64,7 +53,7 @@ export default function HeroSection() {
           <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-6 text-white leading-tight px-4">
             Alcance seus objetivos com
             <br />
-            <span className="bg-gradient-to-r from-[#3c8af6] to-[#2b7ae5] bg-clip-text text-transparent">
+            <span className="text-blue-500">
               método comprovado
             </span>
           </h2>
@@ -76,25 +65,23 @@ export default function HeroSection() {
           </p>
           
           {/* CTA Buttons */}
-          <div className="flex flex-row gap-3 sm:gap-4 justify-center items-center w-full max-w-2xl mx-auto px-4">
+          <div className="flex flex-row gap-3 justify-center items-center w-full max-w-2xl mx-auto px-4">
             <Button 
-              size="lg"
               onClick={() => scrollToSection('contato')}
-              className="flex-1 sm:flex-none text-base sm:text-lg px-6 sm:px-10 py-6 sm:py-7 bg-gradient-to-r from-[#3c8af6] to-[#2b7ae5] hover:from-[#2b7ae5] hover:to-[#1a6ad4] text-white shadow-2xl shadow-[#3c8af6]/30 border-0"
+              className="flex-1 sm:flex-none text-sm sm:text-base px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white transition-colors border-0 rounded-lg font-medium"
               data-testid="button-start-now"
             >
               <span className="hidden sm:inline">Começar Agora</span>
               <span className="sm:hidden">Começar</span>
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
             <Button 
-              size="lg" 
               variant="outline"
               onClick={() => scrollToSection('resultados')}
-              className="flex-1 sm:flex-none text-base sm:text-lg px-6 sm:px-10 py-6 sm:py-7 bg-zinc-800/50 backdrop-blur-sm border-zinc-700 text-white hover:bg-zinc-700/50"
+              className="flex-1 sm:flex-none text-sm sm:text-base px-6 sm:px-8 py-3 sm:py-4 bg-gray-800/50 border border-gray-700 text-white hover:bg-gray-800 transition-colors rounded-lg font-medium"
               data-testid="button-watch-video"
             >
-              <Play className="mr-2 w-5 h-5" />
+              <Play className="mr-2 w-4 h-4" />
               <span className="hidden sm:inline">Ver Resultados</span>
               <span className="sm:hidden">Resultados</span>
             </Button>
@@ -102,8 +89,6 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* Gradient Transition to Next Section */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-zinc-900 pointer-events-none" />
     </section>
   );
 }

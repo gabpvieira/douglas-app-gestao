@@ -66,17 +66,12 @@ export default function BenefitsSection() {
   ];
 
   return (
-    <section id="beneficios" className="relative py-20 md:py-32 bg-gradient-to-b from-zinc-900 via-zinc-900/80 to-zinc-950">
-      {/* Gradient Transition from About Section */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-zinc-900 to-transparent pointer-events-none" />
-      
-      {/* Gradient Transition to How It Works Section */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent via-zinc-950 to-black pointer-events-none" />
+    <section id="beneficios" className="relative py-20 md:py-32" style={{ backgroundColor: '#030712' }}>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6">
-            Por que escolher nossa <span className="text-[#3c8af6]">consultoria</span>?
+            Por que escolher nossa <span className="text-blue-500">consultoria</span>?
           </h2>
           <p className="text-lg text-zinc-400 max-w-3xl mx-auto">
             Mais que um programa de exercícios, oferecemos uma transformação completa com tecnologia e acompanhamento profissional.
@@ -84,9 +79,9 @@ export default function BenefitsSection() {
         </div>
         
         {/* Platform Highlight */}
-        <div className="mb-12 bg-gradient-to-r from-[#3c8af6]/10 to-[#2b7ae5]/10 border border-[#3c8af6]/30 rounded-2xl p-6 md:p-8">
+        <div className="mb-12 bg-blue-500/10 border border-blue-500/30 rounded-2xl p-6 md:p-8">
           <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-[#3c8af6] rounded-xl flex items-center justify-center mb-4">
+            <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4">
               <Smartphone className="w-8 h-8 text-white" />
             </div>
             <div>
@@ -103,7 +98,7 @@ export default function BenefitsSection() {
           {benefits.map((benefit, index) => (
             <div 
               key={index} 
-              className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-6 hover:border-[#3c8af6]/50 hover:bg-zinc-900/70 transition-all duration-300 group"
+              className="bg-gray-900/50 border border-gray-800/50 rounded-xl p-6 hover:border-blue-500/50 hover:bg-gray-900/70 transition-all duration-300 group"
               data-testid={`card-benefit-${index}`}
             >
               <div className="mb-4 group-hover:scale-110 transition-transform duration-300">{benefit.icon}</div>

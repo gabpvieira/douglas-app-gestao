@@ -19,7 +19,9 @@ import {
   Calendar,
   Ruler,
   Users,
-  Upload
+  Upload,
+  Check,
+  Loader2
 } from "lucide-react";
 import { useState } from "react";
 import { useAlunos, useDeleteAluno, useUpdateAluno, useCreateAluno } from "@/hooks/useAlunos";
@@ -45,6 +47,7 @@ interface Student {
 const addStudentSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Email inválido"),
+  senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   dataNascimento: z.string().min(1, "Data de nascimento é obrigatória"),
   altura: z.string().min(1, "Altura é obrigatória").transform(val => parseInt(val, 10)),
   genero: z.enum(["masculino", "feminino", "outro"], {
@@ -76,6 +79,7 @@ export default function StudentsList() {
     defaultValues: {
       nome: "",
       email: "",
+      senha: "",
       dataNascimento: "",
       altura: "" as any,
       genero: undefined,
@@ -459,202 +463,295 @@ export default function StudentsList() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Adicionar Aluno */}
+      {/* Modal de Adicionar Aluno - Flat Design Profissional */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Adicionar Novo Aluno
-            </DialogTitle>
-            <DialogDescription>
-              Preencha as informações do novo aluno
-            </DialogDescription>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden bg-gray-900 border-gray-800">
+          {/* Header Compacto */}
+          <DialogHeader className="border-b border-gray-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600/10 rounded-lg">
+                <Plus className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold text-white">
+                  Novo Aluno
+                </DialogTitle>
+                <DialogDescription className="text-sm text-gray-400">
+                  Cadastre um novo aluno na plataforma
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           <Form {...addForm}>
-            <form onSubmit={addForm.handleSubmit(handleAddStudent)} className="space-y-4">
-              {/* Upload de Foto */}
-              <div className="space-y-2">
-                <Label>Foto do Perfil</Label>
-                <div className="flex items-center gap-4">
-                  {previewUrl && (
-                    <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
-                      <img 
-                        src={previewUrl} 
-                        alt="Preview" 
-                        className="w-full h-full object-cover"
-                        data-testid="img-student-preview"
+            <form onSubmit={addForm.handleSubmit(handleAddStudent)} className="space-y-6">
+              {/* Scrollable Content */}
+              <div className="overflow-y-auto max-h-[calc(90vh-200px)] pr-2 space-y-6">
+                
+                {/* Seção: Foto de Perfil */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-px flex-1 bg-gray-800" />
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Foto</span>
+                    <div className="h-px flex-1 bg-gray-800" />
+                  </div>
+                  
+                  <div className="flex items-center gap-4 p-4 bg-gray-800/30 rounded-lg border border-gray-800">
+                    {previewUrl ? (
+                      <div className="relative group">
+                        <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-800 ring-2 ring-gray-700">
+                          <img 
+                            src={previewUrl} 
+                            alt="Preview" 
+                            className="w-full h-full object-cover"
+                            data-testid="img-student-preview"
+                          />
+                        </div>
+                        <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Upload className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gray-800 border-2 border-dashed border-gray-700 flex items-center justify-center">
+                        <User className="w-6 h-6 text-gray-600" />
+                      </div>
+                    )}
+                    
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="photo-upload"
+                        data-testid="input-photo-upload"
                       />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300"
+                        onClick={() => document.getElementById('photo-upload')?.click()}
+                        data-testid="button-upload-photo"
+                      >
+                        <Upload className="w-3.5 h-3.5 mr-2" />
+                        {selectedFile ? 'Alterar Foto' : 'Selecionar Foto'}
+                      </Button>
+                      <p className="text-xs text-gray-500 mt-1">JPG, PNG ou GIF (máx. 5MB)</p>
                     </div>
-                  )}
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      id="photo-upload"
-                      data-testid="input-photo-upload"
+                  </div>
+                </div>
+
+                {/* Seção: Dados Pessoais */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-px flex-1 bg-gray-800" />
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Dados Pessoais</span>
+                    <div className="h-px flex-1 bg-gray-800" />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Nome */}
+                    <FormField
+                      control={addForm.control}
+                      name="nome"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="text-sm font-medium text-gray-300">Nome Completo</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Ex: João Silva Santos" 
+                              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                              data-testid="input-student-name"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
                     />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('photo-upload')?.click()}
-                      data-testid="button-upload-photo"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {selectedFile ? 'Alterar Foto' : 'Selecionar Foto'}
-                    </Button>
+
+                    {/* Data de Nascimento */}
+                    <FormField
+                      control={addForm.control}
+                      name="dataNascimento"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-gray-300">Data de Nascimento</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="date" 
+                              className="bg-gray-800 border-gray-700 text-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                              data-testid="input-student-birthdate"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Gênero */}
+                    <FormField
+                      control={addForm.control}
+                      name="genero"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-gray-300">Gênero</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger 
+                                className="bg-gray-800 border-gray-700 text-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                                data-testid="select-student-gender"
+                              >
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-gray-800 border-gray-700">
+                              <SelectItem value="masculino" className="text-white hover:bg-gray-700">Masculino</SelectItem>
+                              <SelectItem value="feminino" className="text-white hover:bg-gray-700">Feminino</SelectItem>
+                              <SelectItem value="outro" className="text-white hover:bg-gray-700">Outro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Altura */}
+                    <FormField
+                      control={addForm.control}
+                      name="altura"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-gray-300">Altura (cm)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="175" 
+                              min="50"
+                              max="250"
+                              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                              data-testid="input-student-height"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Status */}
+                    <FormField
+                      control={addForm.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium text-gray-300">Status</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger 
+                                className="bg-gray-800 border-gray-700 text-white focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                                data-testid="select-student-status"
+                              >
+                                <SelectValue placeholder="Selecione" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-gray-800 border-gray-700">
+                              <SelectItem value="ativo" className="text-white hover:bg-gray-700">Ativo</SelectItem>
+                              <SelectItem value="inativo" className="text-white hover:bg-gray-700">Inativo</SelectItem>
+                              <SelectItem value="pendente" className="text-white hover:bg-gray-700">Pendente</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Seção: Acesso à Plataforma */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-px flex-1 bg-gray-800" />
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Acesso</span>
+                    <div className="h-px flex-1 bg-gray-800" />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Email */}
+                    <FormField
+                      control={addForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="text-sm font-medium text-gray-300">E-mail</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="email" 
+                              placeholder="aluno@email.com" 
+                              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                              data-testid="input-student-email"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Senha */}
+                    <FormField
+                      control={addForm.control}
+                      name="senha"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="text-sm font-medium text-gray-300">Senha</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Mínimo 6 caracteres" 
+                              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                              data-testid="input-student-password"
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Nome */}
-                <FormField
-                  control={addForm.control}
-                  name="nome"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>Nome Completo *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Digite o nome completo" 
-                          data-testid="input-student-name"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Email */}
-                <FormField
-                  control={addForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem className="col-span-2">
-                      <FormLabel>E-mail *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="email" 
-                          placeholder="Digite o e-mail" 
-                          data-testid="input-student-email"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Data de Nascimento */}
-                <FormField
-                  control={addForm.control}
-                  name="dataNascimento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data de Nascimento *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="date" 
-                          data-testid="input-student-birthdate"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Altura */}
-                <FormField
-                  control={addForm.control}
-                  name="altura"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Altura (cm) *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          placeholder="Ex: 175" 
-                          min="50"
-                          max="250"
-                          data-testid="input-student-height"
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Gênero */}
-                <FormField
-                  control={addForm.control}
-                  name="genero"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gênero *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-student-gender">
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="masculino">Masculino</SelectItem>
-                          <SelectItem value="feminino">Feminino</SelectItem>
-                          <SelectItem value="outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Status */}
-                <FormField
-                  control={addForm.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-student-status">
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="ativo">Ativo</SelectItem>
-                          <SelectItem value="inativo">Inativo</SelectItem>
-                          <SelectItem value="pendente">Pendente</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <DialogFooter>
+              {/* Footer Fixo */}
+              <DialogFooter className="border-t border-gray-800 pt-4 flex-row gap-2">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => setAddModalOpen(false)}
                   disabled={createAluno.isPending}
+                  className="flex-1 bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300"
                 >
                   Cancelar
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={createAluno.isPending}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                   data-testid="button-save-student"
                 >
-                  {createAluno.isPending ? 'Salvando...' : 'Salvar Aluno'}
+                  {createAluno.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Salvar Aluno
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </form>

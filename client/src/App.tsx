@@ -29,12 +29,15 @@ import FichasTreino from "./pages/admin/FichasTreino";
 import AvaliacoesFisicas from "./pages/admin/AvaliacoesFisicas";
 import AvaliacoesPosturais from "./pages/admin/AvaliacoesPosturais";
 import NotFound from "@/pages/not-found";
+import Login from "./pages/Login";
 import AlunoDashboard from "./pages/aluno/Dashboard";
 import MeusTreinos from "./pages/aluno/MeusTreinos";
 import TreinoExecucao from "./pages/aluno/TreinoExecucao";
 import Nutricao from "./pages/aluno/Nutricao";
 import AgendaAluno from "./pages/aluno/Agenda";
 import Progresso from "./pages/aluno/Progresso";
+import VideosAluno from "./pages/aluno/Videos";
+import AlunoPerfil from "./pages/aluno/Perfil";
 
 // Landing Page Component
 function LandingPage({ onLogin }: { onLogin: () => void }) {
@@ -175,6 +178,7 @@ function Router() {
       try {
         console.log('🔍 Restaurando sessão...');
         
+        // Verificar sessão do Supabase Auth (admin e aluno)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (!mounted) return;
@@ -191,7 +195,7 @@ function Router() {
           return;
         }
         
-        console.log('✅ Sessão encontrada');
+        console.log('✅ Sessão admin encontrada');
         await processAuthenticatedUser(session, location === '/' || location === '/login');
         
       } catch (error) {
@@ -219,10 +223,13 @@ function Router() {
       }
       
       if (event === 'SIGNED_OUT') {
-        console.log('👋 Usuário deslogado');
+        console.log('👋 Usuário deslogado - redirecionando para landing page');
         setCurrentUser(null);
         setCurrentView('landing');
-        setLocation('/');
+        // Garantir que sempre vai para a raiz
+        if (window.location.pathname !== '/') {
+          setLocation('/');
+        }
       } else if (event === 'SIGNED_IN' && session?.user) {
         console.log('👋 Novo login detectado');
         await processAuthenticatedUser(session, true);
@@ -256,9 +263,17 @@ function Router() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    console.log('🚪 Iniciando logout...');
+    
+    // Limpar estado primeiro
     setCurrentUser(null);
     setCurrentView('landing');
+    
+    // Fazer logout no Supabase
+    await supabase.auth.signOut();
+    
+    // Garantir redirecionamento para landing page
+    console.log('📍 Redirecionando para landing page');
     setLocation('/');
   };
 
@@ -266,6 +281,17 @@ function Router() {
     setCurrentView('landing');
     setLocation('/');
   };
+
+  // Redirecionar automaticamente se estiver na raiz
+  useEffect(() => {
+    if (location === '/' && !loading) {
+      if (currentView === 'admin') {
+        setLocation('/admin');
+      } else if (currentView === 'student') {
+        setLocation('/aluno');
+      }
+    }
+  }, [location, currentView, loading]);
 
   const userName = currentUser?.profile?.nome || currentUser?.email || 'Usuário';
 
@@ -283,32 +309,45 @@ function Router() {
 
   return (
     <div className="dark">
-      {currentView === 'landing' && (
-        <LandingPage onLogin={handleLogin} />
-      )}
-      
-      {currentView === 'login' && (
-        <LoginForm onBack={handleBackToLanding} onLoginSuccess={handleLoginSuccess} />
-      )}
-      
-      {currentView === 'admin' && (
-        <AdminLayout userName={userName} onLogout={handleLogout} />
-      )}
-      
-      {currentView === 'student' && (
-        <Switch>
-          <Route path="/aluno" component={AlunoDashboard} />
-          <Route path="/aluno/dashboard" component={AlunoDashboard} />
-          <Route path="/aluno/treinos" component={MeusTreinos} />
-          <Route path="/aluno/treino/:fichaAlunoId" component={TreinoExecucao} />
-          <Route path="/aluno/nutricao" component={Nutricao} />
-          <Route path="/aluno/agenda" component={AgendaAluno} />
-          <Route path="/aluno/progresso" component={Progresso} />
-          <Route path="/aluno/videos" component={AlunoDashboard} />
-          <Route path="/aluno/perfil" component={AlunoDashboard} />
-          <Route component={NotFound} />
-        </Switch>
-      )}
+      <Switch>
+        {/* Rota pública de login - sempre acessível */}
+        <Route path="/login" component={Login} />
+        
+        {/* Rotas protegidas do aluno */}
+        {currentView === 'student' ? (
+          <>
+            <Route path="/aluno/dashboard" component={AlunoDashboard} />
+            <Route path="/aluno/treinos" component={MeusTreinos} />
+            <Route path="/aluno/treino/:fichaAlunoId" component={TreinoExecucao} />
+            <Route path="/aluno/nutricao" component={Nutricao} />
+            <Route path="/aluno/agenda" component={AgendaAluno} />
+            <Route path="/aluno/progresso" component={Progresso} />
+            <Route path="/aluno/videos" component={VideosAluno} />
+            <Route path="/aluno/perfil" component={AlunoPerfil} />
+            <Route path="/aluno" component={AlunoDashboard} />
+          </>
+        ) : null}
+        
+        {/* Rotas do admin */}
+        {currentView === 'admin' ? (
+          <>
+            <Route path="/admin">
+              <AdminLayout userName={userName} onLogout={handleLogout} />
+            </Route>
+            <Route path="/admin/:rest*">
+              {() => <AdminLayout userName={userName} onLogout={handleLogout} />}
+            </Route>
+          </>
+        ) : null}
+        
+        {/* Landing page - rota padrão */}
+        <Route path="/">
+          <LandingPage onLogin={handleLogin} />
+        </Route>
+        
+        {/* 404 - qualquer outra rota */}
+        <Route component={NotFound} />
+      </Switch>
     </div>
   );
 }

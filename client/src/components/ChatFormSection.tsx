@@ -141,9 +141,7 @@ export default function ChatFormSection() {
   ];
 
   return (
-    <section id="contato" className="relative py-12 md:py-20 bg-gradient-to-b from-black via-zinc-950 to-black">
-      {/* Gradient Transition from Pricing Section */}
-      <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black to-transparent pointer-events-none" />
+    <section id="contato" className="relative py-12 md:py-20" style={{ backgroundColor: '#030712' }}>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}

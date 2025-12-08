@@ -10,30 +10,29 @@ import {
   User, 
   Menu, 
   X,
-  LogOut,
-  ChevronLeft,
-  ChevronRight
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import logoImage from "@assets/logo-personal-douglas.png";
 
 interface AlunoLayoutProps {
   children: React.ReactNode;
 }
 
 const menuItems = [
-  { icon: Home, label: "Dashboard", path: "/aluno/dashboard" },
-  { icon: Dumbbell, label: "Meus Treinos", path: "/aluno/treinos" },
-  { icon: Apple, label: "Nutrição", path: "/aluno/nutricao" },
-  { icon: Calendar, label: "Agenda", path: "/aluno/agenda" },
-  { icon: TrendingUp, label: "Progresso", path: "/aluno/progresso" },
-  { icon: Video, label: "Vídeos", path: "/aluno/videos" },
-  { icon: User, label: "Perfil", path: "/aluno/perfil" },
+  { icon: Home, label: "Dashboard", href: "/aluno/dashboard" },
+  { icon: Dumbbell, label: "Meus Treinos", href: "/aluno/treinos" },
+  { icon: Apple, label: "Nutrição", href: "/aluno/nutricao" },
+  { icon: Calendar, label: "Agenda", href: "/aluno/agenda" },
+  { icon: TrendingUp, label: "Progresso", href: "/aluno/progresso" },
+  { icon: Video, label: "Vídeos", href: "/aluno/videos" },
+  { icon: User, label: "Perfil", href: "/aluno/perfil" },
 ];
 
 export default function AlunoLayout({ children }: AlunoLayoutProps) {
   const [location] = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleLogout = async () => {
@@ -41,128 +40,178 @@ export default function AlunoLayout({ children }: AlunoLayoutProps) {
     window.location.href = "/";
   };
 
-  return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Dumbbell className="h-6 w-6 text-blue-500" />
-          <h1 className="text-lg font-bold">Douglas Personal</h1>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-        >
-          {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
-      </div>
+  const handleToggleDesktop = () => {
+    setIsCollapsed(!isCollapsed);
+  };
 
+  return (
+    <>
+      {/* Mobile backdrop */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-[100] md:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+      
       {/* Sidebar */}
-      <aside
-        className={`
-          fixed top-0 left-0 z-40 h-screen bg-gray-900 border-r border-gray-800
-          transition-all duration-300 ease-in-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-          ${isCollapsed ? "lg:w-16" : "lg:w-64"}
-        `}
-      >
+      <aside className={`
+        fixed left-0 top-0 z-[101] h-screen bg-gray-950 text-white transition-all duration-300 ease-in-out border-r border-gray-800/50
+        ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0 md:z-40
+        ${isCollapsed ? 'md:w-16' : 'md:w-64'}
+      `}>
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-between px-4 py-5 border-b border-gray-800">
-            <div className={`flex items-center gap-3 ${isCollapsed ? "lg:justify-center lg:w-full" : ""}`}>
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                <Dumbbell className="h-6 w-6 text-white" />
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-5 border-b border-gray-800/50">
+            <div className={`flex items-center gap-3 transition-all duration-300 min-w-0 ${isCollapsed ? 'md:opacity-0 md:w-0 md:overflow-hidden' : 'opacity-100'}`}>
+              <div className="flex-shrink-0">
+                <img 
+                  src={logoImage} 
+                  alt="Douglas Personal" 
+                  className="h-10 w-10 object-contain rounded-lg"
+                />
               </div>
-              {!isCollapsed && (
-                <div className="flex flex-col">
-                  <span className="text-base font-bold text-gray-100">Douglas Personal</span>
-                  <span className="text-xs text-gray-400">Painel do Aluno</span>
-                </div>
-              )}
+              <div className="min-w-0 flex-1">
+                <h2 className="font-semibold text-sm text-white truncate">Douglas Personal</h2>
+                <p className="text-xs text-gray-400 truncate">Painel do Aluno</p>
+              </div>
             </div>
+            
+            {/* Desktop toggle button */}
             <Button
               variant="ghost"
-              size="icon"
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:flex text-gray-400 hover:text-gray-100"
+              size="sm"
+              onClick={handleToggleDesktop}
+              className="hidden md:flex text-gray-400 hover:text-white hover:bg-gray-800/50 h-8 w-8 p-0"
+              title={isCollapsed ? "Expandir menu" : "Recolher menu"}
             >
-              {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+              <Menu className="w-4 h-4" />
+            </Button>
+            
+            {/* Mobile close button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMobileOpen(false)}
+              className="md:hidden text-gray-400 hover:text-white hover:bg-gray-800/50 h-8 w-8 p-0"
+            >
+              <X className="w-4 h-4" />
             </Button>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto mt-16 lg:mt-0">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.path;
-              
-              return (
-                <Link key={item.path} href={item.path}>
-                  <div
-                    className={`
-                      flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer
-                      transition-all duration-200 group relative
-                      ${
-                        isActive
-                          ? "bg-blue-500/10 text-blue-500"
-                          : "text-gray-400 hover:bg-gray-800 hover:text-gray-100"
-                      }
-                      ${isCollapsed ? "lg:justify-center" : ""}
-                    `}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
-                    {!isCollapsed && <span className="font-medium">{item.label}</span>}
-                    
-                    {/* Tooltip for collapsed state */}
-                    {isCollapsed && (
-                      <div className="hidden lg:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-gray-100 text-sm rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                        {item.label}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
+          {/* Menu Items */}
+          <nav className="flex-1 px-3 py-4 overflow-y-auto">
+            <ul className="space-y-1">
+              {menuItems.map((item) => {
+                const isActive = location === item.href || 
+                  (item.href === '/aluno/dashboard' && (location === '/aluno' || location === '/aluno/'));
+                
+                return (
+                  <li key={item.href}>
+                    <Link href={item.href}>
+                      <button
+                        onClick={() => setIsMobileOpen(false)}
+                        className={`
+                          w-full text-left transition-all duration-200 rounded-lg px-3 py-2.5 group
+                          ${isCollapsed ? 'md:justify-center md:px-2' : 'flex items-center gap-3'}
+                          ${isActive 
+                            ? 'bg-blue-600 text-white' 
+                            : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                          }
+                        `}
+                        title={isCollapsed ? item.label : undefined}
+                      >
+                        <item.icon 
+                          className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}`} 
+                          strokeWidth={1.5}
+                        />
+                        <span className={`
+                          text-sm font-medium transition-all duration-300 
+                          ${isCollapsed ? 'md:hidden' : 'block'}
+                        `}>
+                          {item.label}
+                        </span>
+                      </button>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           </nav>
 
-          {/* Logout */}
-          <div className="px-3 py-4 border-t border-gray-800">
-            <Button
-              variant="ghost"
-              className={`w-full text-gray-400 hover:text-gray-100 hover:bg-gray-800 group relative ${isCollapsed ? "lg:justify-center lg:px-0" : "justify-start"}`}
+          {/* Footer */}
+          <div className="px-3 py-4 border-t border-gray-800/50">
+            <button
               onClick={handleLogout}
+              type="button"
+              className={`
+                group w-full text-left transition-all duration-200 rounded-lg px-3 py-2.5 text-gray-400 hover:text-white hover:bg-gray-800/50
+                ${isCollapsed ? 'md:justify-center md:px-2' : 'flex items-center gap-3'}
+              `}
+              title={isCollapsed ? "Sair" : undefined}
             >
-              <LogOut className="h-5 w-5 flex-shrink-0" />
-              {!isCollapsed && <span className="ml-3">Sair</span>}
-              
-              {/* Tooltip for collapsed state */}
-              {isCollapsed && (
-                <div className="hidden lg:block absolute left-full ml-2 px-2 py-1 bg-gray-800 text-gray-100 text-sm rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                  Sair
-                </div>
-              )}
-            </Button>
+              <LogOut className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-white" strokeWidth={1.5} />
+              <span className={`text-sm font-medium transition-all duration-300 ${isCollapsed ? 'md:hidden' : 'block'}`}>
+                Sair
+              </span>
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+      {/* Mobile Header - Fixed */}
+      <header className="fixed top-0 left-0 right-0 z-50 md:hidden bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 shadow-lg">
+        <div className="flex items-center justify-between px-3 py-2.5">
+          {/* Menu Button */}
+          <button
+            onClick={() => setIsMobileOpen(true)}
+            className="p-2 rounded-lg text-white hover:bg-gray-800 transition-colors"
+            aria-label="Abrir menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          {/* Logo e Título Centralizados */}
+          <div className="flex items-center gap-2 flex-1 justify-center">
+            <img 
+              src={logoImage} 
+              alt="Douglas Personal" 
+              className="h-8 w-8 object-contain rounded-lg flex-shrink-0"
+            />
+            <div className="text-center min-w-0">
+              <h2 className="font-semibold text-sm text-white leading-tight truncate">Douglas Coimbra</h2>
+              <p className="text-[10px] text-gray-400 leading-tight truncate">Painel do Aluno</p>
+            </div>
+          </div>
+
+          {/* Botão Sair */}
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            aria-label="Sair"
+            title="Sair"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Desktop collapsed toggle button */}
+      {isCollapsed && (
+        <button
+          onClick={handleToggleDesktop}
+          className="hidden md:block fixed top-3 left-3 z-50 p-2.5 rounded-lg bg-gray-900/95 backdrop-blur-sm text-white hover:bg-gray-800 transition-colors shadow-lg border border-gray-800"
+          aria-label="Expandir menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
       )}
 
       {/* Main Content */}
-      <main className={`min-h-screen pt-16 lg:pt-0 transition-all duration-300 ${isCollapsed ? "lg:ml-16" : "lg:ml-64"}`}>
-        <div className="p-6 lg:p-8">
-          {children}
-        </div>
+      <main className={`min-h-screen transition-all duration-300 pt-[52px] md:pt-0 ${isCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
+        {children}
       </main>
-    </div>
+    </>
   );
 }

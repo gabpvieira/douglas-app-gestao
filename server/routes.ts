@@ -11,6 +11,7 @@ import { registerAssinaturasRoutes } from "./routes/assinaturas";
 import { registerPagamentosRoutes } from "./routes/pagamentos";
 import { registerAgendaRoutes } from "./routes/agenda";
 import { registerFichasTreinoRoutes } from "./routes/fichasTreino";
+import alunosRouter from "./routes/alunos";
 import { 
   insertUserProfileSchema, 
   insertAlunoSchema,
@@ -23,6 +24,7 @@ import { z } from "zod";
 const addStudentSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Email inválido"),
+  senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   dataNascimento: z.string().min(1, "Data de nascimento é obrigatória"),
   altura: z.number().int().min(50).max(250),
   genero: z.enum(["masculino", "feminino", "outro"]),
@@ -41,6 +43,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerPagamentosRoutes(app);
   registerAgendaRoutes(app);
   registerFichasTreinoRoutes(app);
+  
+  // Register alunos routes (criar com Auth)
+  app.use("/api/alunos", alunosRouter);
   
   // Admin routes for student management
   app.get("/api/admin/students", async (req, res) => {
@@ -101,41 +106,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = addStudentSchema.parse(req.body);
 
       // Check if email already exists
-      const existingProfile = await storage.getUserProfileByEmail(validatedData.email);
+      const { data: existingProfile } = await supabase
+        .from("users_profile")
+        .select("id")
+        .eq("email", validatedData.email)
+        .single();
+
       if (existingProfile) {
         return res.status(400).json({ error: "Email já está em uso" });
       }
 
       // Create user profile
-      const userProfile = await storage.createUserProfile({
-        authUid: `mock_${Date.now()}`, // Mock auth UID for now
-        nome: validatedData.nome,
-        email: validatedData.email,
-        tipo: "aluno",
-        fotoUrl: validatedData.fotoUrl,
-      });
+      const { data: userProfile, error: profileError } = await supabase
+        .from("users_profile")
+        .insert({
+          auth_uid: `mock_${Date.now()}`,
+          nome: validatedData.nome,
+          email: validatedData.email,
+          tipo: "aluno",
+          foto_url: validatedData.fotoUrl,
+        })
+        .select()
+        .single();
 
-      // Create aluno record
-      const aluno = await storage.createAluno({
-        userProfileId: userProfile.id,
-        dataNascimento: validatedData.dataNascimento,
-        altura: validatedData.altura,
-        genero: validatedData.genero,
-        status: validatedData.status,
-      });
+      if (profileError) throw profileError;
+
+      // Create aluno record with password
+      const { data: aluno, error: alunoError } = await supabase
+        .from("alunos")
+        .insert({
+          user_profile_id: userProfile.id,
+          data_nascimento: validatedData.dataNascimento,
+          altura: validatedData.altura,
+          genero: validatedData.genero,
+          status: validatedData.status,
+          senha: validatedData.senha,
+        })
+        .select()
+        .single();
+
+      if (alunoError) throw alunoError;
 
       // Return combined data
       const responseData = {
         id: aluno.id,
         nome: userProfile.nome,
         email: userProfile.email,
-        dataNascimento: aluno.dataNascimento,
+        dataNascimento: aluno.data_nascimento,
         altura: aluno.altura,
         genero: aluno.genero,
         status: aluno.status,
-        fotoUrl: userProfile.fotoUrl,
-        createdAt: aluno.createdAt,
-        updatedAt: aluno.updatedAt,
+        fotoUrl: userProfile.foto_url,
+        createdAt: aluno.created_at,
+        updatedAt: aluno.updated_at,
       };
 
       res.status(201).json(responseData);

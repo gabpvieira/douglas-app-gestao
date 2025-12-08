@@ -3,28 +3,14 @@ import douglasImage from "@assets/../imagens/douglaspersonal.png";
 
 export default function AboutSection() {
   return (
-    <section id="sobre" className="relative py-20 md:py-32 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-900">
-      {/* Gradient Transition from Hero Section */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-zinc-900 to-transparent pointer-events-none" />
-      
-      {/* Gradient Transition to Benefits Section */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-zinc-900/50 pointer-events-none" />
+    <section id="sobre" className="relative py-20 md:py-32" style={{ backgroundColor: '#030712' }}>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
           {/* Imagem */}
           <div className="relative group">
-            {/* Glow Effect */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-[#3c8af6]/30 to-[#2b7ae5]/30 blur-3xl opacity-75 group-hover:opacity-100 transition-opacity duration-500" />
-            
-            {/* Floating Decorative Elements */}
-            <div className="absolute -top-6 -right-6 w-24 h-24 bg-[#3c8af6]/10 rounded-full blur-2xl animate-pulse" />
-            <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-[#2b7ae5]/10 rounded-full blur-2xl animate-pulse delay-700" />
-            
             {/* Main Image Container */}
-            <div className="relative rounded-3xl overflow-hidden border-2 border-zinc-700/50 shadow-2xl transform group-hover:scale-[1.02] transition-transform duration-500">
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 via-transparent to-transparent z-10" />
+            <div className="relative rounded-3xl overflow-hidden border-2 border-gray-700/50 shadow-2xl transform group-hover:scale-[1.02] transition-transform duration-500">
               
               {/* Image */}
               <img 
@@ -34,22 +20,18 @@ export default function AboutSection() {
               />
               
               {/* Floating Badge */}
-              <div className="absolute bottom-3 left-3 right-3 md:bottom-6 md:left-6 md:right-6 z-20 bg-zinc-900/90 backdrop-blur-xl border border-zinc-700/50 rounded-xl md:rounded-2xl p-2.5 md:p-4 transform translate-y-0 group-hover:-translate-y-2 transition-transform duration-500">
+              <div className="absolute bottom-3 left-3 right-3 md:bottom-6 md:left-6 md:right-6 z-20 bg-gray-900/90 backdrop-blur-xl border border-gray-700/50 rounded-xl md:rounded-2xl p-2.5 md:p-4 transform translate-y-0 group-hover:-translate-y-2 transition-transform duration-500">
                 <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-9 h-9 md:w-12 md:h-12 bg-gradient-to-br from-[#3c8af6] to-[#2b7ae5] rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-9 h-9 md:w-12 md:h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                     <Award className="w-4 h-4 md:w-6 md:h-6 text-white" />
                   </div>
                   <div className="min-w-0">
                     <div className="text-white font-bold text-xs md:text-sm">Profissional Certificado</div>
-                    <div className="text-zinc-400 text-[10px] md:text-xs">CREF Ativo • 8+ Anos</div>
+                    <div className="text-gray-400 text-[10px] md:text-xs">CREF Ativo • 8+ Anos</div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            {/* Corner Accent */}
-            <div className="absolute top-0 right-0 w-20 h-20 border-t-2 border-r-2 border-[#3c8af6]/50 rounded-tr-3xl" />
-            <div className="absolute bottom-0 left-0 w-20 h-20 border-b-2 border-l-2 border-[#3c8af6]/50 rounded-bl-3xl" />
           </div>
 
           {/* Conteúdo */}
@@ -66,15 +48,15 @@ export default function AboutSection() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-6">
-              <div className="bg-zinc-800/30 backdrop-blur-sm border border-zinc-700/50 rounded-xl p-6">
-                <Award className="w-10 h-10 text-[#3c8af6] mb-3" />
+              <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-6">
+                <Award className="w-10 h-10 text-blue-500 mb-3" />
                 <div className="text-4xl font-bold text-white mb-1">8+</div>
-                <div className="text-sm text-zinc-400">Anos de Experiência</div>
+                <div className="text-sm text-gray-400">Anos de Experiência</div>
               </div>
-              <div className="bg-zinc-800/30 backdrop-blur-sm border border-zinc-700/50 rounded-xl p-6">
-                <Users className="w-10 h-10 text-[#3c8af6] mb-3" />
+              <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-6">
+                <Users className="w-10 h-10 text-blue-500 mb-3" />
                 <div className="text-4xl font-bold text-white mb-1">500+</div>
-                <div className="text-sm text-zinc-400">Vidas Transformadas</div>
+                <div className="text-sm text-gray-400">Vidas Transformadas</div>
               </div>
             </div>
           </div>

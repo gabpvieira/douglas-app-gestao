@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Login Aluno</title>
+</head>
+<body>
+    <h1>Teste de Login - Debug</h1>
+    
+    <h2>Credenciais de Teste:</h2>
+    <ul>
+        <li><strong>Email:</strong> alicerodriguesgv65@gmail.com</li>
+        <li><strong>Senha:</strong> aluno123654</li>
+    </ul>
+    
+    <h2>Passos para Testar:</h2>
+    <ol>
+        <li>Acesse: <a href="http://localhost:3174/aluno/login" target="_blank">http://localhost:3174/aluno/login</a></li>
+        <li>Abra o Console do navegador (F12)</li>
+        <li>Digite o email: alicerodriguesgv65@gmail.com</li>
+        <li>Digite a senha: aluno123654</li>
+        <li>Clique em "Entrar"</li>
+        <li>Verifique os logs no console</li>
+    </ol>
+    
+    <h2>O que verificar no Console:</h2>
+    <pre>
+🔐 Tentando login com: { email: "..." }
+👤 Profile encontrado: { id, nome, email, tipo }
+❌ Erro profile: null (se sucesso)
+🎓 Aluno encontrado: { id, senha, ... }
+❌ Erro aluno: null (se sucesso)
+🔑 Comparando senhas: { senhaDigitada, senhaBanco, match: true/false }
+    </pre>
+    
+    <h2>Possíveis Problemas:</h2>
+    <ul>
+        <li>Se "Profile encontrado" for null → Email não existe ou tipo não é "aluno"</li>
+        <li>Se "Aluno encontrado" for null → Problema na relação user_profile_id</li>
+        <li>Se "match" for false → Senha incorreta (verificar espaços ou caracteres especiais)</li>
+    </ul>
+    
+    <h2>Acesso Direto:</h2>
+    <p>
+        <a href="http://localhost:3174/aluno/login" target="_blank" style="
+            display: inline-block;
+            padding: 12px 24px;
+            background: #3c8af6;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        ">
+            Ir para Login do Aluno
+        </a>
+    </p>
+    
+    <p>
+        <a href="http://localhost:3174/" target="_blank" style="
+            display: inline-block;
+            padding: 12px 24px;
+            background: #6b7280;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        ">
+            Ir para Landing Page
+        </a>
+    </p>
+</body>
+</html>

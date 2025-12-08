@@ -78,8 +78,8 @@ export default function LoginForm({ onBack, onLoginSuccess }: LoginFormProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
-      <Card className="w-full max-w-md p-6 sm:p-8 border-gray-800 bg-gray-900/50 backdrop-blur">
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12" style={{ backgroundColor: '#030712' }}>
+      <Card className="w-full max-w-md p-6 sm:p-8 border-gray-800 bg-gray-900/30">
         {onBack && (
           <Button 
             variant="ghost" 
@@ -155,18 +155,11 @@ export default function LoginForm({ onBack, onLoginSuccess }: LoginFormProps) {
           
           <Button 
             type="submit" 
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white h-11 sm:h-12 text-sm sm:text-base font-semibold" 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11 sm:h-12 text-sm sm:text-base font-semibold transition-colors" 
             data-testid="button-submit"
             disabled={isLoading}
           >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <span className="animate-spin">⏳</span>
-                Entrando...
-              </span>
-            ) : (
-              'Entrar'
-            )}
+            {isLoading ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
       </Card>

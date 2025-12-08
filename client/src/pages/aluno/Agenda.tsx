@@ -19,27 +19,40 @@ export default function AgendaAluno() {
   const [modalFalta, setModalFalta] = useState<{ open: boolean; agendamento?: any }>({ open: false });
   const [filtroStatus, setFiltroStatus] = useState<string>('todos');
 
+  // Marcar automaticamente agendamentos passados como concluídos
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const agendamentosProcessados = agendamentos.map(ag => {
+    const dataAg = new Date(ag.dataAgendamento);
+    // Se a data já passou e o status não é cancelado, marcar como concluído
+    if (dataAg < hoje && ag.status !== 'cancelado' && ag.status !== 'concluido') {
+      return { ...ag, status: 'concluido', autoCompleted: true };
+    }
+    return ag;
+  });
+
   // Filtrar agendamentos
-  const agendamentosFiltrados = agendamentos.filter(ag => {
-    if (filtroStatus === 'todos') return true;
+  const agendamentosFiltrados = agendamentosProcessados.filter(ag => {
+    // No filtro "todos", ocultar os concluídos automaticamente
+    if (filtroStatus === 'todos') {
+      return ag.status !== 'concluido' && ag.status !== 'cancelado';
+    }
     return ag.status === filtroStatus;
   });
 
   // Separar agendamentos por período
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
   const proximos = agendamentosFiltrados.filter(ag => {
     const dataAg = new Date(ag.dataAgendamento);
     return dataAg >= hoje && ag.status !== 'cancelado' && ag.status !== 'concluido';
   });
 
-  const passados = agendamentosFiltrados.filter(ag => {
+  const passados = agendamentosProcessados.filter(ag => {
     const dataAg = new Date(ag.dataAgendamento);
-    return dataAg < hoje || ag.status === 'concluido';
+    return (dataAg < hoje || ag.status === 'concluido') && ag.status !== 'cancelado';
   });
 
-  const cancelados = agendamentosFiltrados.filter(ag => ag.status === 'cancelado');
+  const cancelados = agendamentosProcessados.filter(ag => ag.status === 'cancelado');
 
   // Handlers
   const handleReagendar = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -80,174 +93,173 @@ export default function AgendaAluno() {
 
   return (
     <AlunoLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-100">Minha Agenda</h1>
-          <p className="text-gray-400 mt-1">Gerencie seus agendamentos e horários</p>
-        </div>
+      <div className="min-h-screen bg-gray-950 p-3 sm:p-6 pt-3 md:pt-6 pb-20">
+        <div className="w-full space-y-4 sm:space-y-6">
+          {/* Header */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
+            <h1 className="text-2xl font-semibold text-white mb-1">Minha Agenda</h1>
+            <p className="text-sm text-gray-400">Gerencie seus agendamentos e horários</p>
+          </div>
 
-        {/* Estatísticas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <CalendarIcon className="h-5 w-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400">Próximos</p>
-                  <p className="text-2xl font-bold text-gray-100">{proximos.length}</p>
+          {/* KPIs - Layout 2x2 Mobile */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+            <Card className="border-gray-800 bg-gray-900/30 hover:bg-gray-900/40 transition-colors">
+              <div className="p-3 sm:p-4 flex items-center gap-2 sm:gap-4">
+                <CalendarIcon className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1 truncate">Próximos</p>
+                  <p className="text-lg sm:text-2xl font-bold text-white">{proximos.length}</p>
+                  <p className="text-[9px] sm:text-xs text-gray-500 truncate">agenda</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </Card>
 
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400">Confirmados</p>
-                  <p className="text-2xl font-bold text-gray-100">
-                    {agendamentos.filter(a => a.status === 'confirmado').length}
+            <Card className="border-gray-800 bg-gray-900/30 hover:bg-gray-900/40 transition-colors">
+              <div className="p-3 sm:p-4 flex items-center gap-2 sm:gap-4">
+                <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1 truncate">Confirmados</p>
+                  <p className="text-lg sm:text-2xl font-bold text-white">
+                    {agendamentosProcessados.filter(a => a.status === 'confirmado').length}
                   </p>
+                  <p className="text-[9px] sm:text-xs text-gray-500 truncate">agenda</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </Card>
 
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gray-500/10 flex items-center justify-center">
-                  <CheckCircle2 className="h-5 w-5 text-gray-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400">Realizados</p>
-                  <p className="text-2xl font-bold text-gray-100">{passados.length}</p>
+            <Card className="border-gray-800 bg-gray-900/30 hover:bg-gray-900/40 transition-colors">
+              <div className="p-3 sm:p-4 flex items-center gap-2 sm:gap-4">
+                <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1 truncate">Realizados</p>
+                  <p className="text-lg sm:text-2xl font-bold text-white">{passados.length}</p>
+                  <p className="text-[9px] sm:text-xs text-gray-500 truncate">agenda</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </Card>
 
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center">
-                  <XCircle className="h-5 w-5 text-red-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400">Cancelados</p>
-                  <p className="text-2xl font-bold text-gray-100">{cancelados.length}</p>
+            <Card className="border-gray-800 bg-gray-900/30 hover:bg-gray-900/40 transition-colors">
+              <div className="p-3 sm:p-4 flex items-center gap-2 sm:gap-4">
+                <XCircle className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] sm:text-xs text-gray-400 mb-0.5 sm:mb-1 truncate">Cancelados</p>
+                  <p className="text-lg sm:text-2xl font-bold text-white">{cancelados.length}</p>
+                  <p className="text-[9px] sm:text-xs text-gray-500 truncate">agenda</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filtros */}
-        <Card className="bg-gray-900 border-gray-800">
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-2">
-              {['todos', 'agendado', 'confirmado', 'concluido', 'cancelado'].map((status) => (
-                <Button
-                  key={status}
-                  variant={filtroStatus === status ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFiltroStatus(status)}
-                  className={cn(
-                    'transition-all',
-                    filtroStatus === status && 'bg-blue-600 hover:bg-blue-700'
-                  )}
-                >
-                  {status === 'todos' ? 'Todos' : status.charAt(0).toUpperCase() + status.slice(1)}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Próximos Agendamentos */}
-        {proximos.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-100">Próximos Agendamentos</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {proximos.map((agendamento) => (
-                <AgendamentoCard
-                  key={agendamento.id}
-                  agendamento={agendamento}
-                  onReagendar={() => setModalReagendar({ open: true, agendamento })}
-                  onComunicarFalta={() => setModalFalta({ open: true, agendamento })}
-                />
-              ))}
-            </div>
+            </Card>
           </div>
-        )}
 
-        {/* Agendamentos Passados */}
-        {passados.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-100">Histórico</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {passados.map((agendamento) => (
-                <AgendamentoCard
-                  key={agendamento.id}
-                  agendamento={agendamento}
-                  isPast
-                />
-              ))}
-            </div>
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-2">
+            {['todos', 'agendado', 'confirmado', 'concluido', 'cancelado'].map((status) => (
+              <Button
+                key={status}
+                variant={filtroStatus === status ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFiltroStatus(status)}
+                className={
+                  filtroStatus === status
+                    ? "bg-blue-600 hover:bg-blue-700 text-white border-0"
+                    : "bg-gray-900/30 border-gray-800 text-gray-300 hover:bg-gray-900/50"
+                }
+              >
+                {status === 'todos' ? 'Todos' : status.charAt(0).toUpperCase() + status.slice(1)}
+              </Button>
+            ))}
           </div>
-        )}
 
-        {/* Cancelados */}
-        {cancelados.length > 0 && filtroStatus === 'cancelado' && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-100">Cancelados</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {cancelados.map((agendamento) => (
-                <AgendamentoCard
-                  key={agendamento.id}
-                  agendamento={agendamento}
-                  isPast
-                />
-              ))}
+          {/* Próximos Agendamentos */}
+          {proximos.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded bg-blue-600 flex items-center justify-center">
+                  <CalendarIcon className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-base font-medium text-white">Próximos Agendamentos</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {proximos.map((agendamento) => (
+                  <AgendamentoCard
+                    key={agendamento.id}
+                    agendamento={agendamento}
+                    onReagendar={() => setModalReagendar({ open: true, agendamento })}
+                    onComunicarFalta={() => setModalFalta({ open: true, agendamento })}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Empty State */}
-        {agendamentosFiltrados.length === 0 && (
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="py-12">
-              <div className="text-center">
+          {/* Agendamentos Passados */}
+          {passados.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded bg-gray-700 flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-base font-medium text-white">Histórico</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {passados.map((agendamento) => (
+                  <AgendamentoCard
+                    key={agendamento.id}
+                    agendamento={agendamento}
+                    isPast
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cancelados */}
+          {cancelados.length > 0 && filtroStatus === 'cancelado' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-6 rounded bg-red-600 flex items-center justify-center">
+                  <XCircle className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-base font-medium text-white">Cancelados</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {cancelados.map((agendamento) => (
+                  <AgendamentoCard
+                    key={agendamento.id}
+                    agendamento={agendamento}
+                    isPast
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {agendamentosFiltrados.length === 0 && (
+            <Card className="border-gray-800 bg-gray-900/30">
+              <div className="py-12 text-center">
                 <Calendar className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-300 mb-2">
+                <h3 className="text-base font-medium text-gray-300 mb-2">
                   Nenhum agendamento encontrado
                 </h3>
-                <p className="text-gray-400">
+                <p className="text-sm text-gray-400">
                   {filtroStatus === 'todos' 
                     ? 'Você ainda não possui agendamentos.'
                     : `Você não possui agendamentos com status "${filtroStatus}".`
                   }
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </Card>
+          )}
 
-        {/* Modal Reagendar */}
-        <Dialog open={modalReagendar.open} onOpenChange={(open) => setModalReagendar({ open })}>
-          <DialogContent className="bg-gray-900 border-gray-800">
-            <DialogHeader>
-              <DialogTitle className="text-gray-100">Solicitar Reagendamento</DialogTitle>
-              <DialogDescription className="text-gray-400">
-                Preencha os dados para solicitar um novo horário. O profissional irá avaliar e confirmar.
-              </DialogDescription>
-            </DialogHeader>
+          {/* Modal Reagendar */}
+          <Dialog open={modalReagendar.open} onOpenChange={(open) => setModalReagendar({ open })}>
+            <DialogContent className="bg-gray-900 border-gray-800">
+              <DialogHeader>
+                <DialogTitle className="text-white">Solicitar Reagendamento</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Preencha os dados para solicitar um novo horário. O profissional irá avaliar e confirmar.
+                </DialogDescription>
+              </DialogHeader>
             <form onSubmit={handleReagendar} className="space-y-4">
               <div>
                 <Label htmlFor="novaData" className="text-gray-300">Nova Data</Label>
@@ -301,15 +313,15 @@ export default function AgendaAluno() {
           </DialogContent>
         </Dialog>
 
-        {/* Modal Comunicar Falta */}
-        <Dialog open={modalFalta.open} onOpenChange={(open) => setModalFalta({ open })}>
-          <DialogContent className="bg-gray-900 border-gray-800">
-            <DialogHeader>
-              <DialogTitle className="text-gray-100">Comunicar Falta</DialogTitle>
-              <DialogDescription className="text-gray-400">
-                Informe o motivo da sua ausência. É importante avisar com antecedência.
-              </DialogDescription>
-            </DialogHeader>
+          {/* Modal Comunicar Falta */}
+          <Dialog open={modalFalta.open} onOpenChange={(open) => setModalFalta({ open })}>
+            <DialogContent className="bg-gray-900 border-gray-800">
+              <DialogHeader>
+                <DialogTitle className="text-white">Comunicar Falta</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Informe o motivo da sua ausência. É importante avisar com antecedência.
+                </DialogDescription>
+              </DialogHeader>
             <form onSubmit={handleComunicarFalta} className="space-y-4">
               <div>
                 <Label htmlFor="motivo" className="text-gray-300">Motivo da Falta</Label>
@@ -341,6 +353,7 @@ export default function AgendaAluno() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </AlunoLayout>
   );
@@ -401,83 +414,88 @@ function AgendamentoCard({
 
   return (
     <Card className={cn(
-      'bg-gray-900 border-gray-800 transition-all',
-      'hover:border-gray-700',
-      isPast && 'opacity-60'
+      'border-gray-800 transition-colors',
+      isPast ? 'bg-gray-900/20' : 'bg-gray-900/30 hover:bg-gray-900/40'
     )}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className={cn('p-2 rounded-lg', config.bg)}>
+      <div className="p-3 border-b border-gray-800">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2 flex-1">
+            <div className={cn('h-8 w-8 rounded flex items-center justify-center flex-shrink-0', 
+              agendamento.status === 'confirmado' ? 'bg-green-600' :
+              agendamento.status === 'cancelado' ? 'bg-red-600' :
+              agendamento.status === 'concluido' ? 'bg-gray-600' : 'bg-blue-600'
+            )}>
               {agendamento.tipo === 'presencial' ? (
-                <MapPin className={cn('w-5 h-5', config.text)} />
+                <MapPin className="w-4 h-4 text-white" />
               ) : (
-                <Video className={cn('w-5 h-5', config.text)} />
+                <Video className="w-4 h-4 text-white" />
               )}
             </div>
-            <div>
-              <p className="font-semibold text-gray-100 capitalize">{dataFormatada}</p>
-              <p className="text-sm text-gray-400">
+            <div className="flex-1 min-w-0">
+              <p className={cn("font-medium text-xs capitalize", isPast ? "text-gray-400" : "text-white")}>
+                {dataFormatada}
+              </p>
+              <p className="text-[11px] text-gray-500">
                 {agendamento.horaInicio} - {agendamento.horaFim}
               </p>
             </div>
           </div>
           <div className={cn(
-            'flex items-center gap-2 px-3 py-1 rounded-full border',
-            config.bg,
-            config.text,
-            config.border
+            'flex items-center gap-1 px-1.5 py-0.5 rounded border-0 flex-shrink-0',
+            agendamento.status === 'confirmado' ? 'bg-green-500/10 text-green-400' :
+            agendamento.status === 'cancelado' ? 'bg-red-500/10 text-red-400' :
+            agendamento.status === 'concluido' ? 'bg-gray-500/10 text-gray-400' : 'bg-blue-500/10 text-blue-400'
           )}>
-            <StatusIcon className="w-4 h-4" />
-            <span className="text-xs font-medium">{config.label}</span>
+            <StatusIcon className="w-3 h-3" />
+            <span className="text-[10px] font-medium">{config.label}</span>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Clock className="w-4 h-4" />
-            <span>Duração: {
-              (() => {
+        <div className="grid grid-cols-2 gap-2">
+          <div className="text-center p-2 bg-gray-800/50 rounded">
+            <p className="text-[9px] text-gray-400 uppercase tracking-wide mb-0.5">Duração</p>
+            <p className={cn("text-xs font-medium", isPast ? "text-gray-400" : "text-white")}>
+              {(() => {
                 const [h1, m1] = agendamento.horaInicio.split(':').map(Number);
                 const [h2, m2] = agendamento.horaFim.split(':').map(Number);
                 const duracao = (h2 * 60 + m2) - (h1 * 60 + m1);
-                return `${duracao} minutos`;
-              })()
-            }</span>
+                return `${duracao} min`;
+              })()}
+            </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            {agendamento.tipo === 'presencial' ? (
-              <>
-                <MapPin className="w-4 h-4" />
-                <span>Atendimento Presencial</span>
-              </>
-            ) : (
-              <>
-                <Video className="w-4 h-4" />
-                <span>Atendimento Online</span>
-              </>
-            )}
+          <div className="text-center p-2 bg-gray-800/50 rounded">
+            <p className="text-[9px] text-gray-400 uppercase tracking-wide mb-0.5">Tipo</p>
+            <p className={cn("text-xs font-medium", isPast ? "text-gray-400" : "text-white")}>
+              {agendamento.tipo === 'presencial' ? 'Presencial' : 'Online'}
+            </p>
           </div>
         </div>
-      </CardHeader>
+      </div>
 
       {agendamento.observacoes && (
-        <CardContent className="pt-0 pb-3">
-          <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
-            <p className="text-xs font-medium text-gray-400 mb-1">Observações:</p>
-            <p className="text-sm text-gray-300 whitespace-pre-wrap">{agendamento.observacoes}</p>
+        <div className="p-3 border-b border-gray-800">
+          <div className={cn(
+            "p-2 rounded",
+            isPast 
+              ? "bg-gray-800/30 border border-gray-700/50" 
+              : "bg-blue-500/5 border border-blue-500/20"
+          )}>
+            <p className="text-[10px] font-medium text-gray-400 mb-1">Observações:</p>
+            <p className={cn("text-xs whitespace-pre-wrap", isPast ? "text-gray-400" : "text-gray-300")}>
+              {agendamento.observacoes}
+            </p>
           </div>
-        </CardContent>
+        </div>
       )}
 
       {!isPast && agendamento.status !== 'cancelado' && (
-        <CardContent className="pt-0">
-          <div className="flex gap-2 pt-3 border-t border-gray-800">
+        <div className="p-3">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={onReagendar}
-              className="flex-1"
+              className="flex-1 h-8 text-xs bg-gray-900/30 border-gray-800 text-gray-300 hover:bg-gray-900/50"
             >
               Reagendar
             </Button>
@@ -485,12 +503,12 @@ function AgendamentoCard({
               variant="outline"
               size="sm"
               onClick={onComunicarFalta}
-              className="flex-1 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+              className="flex-1 h-8 text-xs bg-red-500/10 border-0 text-red-400 hover:bg-red-500/20"
             >
               Comunicar Falta
             </Button>
           </div>
-        </CardContent>
+        </div>
       )}
     </Card>
   );

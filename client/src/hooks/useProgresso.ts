@@ -191,3 +191,39 @@ export function useDeletarEvolucao() {
     },
   });
 }
+
+// Buscar avaliações físicas do aluno
+export function useAvaliacoesFisicas() {
+  return useQuery({
+    queryKey: ['avaliacoes-fisicas-aluno'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      const { data: profile } = await supabase
+        .from('users_profile')
+        .select('id')
+        .eq('auth_uid', session.user.id)
+        .single();
+
+      if (!profile) throw new Error('Perfil não encontrado');
+
+      const { data: aluno } = await supabase
+        .from('alunos')
+        .select('id')
+        .eq('user_profile_id', profile.id)
+        .single();
+
+      if (!aluno) throw new Error('Aluno não encontrado');
+
+      const { data, error } = await supabase
+        .from('avaliacoes_fisicas')
+        .select('*')
+        .eq('aluno_id', aluno.id)
+        .order('data_avaliacao', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+}

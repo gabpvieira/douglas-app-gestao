@@ -18,6 +18,7 @@ interface Aluno {
 interface CreateAlunoData {
   nome: string;
   email: string;
+  senha: string;
   dataNascimento: string;
   altura: number;
   genero: 'masculino' | 'feminino' | 'outro';
@@ -76,89 +77,47 @@ export function useAlunos() {
   });
 }
 
-// Hook para criar aluno
+// Hook para criar aluno (usa backend API com Auth)
 export function useCreateAluno() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (data: CreateAlunoData) => {
-      console.log('📝 Criando novo aluno...');
+      console.log('📝 Criando novo aluno via API...');
       
-      // 1. Criar user_profile
-      const { data: userProfile, error: userError } = await supabase
-        .from('users_profile')
-        .insert([{
-          auth_uid: `mock_${Date.now()}`, // Mock auth UID for now
+      // Chamar backend API para criar usuário Auth + perfil + aluno
+      const response = await fetch('/api/alunos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           nome: data.nome,
           email: data.email,
-          tipo: 'aluno',
-          foto_url: data.fotoUrl || null
-        }])
-        .select()
-        .single();
-
-      if (userError) {
-        console.error('❌ Erro ao criar user_profile:', userError);
-        throw new Error(userError.message || 'Falha ao criar perfil de usuário');
-      }
-
-      console.log('✅ User profile criado:', userProfile.id);
-
-      // 2. Criar aluno
-      const { data: newAluno, error: alunoError } = await supabase
-        .from('alunos')
-        .insert([{
-          user_profile_id: userProfile.id,
-          data_nascimento: data.dataNascimento,
+          senha: data.senha,
+          dataNascimento: data.dataNascimento,
           altura: data.altura,
           genero: data.genero,
-          status: data.status
-        }])
-        .select(`
-          id,
-          data_nascimento,
-          altura,
-          genero,
-          status,
-          created_at,
-          updated_at,
-          users_profile (
-            nome,
-            email,
-            foto_url
-          )
-        `)
-        .single();
+          status: data.status,
+          fotoUrl: data.fotoUrl
+        })
+      });
 
-      if (alunoError) {
-        console.error('❌ Erro ao criar aluno:', alunoError);
-        // Tentar deletar o user_profile criado
-        await supabase.from('users_profile').delete().eq('id', userProfile.id);
-        throw new Error(alunoError.message || 'Falha ao criar aluno');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Falha ao criar aluno');
       }
 
-      console.log('✅ Aluno criado com sucesso:', newAluno.id);
-
-      // Formatar resposta
-      return {
-        id: newAluno.id,
-        nome: newAluno.users_profile?.nome || '',
-        email: newAluno.users_profile?.email || '',
-        dataNascimento: newAluno.data_nascimento,
-        altura: newAluno.altura,
-        genero: newAluno.genero,
-        status: newAluno.status,
-        fotoUrl: newAluno.users_profile?.foto_url || null,
-        createdAt: newAluno.created_at,
-        updatedAt: newAluno.updated_at,
-      };
+      const result = await response.json();
+      console.log('✅ Aluno criado com sucesso:', result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alunos'] });
       toast({
         title: 'Sucesso!',
-        description: 'Aluno criado com sucesso'
+        description: 'Aluno criado com sucesso. Ele já pode fazer login.'
       });
     },
     onError: (error: Error) => {
