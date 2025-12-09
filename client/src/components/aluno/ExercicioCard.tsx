@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Play, Plus, Info } from "lucide-react";
+import { Play, Info, Check } from "lucide-react";
+import ExercicioVideoModal from "./ExercicioVideoModal";
 
 interface SerieRealizada {
   numero: number;
@@ -22,6 +21,7 @@ interface ExercicioExecucao {
   descanso: number;
   observacoes?: string;
   tecnica?: string;
+  videoId?: string | null;
   seriesRealizadas: SerieRealizada[];
 }
 
@@ -44,48 +44,69 @@ export default function ExercicioCard({
   onUpdateSerie,
 }: ExercicioCardProps) {
   const [mostrarDetalhes, setMostrarDetalhes] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
 
   const seriesConcluidas = exercicio.seriesRealizadas.filter((s) => s.concluida).length;
   const todosCompletos = seriesConcluidas === exercicio.seriesRealizadas.length;
 
   return (
-    <Card
-      className={`bg-gray-900 border-gray-800 transition-all ${
-        todosCompletos ? "border-green-500/30 bg-green-500/5" : ""
+    <div
+      className={`rounded-xl transition-all ${
+        todosCompletos ? "bg-emerald-900/40" : "bg-zinc-900"
       }`}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3 flex-1">
+      {/* Header do Exercício */}
+      <div className="p-4 pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div
-              className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-lg ${
                 todosCompletos
-                  ? "bg-green-500/20 text-green-500"
-                  : "bg-blue-500/20 text-blue-500"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-zinc-800 text-blue-400"
               }`}
             >
-              <span className="text-lg font-bold">{numero}</span>
+              {todosCompletos ? <Check className="h-5 w-5" /> : numero}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-gray-100">{exercicio.nome}</h3>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs">
+              <h3 className="font-semibold text-zinc-100 truncate">{exercicio.nome}</h3>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
                   {exercicio.grupoMuscular}
-                </Badge>
-                <span className="text-sm text-gray-400">
+                </span>
+                <span className="text-sm text-zinc-500">
                   {exercicio.series} × {exercicio.repeticoes}
                 </span>
                 {exercicio.descanso > 0 && (
-                  <span className="text-xs text-gray-500">• {exercicio.descanso}s descanso</span>
+                  <span className="text-xs text-zinc-600">• {exercicio.descanso}s</span>
                 )}
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="text-blue-500">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setVideoModalOpen(true)}
+            className="text-blue-400 hover:text-blue-300 hover:bg-zinc-800 flex-shrink-0"
+          >
             <Play className="h-4 w-4 mr-1" />
             Vídeo
           </Button>
         </div>
+
+        {/* Modal de Vídeo */}
+        <ExercicioVideoModal
+          open={videoModalOpen}
+          onClose={() => setVideoModalOpen(false)}
+          exercicio={{
+            id: exercicio.id,
+            nome: exercicio.nome,
+            grupoMuscular: exercicio.grupoMuscular,
+            videoId: exercicio.videoId,
+            observacoes: exercicio.observacoes,
+            tecnica: exercicio.tecnica,
+          }}
+        />
 
         {/* Detalhes (Observações e Técnica) */}
         {(exercicio.observacoes || exercicio.tecnica) && (
@@ -94,7 +115,7 @@ export default function ExercicioCard({
               variant="ghost"
               size="sm"
               onClick={() => setMostrarDetalhes(!mostrarDetalhes)}
-              className="text-gray-400 hover:text-gray-100 text-xs"
+              className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 text-xs h-7 px-2"
             >
               <Info className="h-3 w-3 mr-1" />
               {mostrarDetalhes ? "Ocultar" : "Ver"} detalhes
@@ -102,12 +123,12 @@ export default function ExercicioCard({
             {mostrarDetalhes && (
               <div className="mt-2 space-y-2 text-sm">
                 {exercicio.observacoes && (
-                  <p className="text-gray-400 bg-gray-800 p-2 rounded">
+                  <p className="text-zinc-400 bg-zinc-800 p-3 rounded-lg">
                     💡 {exercicio.observacoes}
                   </p>
                 )}
                 {exercicio.tecnica && (
-                  <p className="text-gray-400 bg-gray-800 p-2 rounded">
+                  <p className="text-zinc-400 bg-zinc-800 p-3 rounded-lg">
                     ⚡ {exercicio.tecnica}
                   </p>
                 )}
@@ -115,13 +136,13 @@ export default function ExercicioCard({
             )}
           </div>
         )}
-      </CardHeader>
+      </div>
 
-      <CardContent>
-        {/* Tabela de Séries */}
+      {/* Tabela de Séries */}
+      <div className="px-4 pb-4">
         <div className="space-y-2">
           {/* Header da Tabela */}
-          <div className="grid grid-cols-[40px_1fr_1fr_40px] gap-2 text-xs font-semibold text-gray-400 px-2">
+          <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 text-xs font-medium text-zinc-500 px-1">
             <div>SET</div>
             <div>PESO (kg)</div>
             <div>REPS</div>
@@ -132,14 +153,16 @@ export default function ExercicioCard({
           {exercicio.seriesRealizadas.map((serie) => (
             <div
               key={serie.numero}
-              className={`grid grid-cols-[40px_1fr_1fr_40px] gap-2 items-center p-2 rounded-lg transition-colors ${
+              className={`grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center p-2 rounded-lg transition-all ${
                 serie.concluida
-                  ? "bg-green-500/10 border border-green-500/20"
-                  : "bg-gray-800 border border-gray-700"
+                  ? "bg-emerald-600"
+                  : "bg-zinc-800"
               }`}
             >
               {/* Número da Série */}
-              <div className="text-center font-bold text-gray-300">{serie.numero}</div>
+              <div className={`text-center font-bold ${serie.concluida ? "text-white" : "text-zinc-400"}`}>
+                {serie.numero}
+              </div>
 
               {/* Input Peso */}
               <Input
@@ -151,8 +174,10 @@ export default function ExercicioCard({
                   onUpdateSerie(exercicio.id, serie.numero, "peso", e.target.value)
                 }
                 disabled={serie.concluida}
-                className={`text-center text-lg font-semibold bg-gray-900 border-gray-700 ${
-                  serie.concluida ? "opacity-60" : ""
+                className={`text-center text-base font-semibold h-10 border-0 ${
+                  serie.concluida 
+                    ? "bg-emerald-500/50 text-white placeholder:text-emerald-200" 
+                    : "bg-zinc-900 text-zinc-100 placeholder:text-zinc-600"
                 }`}
               />
 
@@ -171,8 +196,10 @@ export default function ExercicioCard({
                   )
                 }
                 disabled={serie.concluida}
-                className={`text-center text-lg font-semibold bg-gray-900 border-gray-700 ${
-                  serie.concluida ? "opacity-60" : ""
+                className={`text-center text-base font-semibold h-10 border-0 ${
+                  serie.concluida 
+                    ? "bg-emerald-500/50 text-white placeholder:text-emerald-200" 
+                    : "bg-zinc-900 text-zinc-100 placeholder:text-zinc-600"
                 }`}
               />
 
@@ -181,7 +208,11 @@ export default function ExercicioCard({
                 <Checkbox
                   checked={serie.concluida}
                   onCheckedChange={() => onSerieCompleta(exercicio.id, serie.numero)}
-                  className="h-6 w-6 border-2"
+                  className={`h-7 w-7 rounded-md border-2 transition-all ${
+                    serie.concluida 
+                      ? "bg-white border-white data-[state=checked]:bg-white data-[state=checked]:text-emerald-600" 
+                      : "border-zinc-600 bg-transparent"
+                  }`}
                 />
               </div>
             </div>
@@ -190,16 +221,17 @@ export default function ExercicioCard({
 
         {/* Progresso */}
         <div className="mt-3 flex items-center justify-between text-sm">
-          <span className="text-gray-400">
+          <span className={todosCompletos ? "text-emerald-300" : "text-zinc-500"}>
             {seriesConcluidas}/{exercicio.seriesRealizadas.length} séries completas
           </span>
           {todosCompletos && (
-            <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
-              ✓ Concluído
-            </Badge>
+            <span className="text-emerald-400 font-medium flex items-center gap-1">
+              <Check className="h-4 w-4" />
+              Concluído
+            </span>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

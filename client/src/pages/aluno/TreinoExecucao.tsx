@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
-import { ArrowLeft, Play, Pause, Check, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import AlunoLayout from "@/components/aluno/AlunoLayout";
 import TreinoHeader from "@/components/aluno/TreinoHeader";
@@ -28,6 +27,7 @@ interface ExercicioExecucao {
   descanso: number;
   observacoes?: string;
   tecnica?: string;
+  videoId?: string | null;
   seriesRealizadas: SerieRealizada[];
 }
 
@@ -70,8 +70,8 @@ export default function TreinoExecucao() {
   useEffect(() => {
     if (ficha?.fichas_treino?.exercicios_ficha) {
       const exerciciosIniciais = ficha.fichas_treino.exercicios_ficha
-        .sort((a, b) => a.ordem - b.ordem)
-        .map((ex) => ({
+        .sort((a: any, b: any) => a.ordem - b.ordem)
+        .map((ex: any) => ({
           id: ex.id,
           nome: ex.nome,
           grupoMuscular: ex.grupo_muscular,
@@ -80,6 +80,7 @@ export default function TreinoExecucao() {
           descanso: ex.descanso,
           observacoes: ex.observacoes,
           tecnica: ex.tecnica,
+          videoId: ex.video_id,
           seriesRealizadas: Array.from({ length: ex.series }, (_, i) => ({
             numero: i + 1,
             peso: "",
@@ -210,7 +211,7 @@ export default function TreinoExecucao() {
     return (
       <AlunoLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent"></div>
         </div>
       </AlunoLayout>
     );
@@ -220,8 +221,8 @@ export default function TreinoExecucao() {
     return (
       <AlunoLayout>
         <div className="text-center py-12">
-          <p className="text-gray-400">Ficha não encontrada</p>
-          <Button onClick={() => setLocation("/aluno/treinos")} className="mt-4">
+          <p className="text-zinc-400">Ficha não encontrada</p>
+          <Button onClick={() => setLocation("/aluno/treinos")} className="mt-4 bg-zinc-800 hover:bg-zinc-700">
             Voltar
           </Button>
         </div>
@@ -231,7 +232,7 @@ export default function TreinoExecucao() {
 
   return (
     <AlunoLayout>
-      <div className="max-w-4xl mx-auto space-y-4 pb-24">
+      <div className="max-w-4xl mx-auto space-y-4 pb-24 px-4 sm:px-0">
         {/* Header */}
         <TreinoHeader
           nomeFicha={ficha.fichas_treino?.nome || "Treino"}
@@ -244,7 +245,7 @@ export default function TreinoExecucao() {
         />
 
         {/* Lista de Exercícios */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {exercicios.map((exercicio, index) => (
             <ExercicioCard
               key={exercicio.id}
@@ -257,25 +258,25 @@ export default function TreinoExecucao() {
         </div>
 
         {/* Botão Finalizar */}
-        <Card className="fixed bottom-0 left-0 right-0 lg:left-64 bg-gray-900 border-gray-800 border-t p-4">
+        <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-zinc-900 border-t border-zinc-800 p-4">
           <div className="max-w-4xl mx-auto flex gap-3">
             <Button
-              variant="outline"
-              className="flex-1"
+              variant="ghost"
+              className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
               onClick={() => setLocation("/aluno/treinos")}
             >
               <X className="h-4 w-4 mr-2" />
               Cancelar
             </Button>
             <Button
-              className="flex-1 bg-green-500 hover:bg-green-600"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white"
               onClick={() => setModalFinalizar(true)}
             >
               <Check className="h-4 w-4 mr-2" />
               Finalizar Treino
             </Button>
           </div>
-        </Card>
+        </div>
 
         {/* Modal Finalizar */}
         <FinalizarTreinoModal

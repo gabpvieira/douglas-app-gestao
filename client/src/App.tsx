@@ -265,16 +265,17 @@ function Router() {
   const handleLogout = async () => {
     console.log('🚪 Iniciando logout...');
     
-    // Limpar estado primeiro
+    // Redirecionar PRIMEIRO para evitar flash de 404
+    setLocation('/');
+    
+    // Limpar estado
     setCurrentUser(null);
     setCurrentView('landing');
     
     // Fazer logout no Supabase
     await supabase.auth.signOut();
     
-    // Garantir redirecionamento para landing page
-    console.log('📍 Redirecionando para landing page');
-    setLocation('/');
+    console.log('📍 Logout concluído');
   };
 
   const handleBackToLanding = () => {

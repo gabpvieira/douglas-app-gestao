@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { Card } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Plus } from "lucide-react";
+import { X } from "lucide-react";
 
 interface RestTimerProps {
   tempoInicial: number;
@@ -12,11 +11,9 @@ interface RestTimerProps {
 export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTimerProps) {
   const [tempoRestante, setTempoRestante] = useState(tempoInicial);
   const [completo, setCompleto] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Criar áudio de notificação
   useEffect(() => {
-    // Criar um beep simples usando Web Audio API
     const createBeep = () => {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
@@ -36,15 +33,12 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
     };
 
     if (completo) {
-      // Tocar som
       createBeep();
       
-      // Vibrar
       if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
       }
 
-      // Auto-fechar após 3 segundos
       const timeout = setTimeout(() => {
         onComplete();
       }, 3000);
@@ -80,53 +74,48 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const adicionarTempo = () => {
-    setTempoRestante((prev) => prev + 30);
-    setCompleto(false);
-  };
-
   const porcentagem = ((tempoInicial - tempoRestante) / tempoInicial) * 100;
 
   return (
-    <Card
-      className={`fixed bottom-20 left-0 right-0 lg:left-64 z-20 border-t-4 transition-all ${
-        completo
-          ? "bg-green-500/20 border-green-500"
-          : "bg-blue-500/20 border-blue-500"
+    <div
+      className={`fixed bottom-20 left-0 right-0 lg:left-64 z-20 transition-all ${
+        completo ? "bg-emerald-600" : "bg-zinc-800"
       }`}
     >
-      <div className="max-w-4xl mx-auto p-4">
-        <div className="flex items-center justify-between">
+      <div className="max-w-4xl mx-auto px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          {/* Timer circular */}
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <svg className="h-16 w-16 -rotate-90">
+            <div className="relative flex-shrink-0">
+              <svg className="h-14 w-14 -rotate-90">
                 <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
+                  cx="28"
+                  cy="28"
+                  r="24"
                   stroke="currentColor"
-                  strokeWidth="4"
+                  strokeWidth="3"
                   fill="none"
-                  className="text-gray-700"
+                  className={completo ? "text-emerald-400/30" : "text-zinc-700"}
                 />
                 <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
+                  cx="28"
+                  cy="28"
+                  r="24"
                   stroke="currentColor"
-                  strokeWidth="4"
+                  strokeWidth="3"
                   fill="none"
-                  strokeDasharray={`${2 * Math.PI * 28}`}
-                  strokeDashoffset={`${2 * Math.PI * 28 * (1 - porcentagem / 100)}`}
-                  className={`transition-all ${
-                    completo ? "text-green-500" : "text-blue-500"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 24}`}
+                  strokeDashoffset={`${2 * Math.PI * 24 * (1 - porcentagem / 100)}`}
+                  className={`transition-all duration-300 ${
+                    completo ? "text-white" : "text-blue-500"
                   }`}
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <span
-                  className={`text-lg font-bold tabular-nums ${
-                    completo ? "text-green-500" : "text-blue-500"
+                  className={`text-sm font-bold tabular-nums ${
+                    completo ? "text-white" : "text-blue-400"
                   }`}
                 >
                   {completo ? "✓" : formatarTempo(tempoRestante)}
@@ -134,44 +123,28 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
               </div>
             </div>
 
-            <div>
-              <h3
-                className={`text-lg font-bold ${
-                  completo ? "text-green-500" : "text-blue-500"
-                }`}
-              >
+            <div className="min-w-0">
+              <h3 className={`font-semibold ${completo ? "text-white" : "text-zinc-100"}`}>
                 {completo ? "Descanso Completo!" : "Descansando..."}
               </h3>
-              <p className="text-sm text-gray-400">
+              <p className={`text-sm ${completo ? "text-emerald-100" : "text-zinc-400"}`}>
                 {completo ? "Pronto para a próxima série" : "Aguarde o timer"}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {!completo && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={adicionarTempo}
-                className="text-gray-300"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                30s
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onSkip}
-              className="text-gray-400 hover:text-gray-100"
-            >
-              <X className="h-4 w-4 mr-1" />
-              {completo ? "Fechar" : "Pular"}
-            </Button>
-          </div>
+          {/* Ação de pular */}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onSkip}
+            className={`flex-shrink-0 ${completo ? "text-white hover:bg-emerald-500" : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"}`}
+          >
+            <X className="h-4 w-4 mr-1" />
+            {completo ? "Fechar" : "Pular"}
+          </Button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

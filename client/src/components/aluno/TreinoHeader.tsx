@@ -1,6 +1,5 @@
 import { ArrowLeft, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 interface TreinoHeaderProps {
   nomeFicha: string;
@@ -32,40 +31,45 @@ export default function TreinoHeader({
     return `${minutos}:${segs.toString().padStart(2, "0")}`;
   };
 
+  const progresso = totalExercicios > 0 ? (exerciciosConcluidos / totalExercicios) * 100 : 0;
+
   return (
-    <Card className="bg-gray-900 border-gray-800 p-4 sticky top-0 z-10">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="bg-zinc-900 rounded-xl p-4 sticky top-0 z-10">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 min-w-0">
           <Button
             variant="ghost"
             size="icon"
             onClick={onVoltar}
-            className="text-gray-400 hover:text-gray-100"
+            className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-lg font-bold text-gray-100">{nomeFicha}</h1>
-            <p className="text-sm text-gray-400">
+          <div className="min-w-0">
+            <h1 className="font-semibold text-zinc-100 truncate">{nomeFicha}</h1>
+            <p className="text-sm text-zinc-500">
               {exerciciosConcluidos}/{totalExercicios} exercícios
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <div className="text-right">
-            <div className="text-2xl font-bold text-blue-500 tabular-nums">
+            <div className="text-xl font-bold text-blue-400 tabular-nums">
               {formatarTempo(tempoDecorrido)}
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-zinc-500">
               {pausado ? "Pausado" : "Em andamento"}
             </p>
           </div>
           <Button
-            variant="outline"
             size="icon"
             onClick={onPausar}
-            className={pausado ? "text-green-500" : "text-yellow-500"}
+            className={`h-10 w-10 rounded-lg ${
+              pausado 
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white" 
+                : "bg-amber-600 hover:bg-amber-500 text-white"
+            }`}
           >
             {pausado ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
           </Button>
@@ -74,15 +78,13 @@ export default function TreinoHeader({
 
       {/* Barra de Progresso */}
       <div className="mt-3">
-        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-500 transition-all duration-300"
-            style={{
-              width: `${totalExercicios > 0 ? (exerciciosConcluidos / totalExercicios) * 100 : 0}%`,
-            }}
+            className="h-full bg-blue-500 transition-all duration-300 rounded-full"
+            style={{ width: `${progresso}%` }}
           />
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
