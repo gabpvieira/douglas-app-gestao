@@ -79,7 +79,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
   return (
     <div
       className={`fixed bottom-20 left-0 right-0 lg:left-64 z-20 transition-all ${
-        completo ? "bg-emerald-600" : "bg-zinc-800"
+        completo ? "bg-emerald-600" : "bg-card border-t border-border"
       }`}
     >
       <div className="max-w-4xl mx-auto px-4 py-3">
@@ -95,7 +95,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
                   stroke="currentColor"
                   strokeWidth="3"
                   fill="none"
-                  className={completo ? "text-emerald-400/30" : "text-zinc-700"}
+                  className={completo ? "text-emerald-400/30" : "text-secondary"}
                 />
                 <circle
                   cx="28"
@@ -108,14 +108,14 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
                   strokeDasharray={`${2 * Math.PI * 24}`}
                   strokeDashoffset={`${2 * Math.PI * 24 * (1 - porcentagem / 100)}`}
                   className={`transition-all duration-300 ${
-                    completo ? "text-white" : "text-blue-500"
+                    completo ? "text-white" : "text-primary"
                   }`}
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <span
                   className={`text-sm font-bold tabular-nums ${
-                    completo ? "text-white" : "text-blue-400"
+                    completo ? "text-white" : "text-primary"
                   }`}
                 >
                   {completo ? "✓" : formatarTempo(tempoRestante)}
@@ -124,10 +124,10 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
             </div>
 
             <div className="min-w-0">
-              <h3 className={`font-semibold ${completo ? "text-white" : "text-zinc-100"}`}>
+              <h3 className={`font-semibold ${completo ? "text-white" : "text-foreground"}`}>
                 {completo ? "Descanso Completo!" : "Descansando..."}
               </h3>
-              <p className={`text-sm ${completo ? "text-emerald-100" : "text-zinc-400"}`}>
+              <p className={`text-sm ${completo ? "text-emerald-100" : "text-muted-foreground"}`}>
                 {completo ? "Pronto para a próxima série" : "Aguarde o timer"}
               </p>
             </div>
@@ -138,7 +138,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
             size="sm"
             variant="ghost"
             onClick={onSkip}
-            className={`flex-shrink-0 ${completo ? "text-white hover:bg-emerald-500" : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"}`}
+            className={`flex-shrink-0 ${completo ? "text-white hover:bg-emerald-500" : ""}`}
           >
             <X className="h-4 w-4 mr-1" />
             {completo ? "Fechar" : "Pular"}

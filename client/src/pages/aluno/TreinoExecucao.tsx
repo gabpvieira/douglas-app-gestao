@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Check, X } from "lucide-react";
+import { Check, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AlunoLayout from "@/components/aluno/AlunoLayout";
@@ -10,39 +10,38 @@ import RestTimer from "@/components/aluno/RestTimer";
 import FinalizarTreinoModal from "@/components/aluno/FinalizarTreinoModal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-
-interface SerieRealizada {
-  numero: number;
-  peso: string;
-  repeticoes: number;
-  concluida: boolean;
-}
-
-interface ExercicioExecucao {
-  id: string;
-  nome: string;
-  grupoMuscular: string;
-  series: number;
-  repeticoes: string;
-  descanso: number;
-  observacoes?: string;
-  tecnica?: string;
-  videoId?: string | null;
-  seriesRealizadas: SerieRealizada[];
-}
+import { useAlunoProfile } from "@/hooks/useAlunoData";
+import { useTreinoEmAndamento, ExercicioEmAndamento } from "@/hooks/useTreinoEmAndamento";
 
 export default function TreinoExecucao() {
   const [, params] = useRoute("/aluno/treino/:fichaAlunoId");
   const [, setLocation] = useLocation();
   const fichaAlunoId = params?.fichaAlunoId;
 
-  const [exercicios, setExercicios] = useState<ExercicioExecucao[]>([]);
-  const [tempoInicio] = useState(new Date());
-  const [tempoDecorrido, setTempoDecorrido] = useState(0);
-  const [treinoPausado, setTreinoPausado] = useState(false);
+  const [exercicios, setExercicios] = useState<ExercicioEmAndamento[]>([]);
   const [restTimer, setRestTimer] = useState<{ ativo: boolean; tempo: number; exercicioId: string } | null>(null);
   const [modalFinalizar, setModalFinalizar] = useState(false);
+  const [treinoIniciado, setTreinoIniciado] = useState(false);
   const { toast } = useToast();
+  
+  // Buscar perfil do aluno
+  const { data: profile } = useAlunoProfile();
+  const alunoId = Array.isArray(profile?.alunos)
+    ? profile?.alunos[0]?.id
+    : profile?.alunos?.id;
+
+  // Hook de treino em andamento
+  const {
+    treinoEmAndamento,
+    carregado: treinoCarregado,
+    iniciarTreino,
+    atualizarExercicios,
+    togglePausado,
+    finalizarTreino,
+    calcularTempoDecorrido,
+    salvarImediato,
+    salvando,
+  } = useTreinoEmAndamento(alunoId);
 
   // Buscar ficha e exercícios
   const { data: ficha, isLoading } = useQuery({
@@ -66,10 +65,22 @@ export default function TreinoExecucao() {
     enabled: !!fichaAlunoId,
   });
 
-  // Inicializar exercícios quando ficha carregar
+  // Inicializar ou retomar treino
   useEffect(() => {
-    if (ficha?.fichas_treino?.exercicios_ficha) {
-      const exerciciosIniciais = ficha.fichas_treino.exercicios_ficha
+    if (!ficha?.fichas_treino?.exercicios_ficha || !alunoId || !treinoCarregado || treinoIniciado) return;
+
+    // Verificar se há treino em andamento para esta ficha
+    if (treinoEmAndamento && treinoEmAndamento.fichaAlunoId === fichaAlunoId) {
+      // Retomar treino existente
+      setExercicios(treinoEmAndamento.exercicios);
+      setTreinoIniciado(true);
+      toast({
+        title: "Treino retomado",
+        description: "Continuando de onde você parou.",
+      });
+    } else if (!treinoEmAndamento) {
+      // Iniciar novo treino
+      const exerciciosIniciais: ExercicioEmAndamento[] = ficha.fichas_treino.exercicios_ficha
         .sort((a: any, b: any) => a.ordem - b.ordem)
         .map((ex: any) => ({
           id: ex.id,
@@ -88,22 +99,46 @@ export default function TreinoExecucao() {
             concluida: false,
           })),
         }));
+      
       setExercicios(exerciciosIniciais);
+      iniciarTreino(
+        fichaAlunoId!,
+        ficha.fichas_treino.nome,
+        exerciciosIniciais,
+        alunoId
+      );
+      setTreinoIniciado(true);
     }
-  }, [ficha]);
+  }, [ficha, alunoId, treinoCarregado, treinoEmAndamento, fichaAlunoId, treinoIniciado]);
 
-  // Cronômetro do treino
+  // Atualizar exercícios no hook quando mudar
+  const exerciciosRef = useRef(exercicios);
   useEffect(() => {
-    if (treinoPausado) return;
+    if (exercicios.length > 0 && treinoIniciado && exercicios !== exerciciosRef.current) {
+      exerciciosRef.current = exercicios;
+      atualizarExercicios(exercicios);
+    }
+  }, [exercicios, treinoIniciado, atualizarExercicios]);
+
+  // Tempo decorrido atualizado
+  const [tempoDecorrido, setTempoDecorrido] = useState(0);
+  useEffect(() => {
+    if (!treinoEmAndamento || treinoEmAndamento.pausado) return;
 
     const interval = setInterval(() => {
-      const agora = new Date();
-      const diff = Math.floor((agora.getTime() - tempoInicio.getTime()) / 1000);
-      setTempoDecorrido(diff);
+      setTempoDecorrido(calcularTempoDecorrido());
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [tempoInicio, treinoPausado]);
+  }, [treinoEmAndamento, calcularTempoDecorrido]);
+
+  // Atualizar tempo quando pausado
+  useEffect(() => {
+    if (treinoEmAndamento?.pausado) {
+      setTempoDecorrido(calcularTempoDecorrido());
+    }
+  }, [treinoEmAndamento?.pausado, calcularTempoDecorrido]);
+
 
   const handleSerieCompleta = (exercicioId: string, numeroSerie: number) => {
     setExercicios((prev) =>
@@ -149,6 +184,20 @@ export default function TreinoExecucao() {
     );
   };
 
+  const handlePausar = () => {
+    togglePausado(!treinoEmAndamento?.pausado);
+  };
+
+  const handleVoltar = () => {
+    // Salvar antes de sair
+    salvarImediato();
+    toast({
+      title: "Treino salvo",
+      description: "Você pode retomar a qualquer momento.",
+    });
+    setLocation("/aluno/treinos");
+  };
+
   const handleFinalizarTreino = async () => {
     try {
       // Salvar cada exercício realizado
@@ -187,6 +236,9 @@ export default function TreinoExecucao() {
         }
       }
 
+      // Limpar sessão em andamento
+      await finalizarTreino();
+
       toast({
         title: "Treino Finalizado! 🎉",
         description: "Seu treino foi salvo com sucesso.",
@@ -207,11 +259,11 @@ export default function TreinoExecucao() {
     ex.seriesRealizadas.every((s) => s.concluida)
   ).length;
 
-  if (isLoading) {
+  if (isLoading || !treinoCarregado) {
     return (
       <AlunoLayout>
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent"></div>
         </div>
       </AlunoLayout>
     );
@@ -221,10 +273,48 @@ export default function TreinoExecucao() {
     return (
       <AlunoLayout>
         <div className="text-center py-12">
-          <p className="text-zinc-400">Ficha não encontrada</p>
-          <Button onClick={() => setLocation("/aluno/treinos")} className="mt-4 bg-zinc-800 hover:bg-zinc-700">
+          <p className="text-muted-foreground">Ficha não encontrada</p>
+          <Button onClick={() => setLocation("/aluno/treinos")} variant="secondary" className="mt-4">
             Voltar
           </Button>
+        </div>
+      </AlunoLayout>
+    );
+  }
+
+  // Se há treino em andamento para outra ficha, mostrar aviso
+  if (treinoEmAndamento && treinoEmAndamento.fichaAlunoId !== fichaAlunoId) {
+    return (
+      <AlunoLayout>
+        <div className="max-w-md mx-auto text-center py-12 px-4">
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-yellow-400 mb-2">
+              Treino em andamento
+            </h2>
+            <p className="text-gray-300 mb-4">
+              Você já tem um treino em andamento: <strong>{treinoEmAndamento.nomeFicha}</strong>
+            </p>
+            <p className="text-sm text-gray-400 mb-6">
+              Finalize ou descarte o treino atual antes de iniciar outro.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                className="flex-1"
+                onClick={() => setLocation(`/aluno/treino/${treinoEmAndamento.fichaAlunoId}`)}
+              >
+                Retomar treino
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await finalizarTreino();
+                  window.location.reload();
+                }}
+              >
+                Descartar
+              </Button>
+            </div>
+          </div>
         </div>
       </AlunoLayout>
     );
@@ -239,10 +329,18 @@ export default function TreinoExecucao() {
           tempoDecorrido={tempoDecorrido}
           exerciciosConcluidos={exerciciosConcluidos}
           totalExercicios={exercicios.length}
-          pausado={treinoPausado}
-          onPausar={() => setTreinoPausado(!treinoPausado)}
-          onVoltar={() => setLocation("/aluno/treinos")}
+          pausado={treinoEmAndamento?.pausado || false}
+          onPausar={handlePausar}
+          onVoltar={handleVoltar}
         />
+
+        {/* Indicador de salvamento */}
+        {salvando && (
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+            <Save className="h-4 w-4 animate-pulse" />
+            Salvando progresso...
+          </div>
+        )}
 
         {/* Lista de Exercícios */}
         <div className="space-y-3">
@@ -258,15 +356,15 @@ export default function TreinoExecucao() {
         </div>
 
         {/* Botão Finalizar */}
-        <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-zinc-900 border-t border-zinc-800 p-4">
+        <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-card border-t border-border p-4">
           <div className="max-w-4xl mx-auto flex gap-3">
             <Button
-              variant="ghost"
-              className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
-              onClick={() => setLocation("/aluno/treinos")}
+              variant="secondary"
+              className="flex-1"
+              onClick={handleVoltar}
             >
               <X className="h-4 w-4 mr-2" />
-              Cancelar
+              Sair e Salvar
             </Button>
             <Button
               className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white"

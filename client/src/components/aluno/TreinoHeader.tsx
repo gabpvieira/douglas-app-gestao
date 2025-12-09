@@ -34,20 +34,20 @@ export default function TreinoHeader({
   const progresso = totalExercicios > 0 ? (exerciciosConcluidos / totalExercicios) * 100 : 0;
 
   return (
-    <div className="bg-zinc-900 rounded-xl p-4 sticky top-0 z-10">
+    <div className="bg-card rounded-xl p-4 sticky top-0 z-10 border border-border">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Button
             variant="ghost"
             size="icon"
             onClick={onVoltar}
-            className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex-shrink-0"
+            className="flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="min-w-0">
-            <h1 className="font-semibold text-zinc-100 truncate">{nomeFicha}</h1>
-            <p className="text-sm text-zinc-500">
+            <h1 className="font-semibold text-foreground truncate">{nomeFicha}</h1>
+            <p className="text-sm text-muted-foreground">
               {exerciciosConcluidos}/{totalExercicios} exercícios
             </p>
           </div>
@@ -55,10 +55,10 @@ export default function TreinoHeader({
 
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="text-right">
-            <div className="text-xl font-bold text-blue-400 tabular-nums">
+            <div className="text-xl font-bold text-primary tabular-nums">
               {formatarTempo(tempoDecorrido)}
             </div>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted-foreground">
               {pausado ? "Pausado" : "Em andamento"}
             </p>
           </div>
@@ -78,9 +78,9 @@ export default function TreinoHeader({
 
       {/* Barra de Progresso */}
       <div className="mt-3">
-        <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-500 transition-all duration-300 rounded-full"
+            className="h-full bg-primary transition-all duration-300 rounded-full"
             style={{ width: `${progresso}%` }}
           />
         </div>

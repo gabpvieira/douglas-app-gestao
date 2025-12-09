@@ -1,6 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { X, Play, Info, AlertCircle } from "lucide-react";
+import { Play, Info, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
@@ -64,26 +63,16 @@ export default function ExercicioVideoModal({
       <DialogContent className="bg-zinc-900 border-zinc-800 max-w-2xl w-[95vw] p-0 gap-0 max-h-[90vh] overflow-hidden">
         {/* Header */}
         <DialogHeader className="p-4 pb-3 border-b border-zinc-800">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-                <Play className="h-5 w-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <DialogTitle className="text-lg font-semibold text-zinc-100 truncate">
-                  {exercicio.nome}
-                </DialogTitle>
-                <span className="text-sm text-zinc-500">{exercicio.grupoMuscular}</span>
-              </div>
+          <div className="flex items-center gap-3 min-w-0 pr-8">
+            <div className="h-10 w-10 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
+              <Play className="h-5 w-5 text-white" />
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 flex-shrink-0"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="min-w-0">
+              <DialogTitle className="text-lg font-semibold text-zinc-100 truncate">
+                {exercicio.nome}
+              </DialogTitle>
+              <span className="text-sm text-zinc-500">{exercicio.grupoMuscular}</span>
+            </div>
           </div>
         </DialogHeader>
 

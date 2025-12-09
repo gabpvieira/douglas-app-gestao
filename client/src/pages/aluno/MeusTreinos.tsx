@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAlunoProfile, useAlunoFichas, useHistoricoTreinos } from "@/hooks/useAlunoData";
+import { useTreinoEmAndamento } from "@/hooks/useTreinoEmAndamento";
 import {
   Dumbbell,
   Loader2,
@@ -19,7 +20,22 @@ import {
   History,
   CheckCircle2,
   ArrowRight,
+  RotateCcw,
+  Pause,
+  Timer,
 } from "lucide-react";
+
+// Função para formatar tempo em HH:MM:SS
+function formatarTempo(segundos: number): string {
+  const horas = Math.floor(segundos / 3600);
+  const minutos = Math.floor((segundos % 3600) / 60);
+  const segs = segundos % 60;
+  
+  if (horas > 0) {
+    return `${horas}h ${minutos.toString().padStart(2, "0")}m`;
+  }
+  return `${minutos}:${segs.toString().padStart(2, "0")}`;
+}
 
 export default function MeusTreinos() {
   const [, setLocation] = useLocation();
@@ -32,6 +48,14 @@ export default function MeusTreinos() {
     : profile?.alunos?.id;
 
   const { data: fichas, isLoading: loadingFichas } = useAlunoFichas(alunoId);
+  
+  // Hook para treino em andamento
+  const { 
+    treinoEmAndamento, 
+    carregado: treinoCarregado,
+    calcularTempoDecorrido,
+    finalizarTreino 
+  } = useTreinoEmAndamento(alunoId);
   
   // Calcular fichas por status ANTES de usar em hooks
   const fichasAtivas = fichas?.filter((f) => f.status === "ativo") || [];
@@ -101,6 +125,97 @@ export default function MeusTreinos() {
               Suas fichas de treino atribuídas
             </p>
           </div>
+
+          {/* Card de Treino em Andamento */}
+          {treinoCarregado && treinoEmAndamento && (
+            <Card className="border-orange-500/50 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 overflow-hidden">
+              <div className="p-5">
+                <div className="flex items-start gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-orange-500 flex items-center justify-center flex-shrink-0 animate-pulse">
+                    {treinoEmAndamento.pausado ? (
+                      <Pause className="h-6 w-6 text-white" />
+                    ) : (
+                      <Timer className="h-6 w-6 text-white" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-white text-base">
+                        Treino em Andamento
+                      </h3>
+                      <Badge 
+                        variant="outline" 
+                        className={treinoEmAndamento.pausado 
+                          ? "bg-yellow-500/10 text-yellow-400 border-0" 
+                          : "bg-green-500/10 text-green-400 border-0"
+                        }
+                      >
+                        {treinoEmAndamento.pausado ? "Pausado" : "Ativo"}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-300 mb-2">
+                      {treinoEmAndamento.nomeFicha}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {formatarTempo(calcularTempoDecorrido())}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Dumbbell className="h-3.5 w-3.5" />
+                        {treinoEmAndamento.exercicios.filter(ex => 
+                          ex.seriesRealizadas.every(s => s.concluida)
+                        ).length}/{treinoEmAndamento.exercicios.length} exercícios
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {treinoEmAndamento.exercicios.reduce((acc, ex) => 
+                          acc + ex.seriesRealizadas.filter(s => s.concluida).length, 0
+                        )} séries concluídas
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    className="flex-1 bg-orange-600 hover:bg-orange-500 text-white font-medium h-11"
+                    onClick={() => setLocation(`/aluno/treino/${treinoEmAndamento.fichaAlunoId}`)}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Retomar Treino
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-gray-700 text-gray-300 hover:bg-gray-800 h-11"
+                    onClick={() => {
+                      if (confirm("Tem certeza que deseja descartar este treino? Todo o progresso será perdido.")) {
+                        finalizarTreino();
+                      }
+                    }}
+                  >
+                    Descartar
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Barra de progresso */}
+              <div className="h-1 bg-gray-800">
+                <div 
+                  className="h-full bg-gradient-to-r from-orange-500 to-yellow-500 transition-all duration-300"
+                  style={{ 
+                    width: `${Math.round(
+                      (treinoEmAndamento.exercicios.reduce((acc, ex) => 
+                        acc + ex.seriesRealizadas.filter(s => s.concluida).length, 0
+                      ) / treinoEmAndamento.exercicios.reduce((acc, ex) => 
+                        acc + ex.seriesRealizadas.length, 0
+                      )) * 100
+                    )}%` 
+                  }}
+                />
+              </div>
+            </Card>
+          )}
 
           {/* Stats Cards - Layout 2x2 Mobile */}
           {!loadingFichas && fichas && fichas.length > 0 && (

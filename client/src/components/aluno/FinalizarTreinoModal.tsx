@@ -83,9 +83,9 @@ export default function FinalizarTreinoModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-zinc-900 border-zinc-800 max-w-md">
+      <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-zinc-100 flex items-center gap-2">
+          <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-amber-500 flex items-center justify-center">
               <Trophy className="h-4 w-4 text-white" />
             </div>
@@ -96,24 +96,24 @@ export default function FinalizarTreinoModal({
         <div className="space-y-4 py-2">
           {/* Nome da Ficha */}
           <div className="text-center py-2">
-            <h3 className="text-lg font-semibold text-zinc-100">{nomeFicha}</h3>
-            <p className="text-sm text-zinc-500 mt-0.5">Resumo do treino</p>
+            <h3 className="text-lg font-semibold text-foreground">{nomeFicha}</h3>
+            <p className="text-sm text-muted-foreground mt-0.5">Resumo do treino</p>
           </div>
 
           {/* Estatísticas */}
           <div className="grid grid-cols-2 gap-2">
             {/* Tempo */}
-            <div className="bg-zinc-800 p-3 rounded-lg">
-              <div className="flex items-center gap-2 text-zinc-500 mb-1">
+            <div className="bg-secondary p-3 rounded-lg">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
                 <Clock className="h-3.5 w-3.5" />
                 <span className="text-xs">Duração</span>
               </div>
-              <p className="text-xl font-bold text-blue-400">{formatarTempo(tempoDecorrido)}</p>
+              <p className="text-xl font-bold text-primary">{formatarTempo(tempoDecorrido)}</p>
             </div>
 
             {/* Exercícios */}
-            <div className="bg-zinc-800 p-3 rounded-lg">
-              <div className="flex items-center gap-2 text-zinc-500 mb-1">
+            <div className="bg-secondary p-3 rounded-lg">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
                 <Dumbbell className="h-3.5 w-3.5" />
                 <span className="text-xs">Exercícios</span>
               </div>
@@ -123,8 +123,8 @@ export default function FinalizarTreinoModal({
             </div>
 
             {/* Séries */}
-            <div className="bg-zinc-800 p-3 rounded-lg">
-              <div className="flex items-center gap-2 text-zinc-500 mb-1">
+            <div className="bg-secondary p-3 rounded-lg">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
                 <TrendingUp className="h-3.5 w-3.5" />
                 <span className="text-xs">Séries</span>
               </div>
@@ -132,8 +132,8 @@ export default function FinalizarTreinoModal({
             </div>
 
             {/* Volume */}
-            <div className="bg-zinc-800 p-3 rounded-lg">
-              <div className="flex items-center gap-2 text-zinc-500 mb-1">
+            <div className="bg-secondary p-3 rounded-lg">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
                 <Trophy className="h-3.5 w-3.5" />
                 <span className="text-xs">Volume</span>
               </div>
@@ -155,10 +155,10 @@ export default function FinalizarTreinoModal({
 
         <DialogFooter className="gap-2 sm:gap-2">
           <Button
-            variant="ghost"
+            variant="secondary"
             onClick={onClose}
             disabled={salvando}
-            className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+            className="flex-1"
           >
             Continuar Treino
           </Button>

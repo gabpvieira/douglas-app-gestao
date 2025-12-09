@@ -51,8 +51,8 @@ export default function ExercicioCard({
 
   return (
     <div
-      className={`rounded-xl transition-all ${
-        todosCompletos ? "bg-emerald-900/40" : "bg-zinc-900"
+      className={`rounded-xl transition-all border ${
+        todosCompletos ? "bg-emerald-900/30 border-emerald-800/50" : "bg-card border-border"
       }`}
     >
       {/* Header do Exercício */}
@@ -63,22 +63,22 @@ export default function ExercicioCard({
               className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-lg ${
                 todosCompletos
                   ? "bg-emerald-600 text-white"
-                  : "bg-zinc-800 text-blue-400"
+                  : "bg-secondary text-primary"
               }`}
             >
               {todosCompletos ? <Check className="h-5 w-5" /> : numero}
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-zinc-100 truncate">{exercicio.nome}</h3>
+              <h3 className="font-semibold text-foreground truncate">{exercicio.nome}</h3>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                <span className="text-xs px-2 py-0.5 rounded bg-secondary text-muted-foreground">
                   {exercicio.grupoMuscular}
                 </span>
-                <span className="text-sm text-zinc-500">
+                <span className="text-sm text-muted-foreground">
                   {exercicio.series} × {exercicio.repeticoes}
                 </span>
                 {exercicio.descanso > 0 && (
-                  <span className="text-xs text-zinc-600">• {exercicio.descanso}s</span>
+                  <span className="text-xs text-muted-foreground/60">• {exercicio.descanso}s</span>
                 )}
               </div>
             </div>
@@ -87,7 +87,7 @@ export default function ExercicioCard({
             variant="ghost" 
             size="sm" 
             onClick={() => setVideoModalOpen(true)}
-            className="text-blue-400 hover:text-blue-300 hover:bg-zinc-800 flex-shrink-0"
+            className="text-primary hover:text-primary/80 flex-shrink-0"
           >
             <Play className="h-4 w-4 mr-1" />
             Vídeo
@@ -115,7 +115,7 @@ export default function ExercicioCard({
               variant="ghost"
               size="sm"
               onClick={() => setMostrarDetalhes(!mostrarDetalhes)}
-              className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 text-xs h-7 px-2"
+              className="text-muted-foreground hover:text-foreground text-xs h-7 px-2"
             >
               <Info className="h-3 w-3 mr-1" />
               {mostrarDetalhes ? "Ocultar" : "Ver"} detalhes
@@ -123,12 +123,12 @@ export default function ExercicioCard({
             {mostrarDetalhes && (
               <div className="mt-2 space-y-2 text-sm">
                 {exercicio.observacoes && (
-                  <p className="text-zinc-400 bg-zinc-800 p-3 rounded-lg">
+                  <p className="text-muted-foreground bg-secondary p-3 rounded-lg">
                     💡 {exercicio.observacoes}
                   </p>
                 )}
                 {exercicio.tecnica && (
-                  <p className="text-zinc-400 bg-zinc-800 p-3 rounded-lg">
+                  <p className="text-muted-foreground bg-secondary p-3 rounded-lg">
                     ⚡ {exercicio.tecnica}
                   </p>
                 )}
@@ -142,7 +142,7 @@ export default function ExercicioCard({
       <div className="px-4 pb-4">
         <div className="space-y-2">
           {/* Header da Tabela */}
-          <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 text-xs font-medium text-zinc-500 px-1">
+          <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 text-xs font-medium text-muted-foreground px-1">
             <div>SET</div>
             <div>PESO (kg)</div>
             <div>REPS</div>
@@ -156,11 +156,11 @@ export default function ExercicioCard({
               className={`grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center p-2 rounded-lg transition-all ${
                 serie.concluida
                   ? "bg-emerald-600"
-                  : "bg-zinc-800"
+                  : "bg-secondary"
               }`}
             >
               {/* Número da Série */}
-              <div className={`text-center font-bold ${serie.concluida ? "text-white" : "text-zinc-400"}`}>
+              <div className={`text-center font-bold ${serie.concluida ? "text-white" : "text-muted-foreground"}`}>
                 {serie.numero}
               </div>
 
@@ -177,7 +177,7 @@ export default function ExercicioCard({
                 className={`text-center text-base font-semibold h-10 border-0 ${
                   serie.concluida 
                     ? "bg-emerald-500/50 text-white placeholder:text-emerald-200" 
-                    : "bg-zinc-900 text-zinc-100 placeholder:text-zinc-600"
+                    : "bg-background text-foreground placeholder:text-muted-foreground"
                 }`}
               />
 
@@ -199,7 +199,7 @@ export default function ExercicioCard({
                 className={`text-center text-base font-semibold h-10 border-0 ${
                   serie.concluida 
                     ? "bg-emerald-500/50 text-white placeholder:text-emerald-200" 
-                    : "bg-zinc-900 text-zinc-100 placeholder:text-zinc-600"
+                    : "bg-background text-foreground placeholder:text-muted-foreground"
                 }`}
               />
 
@@ -211,7 +211,7 @@ export default function ExercicioCard({
                   className={`h-7 w-7 rounded-md border-2 transition-all ${
                     serie.concluida 
                       ? "bg-white border-white data-[state=checked]:bg-white data-[state=checked]:text-emerald-600" 
-                      : "border-zinc-600 bg-transparent"
+                      : "border-border bg-transparent"
                   }`}
                 />
               </div>
@@ -221,7 +221,7 @@ export default function ExercicioCard({
 
         {/* Progresso */}
         <div className="mt-3 flex items-center justify-between text-sm">
-          <span className={todosCompletos ? "text-emerald-300" : "text-zinc-500"}>
+          <span className={todosCompletos ? "text-emerald-300" : "text-muted-foreground"}>
             {seriesConcluidas}/{exercicio.seriesRealizadas.length} séries completas
           </span>
           {todosCompletos && (
