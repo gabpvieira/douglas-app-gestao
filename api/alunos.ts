@@ -44,7 +44,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Verificar variáveis de ambiente
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Variáveis de ambiente não configuradas');
+      return res.status(500).json({ 
+        error: 'Configuração do servidor incompleta' 
+      });
+    }
+
     const data: CreateAlunoRequest = req.body;
+
+    // Validar dados recebidos
+    if (!data.nome || !data.email || !data.senha) {
+      return res.status(400).json({ 
+        error: 'Dados obrigatórios faltando: nome, email e senha são necessários' 
+      });
+    }
 
     console.log('📝 Criando aluno com Supabase Auth:', data.email);
 
