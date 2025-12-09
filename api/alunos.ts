@@ -92,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('✅ User profile criado:', userProfile.id);
 
     // 3. Criar aluno
-    const { data: newAluno, error: alunoError } = await supabase
+    const { data: alunoData, error: alunoError } = await supabase
       .from('alunos')
       .insert({
         user_profile_id: userProfile.id,
@@ -117,29 +117,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `)
       .single();
 
-    if (alunoError) {
+    if (alunoError || !alunoData) {
       console.error('❌ Erro ao criar aluno:', alunoError);
       await supabase.from('users_profile').delete().eq('id', userProfile.id);
       await supabase.auth.admin.deleteUser(authUser.user.id);
       return res.status(400).json({ 
-        error: alunoError.message || 'Falha ao criar aluno' 
+        error: alunoError?.message || 'Falha ao criar aluno' 
       });
     }
 
-    console.log('✅ Aluno criado com sucesso:', newAluno.id);
+    console.log('✅ Aluno criado com sucesso:', alunoData.id);
+
+    // Extrair dados do user_profile (pode ser objeto ou array)
+    const userProfileData = Array.isArray(alunoData.users_profile) 
+      ? alunoData.users_profile[0] 
+      : alunoData.users_profile;
 
     // Formatar resposta
     const response = {
-      id: newAluno.id,
-      nome: newAluno.users_profile?.nome || '',
-      email: newAluno.users_profile?.email || '',
-      dataNascimento: newAluno.data_nascimento,
-      altura: newAluno.altura,
-      genero: newAluno.genero,
-      status: newAluno.status,
-      fotoUrl: newAluno.users_profile?.foto_url || null,
-      createdAt: newAluno.created_at,
-      updatedAt: newAluno.updated_at,
+      id: alunoData.id,
+      nome: userProfileData?.nome || '',
+      email: userProfileData?.email || '',
+      dataNascimento: alunoData.data_nascimento,
+      altura: alunoData.altura,
+      genero: alunoData.genero,
+      status: alunoData.status,
+      fotoUrl: userProfileData?.foto_url || null,
+      createdAt: alunoData.created_at,
+      updatedAt: alunoData.updated_at,
     };
 
     return res.status(201).json(response);
