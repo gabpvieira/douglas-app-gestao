@@ -303,12 +303,31 @@ export function useTreinoEmAndamento(alunoId?: string) {
     if (!localTreino) return 0;
     
     if (localTreino.pausado) {
-      return localTreino.tempoAcumulado;
+      return Math.max(0, localTreino.tempoAcumulado || 0);
     }
     
-    const inicio = new Date(localTreino.tempoInicio);
+    // Garantir que tempoInicio seja uma data válida
+    const tempoInicioStr = localTreino.tempoInicio;
+    let inicio: Date;
+    
+    // Tentar parsear a data - pode vir do banco sem timezone
+    if (tempoInicioStr) {
+      // Se não tem timezone, adicionar Z para UTC
+      const dataStr = tempoInicioStr.includes('Z') || tempoInicioStr.includes('+') 
+        ? tempoInicioStr 
+        : tempoInicioStr + 'Z';
+      inicio = new Date(dataStr);
+    } else {
+      inicio = new Date();
+    }
+    
     const agora = new Date();
-    return localTreino.tempoAcumulado + Math.floor((agora.getTime() - inicio.getTime()) / 1000);
+    const diffMs = agora.getTime() - inicio.getTime();
+    const diffSegundos = Math.floor(diffMs / 1000);
+    
+    // Garantir que o tempo nunca seja negativo
+    const tempoAcumulado = localTreino.tempoAcumulado || 0;
+    return Math.max(0, tempoAcumulado + diffSegundos);
   }, [localTreino]);
 
   // Verificar se há treino em andamento para uma ficha específica

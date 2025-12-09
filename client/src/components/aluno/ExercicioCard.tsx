@@ -211,7 +211,7 @@ export default function ExercicioCard({
                   className={`h-7 w-7 rounded-md border-2 transition-all ${
                     serie.concluida 
                       ? "bg-white border-white data-[state=checked]:bg-white data-[state=checked]:text-emerald-600" 
-                      : "border-border bg-transparent"
+                      : "border-gray-400 bg-gray-700/50 hover:border-blue-400 hover:bg-gray-600/50"
                   }`}
                 />
               </div>

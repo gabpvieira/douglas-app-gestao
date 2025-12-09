@@ -27,9 +27,12 @@ import {
 
 // Função para formatar tempo em HH:MM:SS
 function formatarTempo(segundos: number): string {
-  const horas = Math.floor(segundos / 3600);
-  const minutos = Math.floor((segundos % 3600) / 60);
-  const segs = segundos % 60;
+  // Garantir que o valor seja positivo
+  const segundosPositivos = Math.max(0, Math.floor(segundos));
+  
+  const horas = Math.floor(segundosPositivos / 3600);
+  const minutos = Math.floor((segundosPositivos % 3600) / 60);
+  const segs = segundosPositivos % 60;
   
   if (horas > 0) {
     return `${horas}h ${minutos.toString().padStart(2, "0")}m`;

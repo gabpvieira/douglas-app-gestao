@@ -54,7 +54,7 @@ export default function VideosAluno() {
         .from("treinos_video")
         .select("*")
         .in("id", Array.from(exercicioIds))
-        .order("titulo", { ascending: true });
+        .order("nome", { ascending: true });
 
       if (error) throw error;
       return data || [];
@@ -74,12 +74,12 @@ export default function VideosAluno() {
   ];
 
   const filteredVideos = videos?.filter((video) => {
-    const matchesSearch = video.titulo
-      .toLowerCase()
+    const matchesSearch = video.nome
+      ?.toLowerCase()
       .includes(searchTerm.toLowerCase());
     const matchesGrupo =
       selectedGrupo === "todos" ||
-      video.grupo_muscular?.toLowerCase() === selectedGrupo;
+      video.objetivo?.toLowerCase() === selectedGrupo;
     return matchesSearch && matchesGrupo;
   });
 
@@ -96,9 +96,9 @@ export default function VideosAluno() {
     return cores[grupo?.toLowerCase()] || "bg-gray-500/10 text-gray-400";
   };
 
-  // Contar vídeos por grupo muscular
+  // Contar vídeos por objetivo (grupo muscular)
   const videosPorGrupo = videos?.reduce((acc: Record<string, number>, video) => {
-    const grupo = video.grupo_muscular?.toLowerCase() || "outros";
+    const grupo = video.objetivo?.toLowerCase() || "outros";
     acc[grupo] = (acc[grupo] || 0) + 1;
     return acc;
   }, {});
@@ -273,7 +273,7 @@ export default function VideosAluno() {
                   {/* Info */}
                   <div className="p-4">
                     <h3 className="font-medium text-white text-sm mb-2 line-clamp-2">
-                      {video.titulo}
+                      {video.nome}
                     </h3>
                     {video.descricao && (
                       <p className="text-xs text-gray-400 mb-3 line-clamp-2">
@@ -281,14 +281,14 @@ export default function VideosAluno() {
                       </p>
                     )}
                     <div className="flex items-center justify-between">
-                      {video.grupo_muscular && (
+                      {video.objetivo && (
                         <Badge
                           variant="outline"
                           className={`text-[10px] px-2 py-0 h-5 border-0 ${getGrupoColor(
-                            video.grupo_muscular
+                            video.objetivo
                           )}`}
                         >
-                          {video.grupo_muscular}
+                          {video.objetivo}
                         </Badge>
                       )}
                       <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -310,7 +310,7 @@ export default function VideosAluno() {
           isOpen={!!selectedVideo}
           onClose={() => setSelectedVideo(null)}
           videoId={selectedVideo.id}
-          videoTitle={selectedVideo.titulo}
+          videoTitle={selectedVideo.nome}
           videoDescription={selectedVideo.descricao}
           videoDuration={selectedVideo.duracao}
           videoObjective={selectedVideo.objetivo}
