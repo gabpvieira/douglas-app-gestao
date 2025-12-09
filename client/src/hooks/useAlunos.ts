@@ -77,37 +77,30 @@ export function useAlunos() {
   });
 }
 
-// Hook para criar aluno (usa Supabase Edge Function)
+// Hook para criar aluno (usa função RPC do Supabase)
 export function useCreateAluno() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (data: CreateAlunoData) => {
-      console.log('📝 Criando novo aluno via Supabase Function...');
+      console.log('📝 Criando novo aluno via RPC...');
       
-      // Chamar Supabase Edge Function para criar usuário Auth + perfil + aluno
-      const { data: result, error } = await supabase.functions.invoke('create-aluno', {
-        body: {
-          nome: data.nome,
-          email: data.email,
-          senha: data.senha,
-          dataNascimento: data.dataNascimento,
-          altura: data.altura,
-          genero: data.genero,
-          status: data.status,
-          fotoUrl: data.fotoUrl
-        }
+      // Chamar função RPC do Supabase para criar usuário Auth + perfil + aluno
+      const { data: result, error } = await supabase.rpc('create_aluno_with_auth', {
+        p_nome: data.nome,
+        p_email: data.email,
+        p_senha: data.senha,
+        p_data_nascimento: data.dataNascimento,
+        p_altura: data.altura,
+        p_genero: data.genero,
+        p_status: data.status,
+        p_foto_url: data.fotoUrl || null
       });
 
       if (error) {
         console.error('❌ Erro ao criar aluno:', error);
         throw new Error(error.message || 'Falha ao criar aluno');
-      }
-
-      if (result?.error) {
-        console.error('❌ Erro retornado pela função:', result.error);
-        throw new Error(result.error);
       }
 
       console.log('✅ Aluno criado com sucesso:', result);
@@ -203,16 +196,21 @@ export function useUpdateAluno() {
 
       console.log('✅ Aluno atualizado com sucesso');
 
+      // Extrair dados do user_profile (pode ser objeto ou array)
+      const userProfileData = Array.isArray(updatedAluno.users_profile) 
+        ? updatedAluno.users_profile[0] 
+        : updatedAluno.users_profile;
+
       // Formatar resposta
       return {
         id: updatedAluno.id,
-        nome: updatedAluno.users_profile?.nome || '',
-        email: updatedAluno.users_profile?.email || '',
+        nome: userProfileData?.nome || '',
+        email: userProfileData?.email || '',
         dataNascimento: updatedAluno.data_nascimento,
         altura: updatedAluno.altura,
         genero: updatedAluno.genero,
         status: updatedAluno.status,
-        fotoUrl: updatedAluno.users_profile?.foto_url || null,
+        fotoUrl: userProfileData?.foto_url || null,
         createdAt: updatedAluno.created_at,
         updatedAt: updatedAluno.updated_at,
       };
