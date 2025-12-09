@@ -146,26 +146,26 @@ export function useAvaliacaoById(id: string) {
 
       if (avaliacaoError) throw avaliacaoError;
 
-      // Buscar perimetria
+      // Buscar perimetria (maybeSingle para evitar erro 406 quando não existe)
       const { data: perimetria } = await supabase
         .from('perimetria_detalhada')
         .select('*')
         .eq('avaliacao_id', id)
-        .single();
+        .maybeSingle();
 
-      // Buscar neuromotora
+      // Buscar neuromotora (maybeSingle para evitar erro 406 quando não existe)
       const { data: neuromotora } = await supabase
         .from('avaliacoes_neuromotoras')
         .select('*')
         .eq('avaliacao_id', id)
-        .single();
+        .maybeSingle();
 
-      // Buscar postural
+      // Buscar postural (maybeSingle para evitar erro 406 quando não existe)
       const { data: postural } = await supabase
         .from('avaliacoes_posturais')
         .select('*')
         .eq('avaliacao_id', id)
-        .single();
+        .maybeSingle();
 
       return {
         ...avaliacao,
@@ -345,12 +345,12 @@ export function useUpdatePerimetria() {
       avaliacaoId: string; 
       data: Partial<PerimetriaDetalhada> 
     }) => {
-      // Verificar se já existe
+      // Verificar se já existe (maybeSingle para evitar erro 406)
       const { data: existing } = await supabase
         .from('perimetria_detalhada')
         .select('id')
         .eq('avaliacao_id', avaliacaoId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Atualizar
@@ -402,7 +402,7 @@ export function useUpdateNeuromotora() {
         .from('avaliacoes_neuromotoras')
         .select('id')
         .eq('avaliacao_id', avaliacaoId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         const { data: updated, error } = await supabase
@@ -452,7 +452,7 @@ export function useUpdatePostural() {
         .from('avaliacoes_posturais')
         .select('id')
         .eq('avaliacao_id', avaliacaoId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         const { data: updated, error } = await supabase

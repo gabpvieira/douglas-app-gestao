@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAlunos, useDeleteAluno, useUpdateAluno, useCreateAluno } from "@/hooks/useAlunos";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import PageHeader from "@/components/PageHeader";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,6 +66,8 @@ export default function StudentsList() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -340,9 +343,8 @@ export default function StudentsList() {
                           size="sm" 
                           variant="ghost"
                           onClick={() => {
-                            if (confirm('Tem certeza que deseja deletar este aluno?')) {
-                              deleteAluno.mutate(student.id);
-                            }
+                            setStudentToDelete(student);
+                            setDeleteModalOpen(true);
                           }}
                           disabled={deleteAluno.isPending}
                           data-testid={`button-delete-student-${student.id}`}
@@ -862,6 +864,23 @@ export default function StudentsList() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmDialog
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onConfirm={() => {
+          if (studentToDelete) {
+            deleteAluno.mutate(studentToDelete.id);
+            setStudentToDelete(null);
+          }
+        }}
+        title="Excluir Aluno"
+        description={`Tem certeza que deseja excluir o aluno "${studentToDelete?.nome}"? Esta ação não pode ser desfeita e todos os dados relacionados serão removidos.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+      />
     </>
   );
 }
