@@ -77,22 +77,18 @@ export function useAlunos() {
   });
 }
 
-// Hook para criar aluno (usa backend API com Auth)
+// Hook para criar aluno (usa Supabase Edge Function)
 export function useCreateAluno() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (data: CreateAlunoData) => {
-      console.log('📝 Criando novo aluno via API...');
+      console.log('📝 Criando novo aluno via Supabase Function...');
       
-      // Chamar backend API para criar usuário Auth + perfil + aluno
-      const response = await fetch('/api/alunos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Chamar Supabase Edge Function para criar usuário Auth + perfil + aluno
+      const { data: result, error } = await supabase.functions.invoke('create-aluno', {
+        body: {
           nome: data.nome,
           email: data.email,
           senha: data.senha,
@@ -101,15 +97,19 @@ export function useCreateAluno() {
           genero: data.genero,
           status: data.status,
           fotoUrl: data.fotoUrl
-        })
+        }
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Falha ao criar aluno');
+      if (error) {
+        console.error('❌ Erro ao criar aluno:', error);
+        throw new Error(error.message || 'Falha ao criar aluno');
       }
 
-      const result = await response.json();
+      if (result?.error) {
+        console.error('❌ Erro retornado pela função:', result.error);
+        throw new Error(result.error);
+      }
+
       console.log('✅ Aluno criado com sucesso:', result);
       return result;
     },
