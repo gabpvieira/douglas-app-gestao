@@ -20,6 +20,30 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    // Compatibilidade com Chrome 109 (ES2020 é suportado)
+    target: ['chrome109', 'es2020'],
+    // Gera sourcemaps para debug
+    sourcemap: false,
+    // Configurações de minificação
+    minify: 'esbuild',
+    // CSS target para compatibilidade
+    cssTarget: ['chrome109'],
+    rollupOptions: {
+      output: {
+        // Garante compatibilidade de módulos
+        format: 'es',
+        // Evita chunks muito grandes
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
+        },
+      },
+    },
+  },
+  // Otimizações de dependências
+  optimizeDeps: {
+    // Força inclusão de dependências problemáticas
+    include: ['react', 'react-dom'],
   },
   server: {
     hmr: {
@@ -34,5 +58,8 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
-
+  // Configuração de CSS
+  css: {
+    devSourcemap: true,
+  },
 });

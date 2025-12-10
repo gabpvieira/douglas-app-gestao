@@ -1,0 +1,278 @@
+/**
+ * CSS de compatibilidade para Chrome 109 (Windows 7)
+ * Fallbacks para recursos CSS modernos não suportados
+ */
+
+/* ============================================
+   Fontes Web com Fallbacks
+   ============================================ */
+
+/* Fallback de fonte principal - Poppins */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Poppins Regular'), local('Poppins-Regular'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiEyp8kv8JHgFVrJJfecg.woff2') format('woff2'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiEyp8kv8JHgFVrJJfedA.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Poppins Medium'), local('Poppins-Medium'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLGT9Z1xlFQ.woff2') format('woff2'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLGT9Z1xkFc8.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Poppins SemiBold'), local('Poppins-SemiBold'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLEj6Z1xlFQ.woff2') format('woff2'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLEj6Z1xkFc8.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Poppins Bold'), local('Poppins-Bold'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLCz7Z1xlFQ.woff2') format('woff2'),
+       url('https://fonts.gstatic.com/s/poppins/v20/pxiByp8kv8JHgFVrLCz7Z1xkFc8.woff') format('woff');
+}
+
+/* ============================================
+   Fallbacks para backdrop-filter
+   ============================================ */
+
+/* Classe utilitária para elementos que usam backdrop-filter */
+.backdrop-blur-fallback {
+  /* Fallback: fundo semi-opaco quando backdrop-filter não é suportado */
+  background-color: rgba(0, 0, 0, 0.85);
+}
+
+@supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+  .backdrop-blur-fallback {
+    background-color: rgba(0, 0, 0, 0.5);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+
+.backdrop-blur-light-fallback {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+@supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
+  .backdrop-blur-light-fallback {
+    background-color: rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+
+/* ============================================
+   Fallbacks para variáveis CSS
+   ============================================ */
+
+/* Garantir que variáveis CSS tenham fallbacks */
+.text-foreground {
+  color: #1a1a2e; /* Fallback */
+  color: hsl(var(--foreground, 215 25% 15%));
+}
+
+.bg-background {
+  background-color: #fafafa; /* Fallback */
+  background-color: hsl(var(--background, 0 0% 98%));
+}
+
+.bg-card {
+  background-color: #f5f5f5; /* Fallback */
+  background-color: hsl(var(--card, 0 0% 96%));
+}
+
+.bg-primary {
+  background-color: #3b82f6; /* Fallback */
+  background-color: hsl(var(--primary, 215 91% 60%));
+}
+
+.text-primary {
+  color: #3b82f6; /* Fallback */
+  color: hsl(var(--primary, 215 91% 60%));
+}
+
+.border-border {
+  border-color: #e5e7eb; /* Fallback */
+  border-color: hsl(var(--border, 215 15% 88%));
+}
+
+/* Dark mode fallbacks */
+.dark .text-foreground {
+  color: #f5f5f5; /* Fallback */
+  color: hsl(var(--foreground, 0 0% 95%));
+}
+
+.dark .bg-background {
+  background-color: #0f172a; /* Fallback */
+  background-color: hsl(var(--background, 215 29% 9%));
+}
+
+.dark .bg-card {
+  background-color: #1e293b; /* Fallback */
+  background-color: hsl(var(--card, 215 25% 12%));
+}
+
+.dark .border-border {
+  border-color: #334155; /* Fallback */
+  border-color: hsl(var(--border, 215 25% 18%));
+}
+
+/* ============================================
+   Fallbacks para flexbox gap (suportado no Chrome 109)
+   ============================================ */
+
+/* Chrome 109 suporta gap, mas mantemos fallback por segurança */
+.flex-gap-fallback > * + * {
+  margin-left: 0.5rem;
+}
+
+@supports (gap: 0.5rem) {
+  .flex-gap-fallback {
+    gap: 0.5rem;
+  }
+  .flex-gap-fallback > * + * {
+    margin-left: 0;
+  }
+}
+
+/* ============================================
+   Fallbacks para aspect-ratio
+   ============================================ */
+
+.aspect-video-fallback {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 */
+  height: 0;
+  overflow: hidden;
+}
+
+.aspect-video-fallback > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@supports (aspect-ratio: 16/9) {
+  .aspect-video-fallback {
+    position: static;
+    padding-bottom: 0;
+    height: auto;
+    aspect-ratio: 16/9;
+  }
+  .aspect-video-fallback > * {
+    position: static;
+  }
+}
+
+.aspect-square-fallback {
+  position: relative;
+  padding-bottom: 100%;
+  height: 0;
+  overflow: hidden;
+}
+
+.aspect-square-fallback > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@supports (aspect-ratio: 1/1) {
+  .aspect-square-fallback {
+    position: static;
+    padding-bottom: 0;
+    height: auto;
+    aspect-ratio: 1/1;
+  }
+  .aspect-square-fallback > * {
+    position: static;
+  }
+}
+
+/* ============================================
+   Fallbacks para scroll-behavior
+   ============================================ */
+
+html {
+  scroll-behavior: auto; /* Fallback */
+}
+
+@supports (scroll-behavior: smooth) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ============================================
+   Fallbacks para :focus-visible
+   ============================================ */
+
+/* Chrome 109 suporta :focus-visible, mas mantemos fallback */
+*:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring, 215 91% 60%));
+  outline-offset: 2px;
+}
+
+/* Fallback para browsers que não suportam :focus-visible */
+@supports not selector(:focus-visible) {
+  *:focus {
+    outline: 2px solid hsl(var(--ring, 215 91% 60%));
+    outline-offset: 2px;
+  }
+}
+
+/* ============================================
+   Animações com fallback
+   ============================================ */
+
+/* Respeitar preferência de movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   Print styles
+   ============================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
