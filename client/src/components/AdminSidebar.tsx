@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Activity
+  Activity,
+  Star
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,11 @@ const menuItems = [
     icon: Activity, 
     label: "Avaliações Físicas", 
     href: "/admin/avaliacoes-fisicas"
+  },
+  { 
+    icon: Star, 
+    label: "Feedbacks de Treinos", 
+    href: "/admin/feedbacks"
   },
   { 
     icon: Calendar, 

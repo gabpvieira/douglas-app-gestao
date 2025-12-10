@@ -212,7 +212,7 @@ export function useHistoricoTreinos(fichaAlunoId: string | undefined) {
 
       console.log("🔍 Buscando histórico para ficha_aluno_id:", fichaAlunoId);
 
-      // Buscar treinos realizados agrupados por data
+      // Buscar treinos realizados
       const { data, error } = await supabase
         .from("treinos_realizados")
         .select(`
@@ -233,20 +233,20 @@ export function useHistoricoTreinos(fichaAlunoId: string | undefined) {
 
       console.log("✅ Histórico encontrado:", data?.length || 0, "registros");
 
-      // Agrupar por data de realização
-      const treinosPorData = data?.reduce((acc: any, treino: any) => {
-        const data = new Date(treino.data_realizacao).toLocaleDateString("pt-BR");
-        if (!acc[data]) {
-          acc[data] = {
+      // Agrupar por data_realizacao (timestamp completo) para separar sessões diferentes
+      const sessoesPorTimestamp = data?.reduce((acc: any, treino: any) => {
+        const timestamp = treino.data_realizacao;
+        if (!acc[timestamp]) {
+          acc[timestamp] = {
             data: treino.data_realizacao,
             exercicios: [],
           };
         }
-        acc[data].exercicios.push(treino);
+        acc[timestamp].exercicios.push(treino);
         return acc;
       }, {});
 
-      return Object.values(treinosPorData || {});
+      return Object.values(sessoesPorTimestamp || {});
     },
     enabled: !!fichaAlunoId,
   });

@@ -28,6 +28,7 @@ import PagamentosAdmin from "./pages/admin/Pagamentos";
 import FichasTreino from "./pages/admin/FichasTreino";
 import AvaliacoesFisicas from "./pages/admin/AvaliacoesFisicas";
 import AvaliacoesPosturais from "./pages/admin/AvaliacoesPosturais";
+import FeedbacksTreinos from "./pages/admin/FeedbacksTreinos";
 import NotFound from "@/pages/not-found";
 import Login from "./pages/Login";
 import AlunoDashboard from "./pages/aluno/Dashboard";
@@ -104,6 +105,7 @@ function AdminLayout({ userName, onLogout }: {
           <Route path="/admin/planos" component={PlanosAlimentares} />
           <Route path="/admin/planos-alimentares" component={PlanosAlimentares} />
           <Route path="/admin/pagamentos" component={PagamentosAdmin} />
+          <Route path="/admin/feedbacks" component={FeedbacksTreinos} />
           <Route>
             <NotFound />
           </Route>

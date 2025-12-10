@@ -8,10 +8,12 @@ import TreinoHeader from "@/components/aluno/TreinoHeader";
 import ExercicioCard from "@/components/aluno/ExercicioCard";
 import RestTimer from "@/components/aluno/RestTimer";
 import FinalizarTreinoModal from "@/components/aluno/FinalizarTreinoModal";
+import { FeedbackTreinoModal } from "@/components/FeedbackTreinoModal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAlunoProfile } from "@/hooks/useAlunoData";
 import { useTreinoEmAndamento, ExercicioEmAndamento } from "@/hooks/useTreinoEmAndamento";
+import { useCreateFeedback } from "@/hooks/useFeedbackTreinos";
 
 export default function TreinoExecucao() {
   const [, params] = useRoute("/aluno/treino/:fichaAlunoId");
@@ -21,8 +23,11 @@ export default function TreinoExecucao() {
   const [exercicios, setExercicios] = useState<ExercicioEmAndamento[]>([]);
   const [restTimer, setRestTimer] = useState<{ ativo: boolean; tempo: number; exercicioId: string } | null>(null);
   const [modalFinalizar, setModalFinalizar] = useState(false);
+  const [modalFeedback, setModalFeedback] = useState(false);
   const [treinoIniciado, setTreinoIniciado] = useState(false);
+  const [treinoFinalizadoId, setTreinoFinalizadoId] = useState<string | null>(null);
   const { toast } = useToast();
+  const createFeedback = useCreateFeedback();
   
   // Buscar perfil do aluno
   const { data: profile } = useAlunoProfile();
@@ -244,7 +249,10 @@ export default function TreinoExecucao() {
         description: "Seu treino foi salvo com sucesso.",
       });
 
-      setLocation("/aluno/treinos");
+      // Fechar modal de finalização e abrir modal de feedback
+      setModalFinalizar(false);
+      setTreinoFinalizadoId(fichaAlunoId || null);
+      setModalFeedback(true);
     } catch (error) {
       console.error("Erro ao salvar treino:", error);
       toast({
@@ -253,6 +261,25 @@ export default function TreinoExecucao() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSubmitFeedback = async (estrelas: number, comentario?: string) => {
+    if (!alunoId || !treinoFinalizadoId) return;
+
+    await createFeedback.mutateAsync({
+      alunoId,
+      treinoId: treinoFinalizadoId,
+      estrelas,
+      comentario,
+    });
+
+    setModalFeedback(false);
+    setLocation("/aluno/treinos");
+  };
+
+  const handleSkipFeedback = () => {
+    setModalFeedback(false);
+    setLocation("/aluno/treinos");
   };
 
   const exerciciosConcluidos = exercicios.filter((ex) =>
@@ -384,6 +411,18 @@ export default function TreinoExecucao() {
           exercicios={exercicios}
           tempoDecorrido={tempoDecorrido}
           nomeFicha={ficha.fichas_treino?.nome || "Treino"}
+        />
+
+        {/* Modal Feedback */}
+        <FeedbackTreinoModal
+          open={modalFeedback}
+          onOpenChange={(open) => {
+            if (!open) {
+              handleSkipFeedback();
+            }
+          }}
+          onSubmit={handleSubmitFeedback}
+          isLoading={createFeedback.isPending}
         />
 
         {/* Timer de Descanso */}

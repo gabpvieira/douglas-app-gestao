@@ -600,3 +600,24 @@ export type MetaAvaliacao = typeof metasAvaliacoes.$inferSelect;
 
 export type InsertAvaliacaoFisica = z.infer<typeof insertAvaliacaoFisicaSchema>;
 export type AvaliacaoFisica = typeof avaliacoesFisicas.$inferSelect;
+
+// Tabela para feedback de treinos
+export const feedbackTreinos = pgTable("feedback_treinos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  treinoId: varchar("treino_id").notNull(), // ID da sessão de treino ou ficha_aluno_id
+  estrelas: integer("estrelas").notNull(), // 1-5
+  comentario: text("comentario"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertFeedbackTreinoSchema = createInsertSchema(feedbackTreinos).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  estrelas: z.number().min(1).max(5),
+  comentario: z.string().optional(),
+});
+
+export type InsertFeedbackTreino = z.infer<typeof insertFeedbackTreinoSchema>;
+export type FeedbackTreino = typeof feedbackTreinos.$inferSelect;

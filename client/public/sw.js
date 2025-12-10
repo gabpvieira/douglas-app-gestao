@@ -1,9 +1,9 @@
 /**
  * Service Worker com compatibilidade para Chrome 109 (Windows 7)
- * Versão: 1.0.0
+ * Versão: 1.1.0 - Atualização do ícone PWA
  */
 
-var CACHE_VERSION = 'app-v1';
+var CACHE_VERSION = 'app-v3';
 var STATIC_CACHE = 'static-' + CACHE_VERSION;
 var DYNAMIC_CACHE = 'dynamic-' + CACHE_VERSION;
 
@@ -14,9 +14,8 @@ var STATIC_ASSETS = [
   '/manifest.json',
   '/favicon.ico',
   '/favicon.png',
-  '/logo.png',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/icone-pwa.png',
+  '/apple-touch-icon.png'
 ];
 
 // Instalação do Service Worker

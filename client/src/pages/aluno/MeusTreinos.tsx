@@ -560,7 +560,7 @@ export default function MeusTreinos() {
                   </div>
 
                   <div className="space-y-3">
-                    {historico.slice(0, 5).map((sessao: any, index: number) => {
+                    {historico.slice(0, 10).map((sessao: any, index: number) => {
                       const totalSeries = sessao.exercicios.reduce(
                         (acc: number, ex: any) => acc + (ex.series_realizadas?.length || 0),
                         0
@@ -576,14 +576,34 @@ export default function MeusTreinos() {
                         );
                       }, 0);
 
+                      // Processar exercícios e filtrar apenas séries realizadas
+                      const exerciciosArray = sessao.exercicios
+                        .map((ex: any) => {
+                          // Filtrar apenas séries que foram realmente realizadas (com carga e repetições)
+                          const seriesRealizadas = ex.series_realizadas?.filter((s: any) => 
+                            s.carga && s.repeticoes && (s.carga !== '' && s.carga !== '0')
+                          ) || [];
+                          
+                          return {
+                            nome: ex.exercicios_ficha?.nome || "Exercício",
+                            grupo_muscular: ex.exercicios_ficha?.grupo_muscular,
+                            series: seriesRealizadas
+                          };
+                        })
+                        .filter((ex: any) => ex.series.length > 0); // Filtrar exercícios que têm pelo menos uma série realizada
+
                       return (
-                        <Card key={index} className="border-gray-800 bg-gray-900/30">
-                          <div className="p-5">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="h-9 w-9 rounded-lg bg-green-600 flex items-center justify-center">
+                        <Card key={index} className="border-gray-800 bg-gray-900/30 overflow-hidden">
+                          {/* Header - Sempre visível */}
+                          <div 
+                            className="p-4 cursor-pointer hover:bg-gray-800/30 transition-colors"
+                            onClick={() => toggleFicha(`historico-${index}`)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
                                 <CheckCircle2 className="h-5 w-5 text-white" />
                               </div>
-                              <div className="flex-1">
+                              <div className="flex-1 min-w-0">
                                 <h3 className="font-medium text-white text-sm">
                                   {new Date(sessao.data).toLocaleDateString("pt-BR", {
                                     day: "2-digit",
@@ -591,40 +611,87 @@ export default function MeusTreinos() {
                                   })}
                                 </h3>
                                 <p className="text-xs text-gray-400 mt-1">
-                                  {sessao.exercicios.length} exercícios • {totalSeries} séries •{" "}
-                                  {volumeTotal.toFixed(0)}kg
+                                  {exerciciosArray.length} exercícios • {totalSeries} séries • {volumeTotal.toFixed(0)}kg
                                 </p>
                               </div>
+                              {expandedFichas.has(`historico-${index}`) ? (
+                                <ChevronUp className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                              )}
                             </div>
+                          </div>
 
-                            <div className="space-y-2">
-                              {sessao.exercicios.map((exercicio: any) => (
+                          {/* Conteúdo expansível - Exercícios agrupados */}
+                          {expandedFichas.has(`historico-${index}`) && (
+                            <div className="border-t border-gray-800 p-4 space-y-3 bg-gray-800/20">
+                              {exerciciosArray.map((exercicio: any, exIndex: number) => (
                                 <div
-                                  key={exercicio.id}
-                                  className="flex items-center justify-between p-2 bg-gray-800/50 rounded"
+                                  key={exIndex}
+                                  className="bg-gray-800/50 rounded-lg p-3 space-y-2"
                                 >
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-white text-xs truncate">
-                                      {exercicio.exercicios_ficha?.nome || "Exercício"}
-                                    </p>
-                                    <p className="text-[10px] text-gray-400 mt-0.5">
-                                      {exercicio.series_realizadas?.length || 0} séries
-                                    </p>
+                                  {/* Nome do exercício e grupo muscular */}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className="font-medium text-white text-sm flex-1">
+                                      {exercicio.nome}
+                                    </h4>
+                                    {exercicio.grupo_muscular && (
+                                      <Badge
+                                        variant="outline"
+                                        className={`text-[10px] px-2 py-0 h-5 border-0 flex-shrink-0 ${getGrupoMuscularColor(
+                                          exercicio.grupo_muscular
+                                        )}`}
+                                      >
+                                        {exercicio.grupo_muscular}
+                                      </Badge>
+                                    )}
                                   </div>
-                                  {exercicio.exercicios_ficha?.grupo_muscular && (
-                                    <Badge
-                                      variant="outline"
-                                      className={`text-[10px] px-2 py-0 h-5 border-0 ${getGrupoMuscularColor(
-                                        exercicio.exercicios_ficha.grupo_muscular
-                                      )}`}
-                                    >
-                                      {exercicio.exercicios_ficha.grupo_muscular}
-                                    </Badge>
-                                  )}
+
+                                  {/* Séries realizadas */}
+                                  <div className="space-y-1.5">
+                                    {exercicio.series.map((serie: any, serieIndex: number) => (
+                                      <div
+                                        key={serieIndex}
+                                        className="flex items-center gap-2 text-xs bg-gray-900/50 rounded px-2.5 py-1.5"
+                                      >
+                                        <span className="text-gray-500 font-medium w-12">
+                                          Série {serieIndex + 1}
+                                        </span>
+                                        <span className="text-gray-400">•</span>
+                                        <span className="text-white font-medium">
+                                          {serie.carga}
+                                        </span>
+                                        <span className="text-gray-400">×</span>
+                                        <span className="text-white font-medium">
+                                          {serie.repeticoes} reps
+                                        </span>
+                                        {serie.observacoes && (
+                                          <>
+                                            <span className="text-gray-400">•</span>
+                                            <span className="text-gray-400 text-[10px] truncate flex-1">
+                                              {serie.observacoes}
+                                            </span>
+                                          </>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Resumo do exercício */}
+                                  <div className="flex items-center gap-3 text-[10px] text-gray-500 pt-1 border-t border-gray-700/50">
+                                    <span>{exercicio.series.length} séries</span>
+                                    <span>•</span>
+                                    <span>
+                                      Volume: {exercicio.series.reduce((sum: number, s: any) => {
+                                        const peso = parseFloat(s.carga) || 0;
+                                        return sum + (peso * s.repeticoes);
+                                      }, 0).toFixed(0)}kg
+                                    </span>
+                                  </div>
                                 </div>
                               ))}
                             </div>
-                          </div>
+                          )}
                         </Card>
                       );
                     })}
