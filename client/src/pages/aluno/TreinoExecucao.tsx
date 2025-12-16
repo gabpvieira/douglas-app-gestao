@@ -411,6 +411,7 @@ export default function TreinoExecucao() {
           exercicios={exercicios}
           tempoDecorrido={tempoDecorrido}
           nomeFicha={ficha.fichas_treino?.nome || "Treino"}
+          alunoId={alunoId}
         />
 
         {/* Modal Feedback */}

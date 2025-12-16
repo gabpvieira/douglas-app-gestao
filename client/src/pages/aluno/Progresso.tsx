@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { 
   TrendingUp, TrendingDown, Minus, Scale, Activity, Ruler, Plus, Loader2, 
-  Calendar, Trash2, Image as ImageIcon, LineChart, Camera, ChevronDown, ChevronUp
+  Calendar, Trash2, Image as ImageIcon, LineChart, Camera, ChevronDown, ChevronUp, Dumbbell
 } from 'lucide-react';
 import { 
   useEvolucoes, useFotosProgresso, useAdicionarEvolucao, useDeletarEvolucao, useAvaliacoesFisicas 
 } from '@/hooks/useProgresso';
+import { useAlunoProfile } from '@/hooks/useAlunoData';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -14,10 +15,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import AlunoLayout from '@/components/aluno/AlunoLayout';
+import MonthlyTrainingCalendar from '@/components/aluno/MonthlyTrainingCalendar';
 
 export default function Progresso() {
   const { data: evolucoes = [], isLoading: loadingEvolucoes } = useEvolucoes();
   const { data: fotos = [], isLoading: loadingFotos } = useFotosProgresso();
+  const { data: profile } = useAlunoProfile();
+  const alunoId = Array.isArray(profile?.alunos)
+    ? profile?.alunos[0]?.id
+    : profile?.alunos?.id;
   const { data: avaliacoes = [], isLoading: loadingAvaliacoes } = useAvaliacoesFisicas();
   const adicionarEvolucao = useAdicionarEvolucao();
   const deletarEvolucao = useDeletarEvolucao();
@@ -188,6 +194,19 @@ export default function Progresso() {
                   )}
                 </div>
               </Card>
+            </div>
+          )}
+
+          {/* Calendário de Treinos do Mês */}
+          {alunoId && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-6 w-6 rounded bg-emerald-600 flex items-center justify-center">
+                  <Dumbbell className="h-4 w-4 text-white" />
+                </div>
+                <h2 className="text-base font-medium text-white">Frequência de Treinos</h2>
+              </div>
+              <MonthlyTrainingCalendar alunoId={alunoId} />
             </div>
           )}
 

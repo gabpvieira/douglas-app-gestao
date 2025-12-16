@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, Trophy, Clock, Dumbbell, TrendingUp } from "lucide-react";
+import WeekDaysTracker from "./WeekDaysTracker";
 
 interface ExercicioExecucao {
   id: string;
@@ -27,6 +28,7 @@ interface FinalizarTreinoModalProps {
   exercicios: ExercicioExecucao[];
   tempoDecorrido: number;
   nomeFicha: string;
+  alunoId?: string;
 }
 
 export default function FinalizarTreinoModal({
@@ -36,6 +38,7 @@ export default function FinalizarTreinoModal({
   exercicios,
   tempoDecorrido,
   nomeFicha,
+  alunoId,
 }: FinalizarTreinoModalProps) {
   const [salvando, setSalvando] = useState(false);
 
@@ -142,6 +145,14 @@ export default function FinalizarTreinoModal({
               </p>
             </div>
           </div>
+
+          {/* Dias da Semana Treinados */}
+          {alunoId && (
+            <div className="bg-secondary/50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground text-center mb-2">Treinos esta semana</p>
+              <WeekDaysTracker alunoId={alunoId} includeToday={true} />
+            </div>
+          )}
 
           {/* Aviso */}
           {exerciciosConcluidos < exercicios.length && (
