@@ -169,24 +169,25 @@ export function useStreamTreinoVideo(id: string) {
   });
 }
 
-// Upload de vídeo
+// Helper para gerar nome único de arquivo
+function generateUniqueFileName(originalName: string): string {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  const extension = originalName.split('.').pop();
+  const nameWithoutExt = originalName.replace(`.${extension}`, '').replace(/[^a-zA-Z0-9]/g, '_');
+  return `${timestamp}_${random}_${nameWithoutExt}.${extension}`;
+}
+
+// Upload de vídeo (direto para Supabase Storage)
 export function useUploadTreinoVideo() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (data: UploadVideoData) => {
-      console.group('🌐 REQUISIÇÃO HTTP - UPLOAD DE VÍDEO');
+      console.group('📹 UPLOAD DIRETO SUPABASE - VÍDEO');
       
-      const formData = new FormData();
-      formData.append('file', data.file);
-      if (data.thumbnailFile) formData.append('thumbnail', data.thumbnailFile);
-      formData.append('nome', data.nome);
-      if (data.objetivo) formData.append('objetivo', data.objetivo);
-      if (data.descricao) formData.append('descricao', data.descricao);
-      if (data.duracao) formData.append('duracao', data.duracao.toString());
-
-      console.log('📦 FormData preparado:', {
+      console.log('📦 Dados do upload:', {
         arquivo: data.file.name,
         tamanho: `${(data.file.size / (1024 * 1024)).toFixed(2)} MB`,
         nome: data.nome,
@@ -194,32 +195,97 @@ export function useUploadTreinoVideo() {
         duracao: data.duracao
       });
       
-      console.log('🚀 Enviando requisição POST para /api/admin/treinos-video/upload...');
-      const requestStart = Date.now();
+      // 1. Gerar nome único para o arquivo
+      const fileName = generateUniqueFileName(data.file.name);
+      console.log('📝 Nome do arquivo gerado:', fileName);
       
-      const response = await fetch('/api/admin/treinos-video/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      const requestTime = ((Date.now() - requestStart) / 1000).toFixed(2);
-      console.log(`📡 Resposta recebida em ${requestTime}s:`, {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-        console.error('❌ ERRO NA RESPOSTA:', error);
-        console.groupEnd();
-        throw new Error(error.error || error.details || 'Falha ao fazer upload do vídeo');
+      // 2. Upload do vídeo para Supabase Storage
+      console.log('☁️ Fazendo upload do vídeo para Supabase Storage...');
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('treinos-video')
+        .upload(fileName, data.file, {
+          contentType: data.file.type,
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('❌ Erro no upload do vídeo:', uploadError);
+        throw new Error(`Falha ao fazer upload: ${uploadError.message}`);
       }
-
-      const result = await response.json();
-      console.log('✅ SUCESSO! Vídeo salvo:', result);
+      
+      console.log('✅ Upload do vídeo concluído. Path:', uploadData.path);
+      
+      // 3. Upload da thumbnail (se fornecida)
+      let thumbnailUrl: string | null = null;
+      
+      if (data.thumbnailFile) {
+        console.log('🖼️ Fazendo upload da thumbnail...');
+        const thumbnailFileName = generateUniqueFileName(data.thumbnailFile.name);
+        const thumbnailPath = `thumbnails/${thumbnailFileName}`;
+        
+        const { data: thumbData, error: thumbError } = await supabase.storage
+          .from('treinos-video')
+          .upload(thumbnailPath, data.thumbnailFile, {
+            contentType: data.thumbnailFile.type,
+            upsert: false
+          });
+        
+        if (thumbError) {
+          console.warn('⚠️ Erro no upload da thumbnail:', thumbError);
+        } else {
+          // Obter URL pública da thumbnail
+          const { data: { publicUrl } } = supabase.storage
+            .from('treinos-video')
+            .getPublicUrl(thumbData.path);
+          thumbnailUrl = publicUrl;
+          console.log('✅ Thumbnail salva:', thumbnailUrl);
+        }
+      }
+      
+      // Se não tiver thumbnail, usar URL pública do vídeo como fallback
+      if (!thumbnailUrl) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('treinos-video')
+          .getPublicUrl(uploadData.path);
+        thumbnailUrl = publicUrl;
+      }
+      
+      // 4. Salvar no banco de dados
+      console.log('💾 Salvando no banco de dados...');
+      const { data: video, error: dbError } = await supabase
+        .from('treinos_video')
+        .insert({
+          nome: data.nome,
+          objetivo: data.objetivo || null,
+          descricao: data.descricao || null,
+          url_video: uploadData.path,
+          thumbnail_url: thumbnailUrl,
+          duracao: data.duracao || null
+        })
+        .select()
+        .single();
+      
+      if (dbError) {
+        console.error('❌ Erro ao salvar no banco:', dbError);
+        // Se falhar ao salvar no banco, deletar arquivo do storage
+        await supabase.storage.from('treinos-video').remove([uploadData.path]);
+        throw new Error(`Falha ao salvar: ${dbError.message}`);
+      }
+      
+      console.log('✅ Vídeo salvo com sucesso:', video.id);
       console.groupEnd();
-      return result;
+      
+      return {
+        id: video.id,
+        nome: video.nome,
+        objetivo: video.objetivo,
+        descricao: video.descricao,
+        urlVideo: video.url_video,
+        thumbnailUrl: video.thumbnail_url,
+        duracao: video.duracao,
+        dataUpload: video.data_upload,
+        createdAt: video.created_at
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['treinos-video'] });
@@ -273,57 +339,140 @@ export function useUpdateTreinoVideo() {
   });
 }
 
-// Substituir arquivo de vídeo
+// Substituir arquivo de vídeo (direto para Supabase Storage)
 export function useReplaceVideoFile() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UploadVideoData }) => {
-      console.group('🌐 REQUISIÇÃO HTTP - SUBSTITUIR VÍDEO');
+      console.group('🔄 SUBSTITUIR VÍDEO - SUPABASE DIRETO');
       console.log('🆔 ID do vídeo:', id);
       
-      const formData = new FormData();
-      formData.append('file', data.file);
-      if (data.thumbnailFile) formData.append('thumbnail', data.thumbnailFile);
-      formData.append('nome', data.nome);
-      if (data.objetivo) formData.append('objetivo', data.objetivo);
-      if (data.descricao) formData.append('descricao', data.descricao);
-      if (data.duracao) formData.append('duracao', data.duracao.toString());
-
-      console.log('📦 FormData preparado:', {
+      console.log('📦 Dados do upload:', {
         arquivo: data.file.name,
         tamanho: `${(data.file.size / (1024 * 1024)).toFixed(2)} MB`,
         nome: data.nome,
         temThumbnail: !!data.thumbnailFile
       });
       
-      console.log('🚀 Enviando requisição POST para substituir...');
-      const requestStart = Date.now();
+      // 1. Buscar vídeo existente
+      const { data: videoExistente, error: fetchError } = await supabase
+        .from('treinos_video')
+        .select('*')
+        .eq('id', id)
+        .single();
       
-      const response = await fetch(`/api/admin/treinos-video/${id}/replace`, {
-        method: 'POST',
-        body: formData
-      });
-
-      const requestTime = ((Date.now() - requestStart) / 1000).toFixed(2);
-      console.log(`📡 Resposta recebida em ${requestTime}s:`, {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-        console.error('❌ ERRO NA RESPOSTA:', error);
-        console.groupEnd();
-        throw new Error(error.error || error.details || 'Falha ao substituir vídeo');
+      if (fetchError || !videoExistente) {
+        console.error('❌ Vídeo não encontrado:', fetchError);
+        throw new Error('Vídeo não encontrado');
       }
-
-      const result = await response.json();
-      console.log('✅ SUCESSO! Vídeo substituído:', result);
+      
+      console.log('📹 Vídeo existente encontrado:', videoExistente.nome);
+      
+      // 2. Gerar nome único para o novo arquivo
+      const fileName = generateUniqueFileName(data.file.name);
+      console.log('📝 Nome do novo arquivo:', fileName);
+      
+      // 3. Upload do novo vídeo
+      console.log('☁️ Fazendo upload do novo vídeo...');
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('treinos-video')
+        .upload(fileName, data.file, {
+          contentType: data.file.type,
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('❌ Erro no upload:', uploadError);
+        throw new Error(`Falha ao fazer upload: ${uploadError.message}`);
+      }
+      
+      console.log('✅ Upload concluído. Path:', uploadData.path);
+      
+      // 4. Upload da thumbnail (se fornecida)
+      let thumbnailUrl: string | null = null;
+      
+      if (data.thumbnailFile) {
+        console.log('🖼️ Fazendo upload da thumbnail...');
+        const thumbnailFileName = generateUniqueFileName(data.thumbnailFile.name);
+        const thumbnailPath = `thumbnails/${thumbnailFileName}`;
+        
+        const { data: thumbData, error: thumbError } = await supabase.storage
+          .from('treinos-video')
+          .upload(thumbnailPath, data.thumbnailFile, {
+            contentType: data.thumbnailFile.type,
+            upsert: false
+          });
+        
+        if (!thumbError && thumbData) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('treinos-video')
+            .getPublicUrl(thumbData.path);
+          thumbnailUrl = publicUrl;
+          console.log('✅ Thumbnail salva:', thumbnailUrl);
+        }
+      }
+      
+      // Se não tiver thumbnail, usar URL pública do vídeo
+      if (!thumbnailUrl) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('treinos-video')
+          .getPublicUrl(uploadData.path);
+        thumbnailUrl = publicUrl;
+      }
+      
+      // 5. Atualizar registro no banco
+      console.log('💾 Atualizando registro no banco...');
+      const { data: video, error: updateError } = await supabase
+        .from('treinos_video')
+        .update({
+          nome: data.nome,
+          objetivo: data.objetivo || null,
+          descricao: data.descricao || null,
+          url_video: uploadData.path,
+          thumbnail_url: thumbnailUrl,
+          duracao: data.duracao || null
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error('❌ Erro ao atualizar banco:', updateError);
+        // Se falhar, deletar novo arquivo
+        await supabase.storage.from('treinos-video').remove([uploadData.path]);
+        throw new Error(`Falha ao atualizar: ${updateError.message}`);
+      }
+      
+      // 6. Deletar vídeo antigo do storage
+      console.log('🗑️ Deletando vídeo antigo...');
+      if (videoExistente.url_video) {
+        await supabase.storage.from('treinos-video').remove([videoExistente.url_video]);
+      }
+      
+      // Deletar thumbnail antiga se existir e for diferente
+      if (videoExistente.thumbnail_url && videoExistente.thumbnail_url !== videoExistente.url_video) {
+        const oldThumbPath = videoExistente.thumbnail_url.split('/treinos-video/').pop();
+        if (oldThumbPath) {
+          await supabase.storage.from('treinos-video').remove([oldThumbPath]);
+        }
+      }
+      
+      console.log('✅ Vídeo substituído com sucesso!');
       console.groupEnd();
-      return result;
+      
+      return {
+        id: video.id,
+        nome: video.nome,
+        objetivo: video.objetivo,
+        descricao: video.descricao,
+        urlVideo: video.url_video,
+        thumbnailUrl: video.thumbnail_url,
+        duracao: video.duracao,
+        dataUpload: video.data_upload,
+        updatedAt: video.updated_at
+      };
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['treinos-video'] });
