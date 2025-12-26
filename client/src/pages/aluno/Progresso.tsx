@@ -101,95 +101,99 @@ export default function Progresso() {
 
   return (
     <AlunoLayout>
-      <div className="min-h-screen bg-gray-950 p-3 sm:p-6 pb-20">
-        <div className="w-full space-y-4 sm:space-y-6">
+      <div className="min-h-screen bg-gray-950 p-2 sm:p-4 md:p-6 pb-20">
+        <div className="w-full space-y-3 sm:space-y-4 md:space-y-6">
           {/* Header */}
-          <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-4 sm:p-5 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-semibold text-white mb-1">Meu Progresso</h1>
-                <p className="text-sm text-gray-400">Acompanhe sua evolução física completa</p>
+                <h1 className="text-xl sm:text-2xl font-semibold text-white mb-1">Meu Progresso</h1>
+                <p className="text-xs sm:text-sm text-gray-400">Acompanhe sua evolução física completa</p>
               </div>
-              <Button onClick={() => setModalNovaEvolucao(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                onClick={() => setModalNovaEvolucao(true)} 
+                className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                size="sm"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Medição
               </Button>
             </div>
           </div>
 
-          {/* KPIs - Horizontal Compact Design */}
+          {/* KPIs - Mobile Optimized */}
           {(ultimaEvolucao || ultimaAvaliacao) && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
               <Card className="border-gray-800 bg-gray-900/30 hover:bg-gray-900/40 transition-colors">
-                <div className="p-4 flex items-center gap-4">
-                  <Scale className="w-10 h-10 text-gray-400 flex-shrink-0" />
+                <div className="p-3 sm:p-4 flex items-center gap-3">
+                  <Scale className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-400 mb-1">Peso Atual</p>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-[10px] sm:text-xs text-gray-400 mb-0.5">Peso Atual</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white">
                       {(ultimaAvaliacao?.peso || ultimaEvolucao?.peso)?.toFixed(1) || '-'}
                     </p>
-                    <p className="text-xs text-gray-500">kg</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500">kg</p>
                   </div>
                   {variacaoPeso && (
                     <div className="flex flex-col items-end">
                       {variacaoPeso.variacao > 0 ? (
-                        <TrendingUp className="w-4 h-4 text-red-400" />
+                        <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
                       ) : variacaoPeso.variacao < 0 ? (
-                        <TrendingDown className="w-4 h-4 text-green-400" />
+                        <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400" />
                       ) : (
-                        <Minus className="w-4 h-4 text-gray-400" />
+                        <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
                       )}
-                      <span className="text-xs text-gray-500 mt-1">{variacaoPeso.percentual}%</span>
+                      <span className="text-[10px] sm:text-xs text-gray-500 mt-1">{variacaoPeso.percentual}%</span>
                     </div>
                   )}
                 </div>
               </Card>
 
               <Card className="border-gray-800 bg-gray-900/30 hover:bg-gray-900/40 transition-colors">
-                <div className="p-4 flex items-center gap-4">
-                  <Activity className="w-10 h-10 text-gray-400 flex-shrink-0" />
+                <div className="p-3 sm:p-4 flex items-center gap-3">
+                  <Activity className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-400 mb-1">Gordura Corporal</p>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-[10px] sm:text-xs text-gray-400 mb-0.5">Gordura Corporal</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white">
                       {(ultimaAvaliacao?.percentual_gordura || ultimaEvolucao?.gorduraCorporal)?.toFixed(1) || '-'}
                     </p>
-                    <p className="text-xs text-gray-500">%</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500">%</p>
                   </div>
                   {variacaoGordura && (
                     <div className="flex flex-col items-end">
                       {variacaoGordura.variacao > 0 ? (
-                        <TrendingUp className="w-4 h-4 text-red-400" />
+                        <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
                       ) : variacaoGordura.variacao < 0 ? (
-                        <TrendingDown className="w-4 h-4 text-green-400" />
+                        <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400" />
                       ) : (
-                        <Minus className="w-4 h-4 text-gray-400" />
+                        <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
                       )}
-                      <span className="text-xs text-gray-500 mt-1">{variacaoGordura.percentual}%</span>
+                      <span className="text-[10px] sm:text-xs text-gray-500 mt-1">{variacaoGordura.percentual}%</span>
                     </div>
                   )}
                 </div>
               </Card>
 
-              <Card className="border-gray-800 bg-gray-900/30 hover:bg-gray-900/40 transition-colors">
-                <div className="p-4 flex items-center gap-4">
-                  <Ruler className="w-10 h-10 text-gray-400 flex-shrink-0" />
+              <Card className="border-gray-800 bg-gray-900/30 hover:bg-gray-900/40 transition-colors sm:col-span-2 md:col-span-1">
+                <div className="p-3 sm:p-4 flex items-center gap-3">
+                  <Ruler className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-400 mb-1">Massa Magra</p>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-[10px] sm:text-xs text-gray-400 mb-0.5">Massa Magra</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white">
                       {(ultimaAvaliacao?.massa_magra || ultimaEvolucao?.massaMuscular)?.toFixed(1) || '-'}
                     </p>
-                    <p className="text-xs text-gray-500">kg</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500">kg</p>
                   </div>
                   {variacaoMassa && (
                     <div className="flex flex-col items-end">
                       {variacaoMassa.variacao > 0 ? (
-                        <TrendingUp className="w-4 h-4 text-green-400" />
+                        <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-400" />
                       ) : variacaoMassa.variacao < 0 ? (
-                        <TrendingDown className="w-4 h-4 text-red-400" />
+                        <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
                       ) : (
-                        <Minus className="w-4 h-4 text-gray-400" />
+                        <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
                       )}
-                      <span className="text-xs text-gray-500 mt-1">{variacaoMassa.percentual}%</span>
+                      <span className="text-[10px] sm:text-xs text-gray-500 mt-1">{variacaoMassa.percentual}%</span>
                     </div>
                   )}
                 </div>
@@ -200,29 +204,29 @@ export default function Progresso() {
           {/* Calendário de Treinos do Mês */}
           {alunoId && (
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-6 w-6 rounded bg-emerald-600 flex items-center justify-center">
-                  <Dumbbell className="h-4 w-4 text-white" />
+              <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                <div className="h-5 w-5 sm:h-6 sm:w-6 rounded bg-emerald-600 flex items-center justify-center">
+                  <Dumbbell className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                 </div>
-                <h2 className="text-base font-medium text-white">Frequência de Treinos</h2>
+                <h2 className="text-sm sm:text-base font-medium text-white">Frequência de Treinos</h2>
               </div>
               <MonthlyTrainingCalendar alunoId={alunoId} />
             </div>
           )}
 
-          {/* Tabs */}
-          <div className="flex gap-2 border-b border-gray-800">
+          {/* Tabs - Mobile Optimized */}
+          <div className="flex gap-1 sm:gap-2 border-b border-gray-800 overflow-x-auto">
             <button
               onClick={() => setAbaSelecionada('medicoes')}
-              className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
                 abaSelecionada === 'medicoes'
                   ? 'text-blue-500'
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <LineChart className="w-4 h-4" />
-                Medições
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <LineChart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>Medições</span>
               </div>
               {abaSelecionada === 'medicoes' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
@@ -230,15 +234,16 @@ export default function Progresso() {
             </button>
             <button
               onClick={() => setAbaSelecionada('avaliacoes')}
-              className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
                 abaSelecionada === 'avaliacoes'
                   ? 'text-blue-500'
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4" />
-                Avaliações Físicas
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Avaliações Físicas</span>
+                <span className="sm:hidden">Avaliações</span>
               </div>
               {abaSelecionada === 'avaliacoes' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
@@ -246,15 +251,16 @@ export default function Progresso() {
             </button>
             <button
               onClick={() => setAbaSelecionada('fotos')}
-              className={`px-4 py-2.5 text-sm font-medium transition-colors relative ${
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap ${
                 abaSelecionada === 'fotos'
                   ? 'text-blue-500'
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <Camera className="w-4 h-4" />
-                Fotos de Evolução
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Fotos de Evolução</span>
+                <span className="sm:hidden">Fotos</span>
               </div>
               {abaSelecionada === 'fotos' && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
@@ -264,98 +270,45 @@ export default function Progresso() {
 
           {/* Conteúdo das Abas */}
           {abaSelecionada === 'medicoes' && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-gray-700 flex items-center justify-center">
-                  <Calendar className="h-4 w-4 text-white" />
+                <div className="h-5 w-5 sm:h-6 sm:w-6 rounded bg-gray-700 flex items-center justify-center">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                 </div>
-                <h2 className="text-base font-medium text-white">Histórico de Medições</h2>
+                <h2 className="text-sm sm:text-base font-medium text-white">Histórico de Medições</h2>
               </div>
 
               {evolucoes.length === 0 ? (
                 <Card className="border-gray-800 bg-gray-900/30">
-                  <div className="py-12 text-center">
-                    <Scale className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                    <h3 className="text-base font-medium text-gray-300 mb-2">Nenhuma medição registrada</h3>
-                    <p className="text-sm text-gray-400 mb-4">Comece a registrar suas medições para acompanhar seu progresso.</p>
-                    <Button onClick={() => setModalNovaEvolucao(true)} className="bg-blue-600 hover:bg-blue-700">
+                  <div className="py-8 sm:py-12 text-center px-4">
+                    <Scale className="h-10 w-10 sm:h-12 sm:w-12 text-gray-600 mx-auto mb-3 sm:mb-4" />
+                    <h3 className="text-sm sm:text-base font-medium text-gray-300 mb-2">Nenhuma medição registrada</h3>
+                    <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4">Comece a registrar suas medições para acompanhar seu progresso.</p>
+                    <Button 
+                      onClick={() => setModalNovaEvolucao(true)} 
+                      className="bg-blue-600 hover:bg-blue-700"
+                      size="sm"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Adicionar Primeira Medição
                     </Button>
                   </div>
                 </Card>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {evolucoes.map((evolucao) => (
                     <Card key={evolucao.id} className="border-gray-800 bg-gray-900/30">
-                      <div className="p-5">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
-                                <Calendar className="h-4 w-4 text-white" />
-                              </div>
-                              <p className="font-medium text-white text-sm">
-                                {new Date(evolucao.data + 'T00:00:00').toLocaleDateString('pt-BR', { 
-                                  day: '2-digit', month: 'long', year: 'numeric' 
-                                })}
-                              </p>
+                      <div className="p-3 sm:p-4 md:p-5">
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                            <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+                              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                             </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                              {evolucao.peso && (
-                                <div className="p-3 bg-gray-800/50 rounded-lg">
-                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Peso</p>
-                                  <p className="text-sm font-bold text-white">{evolucao.peso} kg</p>
-                                </div>
-                              )}
-                              {evolucao.gorduraCorporal && (
-                                <div className="p-3 bg-gray-800/50 rounded-lg">
-                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Gordura</p>
-                                  <p className="text-sm font-bold text-white">{evolucao.gorduraCorporal}%</p>
-                                </div>
-                              )}
-                              {evolucao.massaMuscular && (
-                                <div className="p-3 bg-gray-800/50 rounded-lg">
-                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Massa</p>
-                                  <p className="text-sm font-bold text-white">{evolucao.massaMuscular} kg</p>
-                                </div>
-                              )}
-                              {evolucao.peito && (
-                                <div className="p-3 bg-gray-800/50 rounded-lg">
-                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Peito</p>
-                                  <p className="text-sm font-bold text-white">{evolucao.peito} cm</p>
-                                </div>
-                              )}
-                              {evolucao.cintura && (
-                                <div className="p-3 bg-gray-800/50 rounded-lg">
-                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Cintura</p>
-                                  <p className="text-sm font-bold text-white">{evolucao.cintura} cm</p>
-                                </div>
-                              )}
-                              {evolucao.quadril && (
-                                <div className="p-3 bg-gray-800/50 rounded-lg">
-                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Quadril</p>
-                                  <p className="text-sm font-bold text-white">{evolucao.quadril} cm</p>
-                                </div>
-                              )}
-                              {evolucao.braco && (
-                                <div className="p-3 bg-gray-800/50 rounded-lg">
-                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Braço</p>
-                                  <p className="text-sm font-bold text-white">{evolucao.braco} cm</p>
-                                </div>
-                              )}
-                              {evolucao.coxa && (
-                                <div className="p-3 bg-gray-800/50 rounded-lg">
-                                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Coxa</p>
-                                  <p className="text-sm font-bold text-white">{evolucao.coxa} cm</p>
-                                </div>
-                              )}
-                            </div>
-                            {evolucao.observacoes && (
-                              <div className="mt-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
-                                <p className="text-sm text-gray-300">{evolucao.observacoes}</p>
-                              </div>
-                            )}
+                            <p className="font-medium text-white text-xs sm:text-sm truncate">
+                              {new Date(evolucao.data + 'T00:00:00').toLocaleDateString('pt-BR', { 
+                                day: '2-digit', month: 'short', year: 'numeric' 
+                              })}
+                            </p>
                           </div>
                           <Button 
                             variant="ghost" 
@@ -364,11 +317,66 @@ export default function Progresso() {
                               if (confirm('Deseja realmente excluir esta medição?')) 
                                 deletarEvolucao.mutate(evolucao.id); 
                             }} 
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 ml-3"
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-7 w-7 p-0"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                          {evolucao.peso && (
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Peso</p>
+                              <p className="text-xs sm:text-sm font-bold text-white">{evolucao.peso} kg</p>
+                            </div>
+                          )}
+                          {evolucao.gorduraCorporal && (
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Gordura</p>
+                              <p className="text-xs sm:text-sm font-bold text-white">{evolucao.gorduraCorporal}%</p>
+                            </div>
+                          )}
+                          {evolucao.massaMuscular && (
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Massa</p>
+                              <p className="text-xs sm:text-sm font-bold text-white">{evolucao.massaMuscular} kg</p>
+                            </div>
+                          )}
+                          {evolucao.peito && (
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Peito</p>
+                              <p className="text-xs sm:text-sm font-bold text-white">{evolucao.peito} cm</p>
+                            </div>
+                          )}
+                          {evolucao.cintura && (
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Cintura</p>
+                              <p className="text-xs sm:text-sm font-bold text-white">{evolucao.cintura} cm</p>
+                            </div>
+                          )}
+                          {evolucao.quadril && (
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Quadril</p>
+                              <p className="text-xs sm:text-sm font-bold text-white">{evolucao.quadril} cm</p>
+                            </div>
+                          )}
+                          {evolucao.braco && (
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Braço</p>
+                              <p className="text-xs sm:text-sm font-bold text-white">{evolucao.braco} cm</p>
+                            </div>
+                          )}
+                          {evolucao.coxa && (
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Coxa</p>
+                              <p className="text-xs sm:text-sm font-bold text-white">{evolucao.coxa} cm</p>
+                            </div>
+                          )}
+                        </div>
+                        {evolucao.observacoes && (
+                          <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
+                            <p className="text-xs sm:text-sm text-gray-300">{evolucao.observacoes}</p>
+                          </div>
+                        )}
                       </div>
                     </Card>
                   ))}
@@ -378,46 +386,46 @@ export default function Progresso() {
           )}
 
           {abaSelecionada === 'avaliacoes' && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded bg-gray-700 flex items-center justify-center">
-                  <Activity className="h-4 w-4 text-white" />
+                <div className="h-5 w-5 sm:h-6 sm:w-6 rounded bg-gray-700 flex items-center justify-center">
+                  <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                 </div>
-                <h2 className="text-base font-medium text-white">Avaliações Físicas Completas</h2>
+                <h2 className="text-sm sm:text-base font-medium text-white">Avaliações Físicas Completas</h2>
               </div>
 
               {avaliacoes.length === 0 ? (
                 <Card className="border-gray-800 bg-gray-900/30">
-                  <div className="py-12 text-center">
-                    <Activity className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                    <h3 className="text-base font-medium text-gray-300 mb-2">Nenhuma avaliação física registrada</h3>
-                    <p className="text-sm text-gray-400">Seu personal trainer realizará avaliações físicas completas periodicamente.</p>
+                  <div className="py-8 sm:py-12 text-center px-4">
+                    <Activity className="h-10 w-10 sm:h-12 sm:w-12 text-gray-600 mx-auto mb-3 sm:mb-4" />
+                    <h3 className="text-sm sm:text-base font-medium text-gray-300 mb-2">Nenhuma avaliação física registrada</h3>
+                    <p className="text-xs sm:text-sm text-gray-400">Seu personal trainer realizará avaliações físicas completas periodicamente.</p>
                   </div>
                 </Card>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {avaliacoes.map((avaliacao) => (
                     <Card key={avaliacao.id} className="border-gray-800 bg-gray-900/30">
-                      <div className="p-5">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
-                              <Activity className="h-5 w-5 text-white" />
+                      <div className="p-3 sm:p-4 md:p-5">
+                        <div className="flex items-center justify-between mb-3 sm:mb-4">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
+                              <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                             </div>
-                            <div>
-                              <p className="font-medium text-white text-sm">
+                            <div className="min-w-0">
+                              <p className="font-medium text-white text-xs sm:text-sm truncate">
                                 {new Date(avaliacao.data_avaliacao + 'T00:00:00').toLocaleDateString('pt-BR', { 
-                                  day: '2-digit', month: 'long', year: 'numeric' 
+                                  day: '2-digit', month: 'short', year: 'numeric' 
                                 })}
                               </p>
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
                                 {avaliacao.protocolo && (
-                                  <Badge variant="outline" className="text-xs border-0 bg-blue-500/10 text-blue-400">
+                                  <Badge variant="outline" className="text-[9px] sm:text-xs border-0 bg-blue-500/10 text-blue-400 px-1.5 py-0">
                                     {avaliacao.protocolo.replace('_', ' ').toUpperCase()}
                                   </Badge>
                                 )}
                                 {avaliacao.fixada && (
-                                  <Badge variant="outline" className="text-xs border-0 bg-yellow-500/10 text-yellow-400">
+                                  <Badge variant="outline" className="text-[9px] sm:text-xs border-0 bg-yellow-500/10 text-yellow-400 px-1.5 py-0">
                                     Fixada
                                   </Badge>
                                 )}
@@ -428,99 +436,99 @@ export default function Progresso() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setAvaliacaoExpandida(avaliacaoExpandida === avaliacao.id ? null : avaliacao.id)}
-                            className="text-gray-400 hover:text-white"
+                            className="text-gray-400 hover:text-white h-8 w-8 p-0"
                           >
                             {avaliacaoExpandida === avaliacao.id ? (
-                              <ChevronUp className="h-5 w-5" />
+                              <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5" />
                             ) : (
-                              <ChevronDown className="h-5 w-5" />
+                              <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
                             )}
                           </Button>
                         </div>
 
                         {/* Resumo Principal */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 sm:mb-4">
                           {avaliacao.peso && (
-                            <div className="p-3 bg-gray-800/50 rounded-lg">
-                              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Peso</p>
-                              <p className="text-lg font-bold text-white">{avaliacao.peso} kg</p>
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Peso</p>
+                              <p className="text-base sm:text-lg font-bold text-white">{avaliacao.peso} kg</p>
                             </div>
                           )}
                           {avaliacao.percentual_gordura && (
-                            <div className="p-3 bg-gray-800/50 rounded-lg">
-                              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">% Gordura</p>
-                              <p className="text-lg font-bold text-orange-500">{avaliacao.percentual_gordura}%</p>
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">% Gordura</p>
+                              <p className="text-base sm:text-lg font-bold text-orange-500">{avaliacao.percentual_gordura}%</p>
                             </div>
                           )}
                           {avaliacao.massa_magra && (
-                            <div className="p-3 bg-gray-800/50 rounded-lg">
-                              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">Massa Magra</p>
-                              <p className="text-lg font-bold text-green-500">{avaliacao.massa_magra} kg</p>
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">Massa Magra</p>
+                              <p className="text-base sm:text-lg font-bold text-green-500">{avaliacao.massa_magra} kg</p>
                             </div>
                           )}
                           {avaliacao.imc && (
-                            <div className="p-3 bg-gray-800/50 rounded-lg">
-                              <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">IMC</p>
-                              <p className="text-lg font-bold text-blue-500">{avaliacao.imc}</p>
+                            <div className="p-2 sm:p-3 bg-gray-800/50 rounded-lg">
+                              <p className="text-[9px] sm:text-[10px] text-gray-400 uppercase tracking-wide mb-0.5 sm:mb-1">IMC</p>
+                              <p className="text-base sm:text-lg font-bold text-blue-500">{avaliacao.imc}</p>
                             </div>
                           )}
                         </div>
 
                         {/* Detalhes Expandidos */}
                         {avaliacaoExpandida === avaliacao.id && (
-                          <div className="space-y-4 pt-4 border-t border-gray-800">
+                          <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t border-gray-800">
                             {/* Circunferências */}
                             {(avaliacao.circunferencia_pescoco || avaliacao.circunferencia_torax || 
                               avaliacao.circunferencia_cintura || avaliacao.circunferencia_abdomen) && (
                               <div>
-                                <h4 className="text-sm font-medium text-gray-300 mb-3">Circunferências (cm)</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <h4 className="text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-3">Circunferências (cm)</h4>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2">
                                   {avaliacao.circunferencia_pescoco && (
-                                    <div className="p-2 bg-gray-800/30 rounded text-center">
-                                      <p className="text-[10px] text-gray-500 mb-1">Pescoço</p>
-                                      <p className="text-sm text-white font-medium">{avaliacao.circunferencia_pescoco}</p>
+                                    <div className="p-1.5 sm:p-2 bg-gray-800/30 rounded text-center">
+                                      <p className="text-[9px] sm:text-[10px] text-gray-500 mb-0.5 sm:mb-1">Pescoço</p>
+                                      <p className="text-xs sm:text-sm text-white font-medium">{avaliacao.circunferencia_pescoco}</p>
                                     </div>
                                   )}
                                   {avaliacao.circunferencia_torax && (
-                                    <div className="p-2 bg-gray-800/30 rounded text-center">
-                                      <p className="text-[10px] text-gray-500 mb-1">Tórax</p>
-                                      <p className="text-sm text-white font-medium">{avaliacao.circunferencia_torax}</p>
+                                    <div className="p-1.5 sm:p-2 bg-gray-800/30 rounded text-center">
+                                      <p className="text-[9px] sm:text-[10px] text-gray-500 mb-0.5 sm:mb-1">Tórax</p>
+                                      <p className="text-xs sm:text-sm text-white font-medium">{avaliacao.circunferencia_torax}</p>
                                     </div>
                                   )}
                                   {avaliacao.circunferencia_cintura && (
-                                    <div className="p-2 bg-gray-800/30 rounded text-center">
-                                      <p className="text-[10px] text-gray-500 mb-1">Cintura</p>
-                                      <p className="text-sm text-white font-medium">{avaliacao.circunferencia_cintura}</p>
+                                    <div className="p-1.5 sm:p-2 bg-gray-800/30 rounded text-center">
+                                      <p className="text-[9px] sm:text-[10px] text-gray-500 mb-0.5 sm:mb-1">Cintura</p>
+                                      <p className="text-xs sm:text-sm text-white font-medium">{avaliacao.circunferencia_cintura}</p>
                                     </div>
                                   )}
                                   {avaliacao.circunferencia_abdomen && (
-                                    <div className="p-2 bg-gray-800/30 rounded text-center">
-                                      <p className="text-[10px] text-gray-500 mb-1">Abdômen</p>
-                                      <p className="text-sm text-white font-medium">{avaliacao.circunferencia_abdomen}</p>
+                                    <div className="p-1.5 sm:p-2 bg-gray-800/30 rounded text-center">
+                                      <p className="text-[9px] sm:text-[10px] text-gray-500 mb-0.5 sm:mb-1">Abdômen</p>
+                                      <p className="text-xs sm:text-sm text-white font-medium">{avaliacao.circunferencia_abdomen}</p>
                                     </div>
                                   )}
                                   {avaliacao.circunferencia_quadril && (
-                                    <div className="p-2 bg-gray-800/30 rounded text-center">
-                                      <p className="text-[10px] text-gray-500 mb-1">Quadril</p>
-                                      <p className="text-sm text-white font-medium">{avaliacao.circunferencia_quadril}</p>
+                                    <div className="p-1.5 sm:p-2 bg-gray-800/30 rounded text-center">
+                                      <p className="text-[9px] sm:text-[10px] text-gray-500 mb-0.5 sm:mb-1">Quadril</p>
+                                      <p className="text-xs sm:text-sm text-white font-medium">{avaliacao.circunferencia_quadril}</p>
                                     </div>
                                   )}
                                   {avaliacao.circunferencia_braco_direito && (
-                                    <div className="p-2 bg-gray-800/30 rounded text-center">
-                                      <p className="text-[10px] text-gray-500 mb-1">Braço D</p>
-                                      <p className="text-sm text-white font-medium">{avaliacao.circunferencia_braco_direito}</p>
+                                    <div className="p-1.5 sm:p-2 bg-gray-800/30 rounded text-center">
+                                      <p className="text-[9px] sm:text-[10px] text-gray-500 mb-0.5 sm:mb-1">Braço D</p>
+                                      <p className="text-xs sm:text-sm text-white font-medium">{avaliacao.circunferencia_braco_direito}</p>
                                     </div>
                                   )}
                                   {avaliacao.circunferencia_coxa_direita && (
-                                    <div className="p-2 bg-gray-800/30 rounded text-center">
-                                      <p className="text-[10px] text-gray-500 mb-1">Coxa D</p>
-                                      <p className="text-sm text-white font-medium">{avaliacao.circunferencia_coxa_direita}</p>
+                                    <div className="p-1.5 sm:p-2 bg-gray-800/30 rounded text-center">
+                                      <p className="text-[9px] sm:text-[10px] text-gray-500 mb-0.5 sm:mb-1">Coxa D</p>
+                                      <p className="text-xs sm:text-sm text-white font-medium">{avaliacao.circunferencia_coxa_direita}</p>
                                     </div>
                                   )}
                                   {avaliacao.circunferencia_panturrilha_direita && (
-                                    <div className="p-2 bg-gray-800/30 rounded text-center">
-                                      <p className="text-[10px] text-gray-500 mb-1">Panturrilha D</p>
-                                      <p className="text-sm text-white font-medium">{avaliacao.circunferencia_panturrilha_direita}</p>
+                                    <div className="p-1.5 sm:p-2 bg-gray-800/30 rounded text-center">
+                                      <p className="text-[9px] sm:text-[10px] text-gray-500 mb-0.5 sm:mb-1">Panturrilha D</p>
+                                      <p className="text-xs sm:text-sm text-white font-medium">{avaliacao.circunferencia_panturrilha_direita}</p>
                                     </div>
                                   )}
                                 </div>
@@ -530,8 +538,8 @@ export default function Progresso() {
                             {/* Dobras Cutâneas */}
                             {(avaliacao.dobra_triceps || avaliacao.dobra_peitoral || avaliacao.dobra_abdominal) && (
                               <div>
-                                <h4 className="text-sm font-medium text-gray-300 mb-3">Dobras Cutâneas (mm)</h4>
-                                <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                                <h4 className="text-xs sm:text-sm font-medium text-gray-300 mb-2 sm:mb-3">Dobras Cutâneas (mm)</h4>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 sm:gap-2">
                                   {avaliacao.dobra_triceps && (
                                     <div className="p-2 bg-gray-800/30 rounded text-center">
                                       <p className="text-[10px] text-gray-500 mb-1">Tríceps</p>
