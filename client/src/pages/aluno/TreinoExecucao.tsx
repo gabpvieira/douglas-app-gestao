@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Check, X, Save } from "lucide-react";
+import { Check, X, Save, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AlunoLayout from "@/components/aluno/AlunoLayout";
 import TreinoHeader from "@/components/aluno/TreinoHeader";
 import ExercicioCard from "@/components/aluno/ExercicioCard";
 import RestTimer from "@/components/aluno/RestTimer";
+import MinimizedWorkout from "@/components/aluno/MinimizedWorkout";
 import FinalizarTreinoModal from "@/components/aluno/FinalizarTreinoModal";
 import { FeedbackTreinoModal } from "@/components/FeedbackTreinoModal";
 import { useQuery } from "@tanstack/react-query";
@@ -21,11 +22,12 @@ export default function TreinoExecucao() {
   const fichaAlunoId = params?.fichaAlunoId;
 
   const [exercicios, setExercicios] = useState<ExercicioEmAndamento[]>([]);
-  const [restTimer, setRestTimer] = useState<{ ativo: boolean; tempo: number; exercicioId: string } | null>(null);
+  const [restTimer, setRestTimer] = useState<{ ativo: boolean; tempo: number; exercicioId: string; exercicioNome: string } | null>(null);
   const [modalFinalizar, setModalFinalizar] = useState(false);
   const [modalFeedback, setModalFeedback] = useState(false);
   const [treinoIniciado, setTreinoIniciado] = useState(false);
   const [treinoFinalizadoId, setTreinoFinalizadoId] = useState<string | null>(null);
+  const [minimizado, setMinimizado] = useState(false);
   const { toast } = useToast();
   const createFeedback = useCreateFeedback();
   
@@ -125,24 +127,38 @@ export default function TreinoExecucao() {
     }
   }, [exercicios, treinoIniciado, atualizarExercicios]);
 
-  // Tempo decorrido atualizado
+  // Tempo decorrido atualizado (baseado em timestamp - funciona em background)
   const [tempoDecorrido, setTempoDecorrido] = useState(0);
+  
   useEffect(() => {
-    if (!treinoEmAndamento || treinoEmAndamento.pausado) return;
+    if (!treinoEmAndamento) return;
 
+    // Atualizar imediatamente
+    setTempoDecorrido(calcularTempoDecorrido());
+
+    // Se pausado, não precisa continuar atualizando
+    if (treinoEmAndamento.pausado) return;
+
+    // Atualizar a cada 500ms para maior precisão e responsividade
     const interval = setInterval(() => {
       setTempoDecorrido(calcularTempoDecorrido());
-    }, 1000);
+    }, 500);
 
     return () => clearInterval(interval);
-  }, [treinoEmAndamento, calcularTempoDecorrido]);
+  }, [treinoEmAndamento, treinoEmAndamento?.pausado, calcularTempoDecorrido]);
 
-  // Atualizar tempo quando pausado
+  // Atualizar tempo quando a página volta a ficar visível (Page Visibility API)
   useEffect(() => {
-    if (treinoEmAndamento?.pausado) {
-      setTempoDecorrido(calcularTempoDecorrido());
-    }
-  }, [treinoEmAndamento?.pausado, calcularTempoDecorrido]);
+    const handleVisibilityChange = () => {
+      if (!document.hidden && treinoEmAndamento && !treinoEmAndamento.pausado) {
+        // Atualizar imediatamente quando voltar à aba
+        setTempoDecorrido(calcularTempoDecorrido());
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [treinoEmAndamento, calcularTempoDecorrido]);
 
 
   const handleSerieCompleta = (exercicioId: string, numeroSerie: number) => {
@@ -160,6 +176,7 @@ export default function TreinoExecucao() {
               ativo: true,
               tempo: ex.descanso,
               exercicioId: ex.id,
+              exercicioNome: ex.nome,
             });
           }
 
@@ -191,6 +208,14 @@ export default function TreinoExecucao() {
 
   const handlePausar = () => {
     togglePausado(!treinoEmAndamento?.pausado);
+  };
+
+  const handleMinimizar = () => {
+    setMinimizado(true);
+    toast({
+      title: "Treino minimizado",
+      description: "Continue navegando. O timer continuará rodando.",
+    });
   };
 
   const handleVoltar = () => {
@@ -282,6 +307,32 @@ export default function TreinoExecucao() {
     setLocation("/aluno/treinos");
   };
 
+  // Calcular tempo restante do timer para o modo minimizado
+  const [timerDescansoMinimizado, setTimerDescansoMinimizado] = useState<{
+    tempoRestante: number;
+    exercicioNome: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (restTimer?.ativo) {
+      const exercicio = exercicios.find(ex => ex.id === restTimer.exercicioId);
+      if (exercicio) {
+        // Atualizar a cada segundo
+        const interval = setInterval(() => {
+          // O RestTimer já calcula baseado em timestamp, então pegamos o tempo atual
+          setTimerDescansoMinimizado({
+            tempoRestante: restTimer.tempo,
+            exercicioNome: exercicio.nome,
+          });
+        }, 1000);
+        
+        return () => clearInterval(interval);
+      }
+    } else {
+      setTimerDescansoMinimizado(null);
+    }
+  }, [restTimer, exercicios]);
+
   const exerciciosConcluidos = exercicios.filter((ex) =>
     ex.seriesRealizadas.every((s) => s.concluida)
   ).length;
@@ -347,6 +398,20 @@ export default function TreinoExecucao() {
     );
   }
 
+  // Modo minimizado
+  if (minimizado) {
+    return (
+      <MinimizedWorkout
+        nomeFicha={ficha.fichas_treino?.nome || "Treino"}
+        tempoDecorrido={tempoDecorrido}
+        pausado={treinoEmAndamento?.pausado || false}
+        timerDescanso={timerDescansoMinimizado}
+        onExpand={() => setMinimizado(false)}
+        onTogglePause={handlePausar}
+      />
+    );
+  }
+
   return (
     <AlunoLayout>
       <div className="max-w-4xl mx-auto space-y-4 pb-24 px-4 sm:px-0">
@@ -360,6 +425,19 @@ export default function TreinoExecucao() {
           onPausar={handlePausar}
           onVoltar={handleVoltar}
         />
+
+        {/* Botão Minimizar */}
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleMinimizar}
+            className="gap-2"
+          >
+            <Minimize2 className="h-4 w-4" />
+            Minimizar Treino
+          </Button>
+        </div>
 
         {/* Indicador de salvamento */}
         {salvando && (
@@ -430,6 +508,7 @@ export default function TreinoExecucao() {
         {restTimer?.ativo && (
           <RestTimer
             tempoInicial={restTimer.tempo}
+            exercicioNome={restTimer.exercicioNome}
             onSkip={() => setRestTimer(null)}
             onComplete={() => setRestTimer(null)}
           />

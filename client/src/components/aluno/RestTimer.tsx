@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
@@ -6,15 +6,61 @@ interface RestTimerProps {
   tempoInicial: number;
   onSkip: () => void;
   onComplete: () => void;
+  exercicioNome?: string;
 }
 
-export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTimerProps) {
+export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioNome }: RestTimerProps) {
+  // Timer baseado em timestamp para funcionar em background
+  const [startTime] = useState(() => Date.now());
+  const [duration] = useState(tempoInicial);
   const [tempoRestante, setTempoRestante] = useState(tempoInicial);
   const [completo, setCompleto] = useState(false);
+  const notificationSentRef = useRef(false);
+
+  // Calcular tempo restante baseado em timestamp
+  const calculateTimeRemaining = () => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const remaining = Math.max(0, duration - elapsed);
+    return remaining;
+  };
+
+  // Solicitar permissão de notificação (apenas uma vez)
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Enviar notificação quando completar
+  const sendNotification = () => {
+    if (notificationSentRef.current) return;
+    notificationSentRef.current = true;
+
+    // Notificação do navegador
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const notification = new Notification('Descanso Completo! 💪', {
+        body: exercicioNome 
+          ? `Pronto para a próxima série de ${exercicioNome}`
+          : 'Pronto para a próxima série',
+        icon: '/icon-192.png',
+        badge: '/icon-72.png',
+        vibrate: [200, 100, 200],
+        tag: 'rest-timer',
+        requireInteraction: false,
+        silent: false,
+      });
+
+      // Focar na aba quando clicar na notificação
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    }
+  };
 
   // Criar áudio de notificação
-  useEffect(() => {
-    const createBeep = () => {
+  const playBeep = () => {
+    try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
@@ -30,10 +76,16 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.5);
-    };
+    } catch (error) {
+      console.error('Erro ao tocar som:', error);
+    }
+  };
 
+  // Efeito quando completar
+  useEffect(() => {
     if (completo) {
-      createBeep();
+      playBeep();
+      sendNotification();
       
       if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
@@ -47,26 +99,22 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
     }
   }, [completo, onComplete]);
 
-  // Timer countdown
+  // Timer countdown baseado em timestamp
   useEffect(() => {
-    if (tempoRestante <= 0 && !completo) {
-      setCompleto(true);
-      return;
-    }
-
     if (completo) return;
 
+    // Atualizar a cada 100ms para maior precisão
     const interval = setInterval(() => {
-      setTempoRestante((prev) => {
-        if (prev <= 1) {
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      const remaining = calculateTimeRemaining();
+      setTempoRestante(remaining);
+
+      if (remaining <= 0 && !completo) {
+        setCompleto(true);
+      }
+    }, 100);
 
     return () => clearInterval(interval);
-  }, [tempoRestante, completo]);
+  }, [completo]);
 
   const formatarTempo = (segundos: number) => {
     const mins = Math.floor(segundos / 60);
@@ -74,7 +122,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete }: RestTime
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const porcentagem = ((tempoInicial - tempoRestante) / tempoInicial) * 100;
+  const porcentagem = ((duration - tempoRestante) / duration) * 100;
 
   return (
     <div

@@ -7,6 +7,11 @@ import resultado4 from "@assets/../imagens/resultado-aluno (4).jpeg";
 import resultado5 from "@assets/../imagens/resultado-aluno (5).jpeg";
 import resultado6 from "@assets/../imagens/resultado-aluno (6).jpeg";
 import resultado7 from "@assets/../imagens/resultado-aluno (7).jpeg";
+import resultado8 from "@assets/../imagens/resultado-aluno (8).jpg";
+import resultado9 from "@assets/../imagens/resultado-aluno (9).jpg";
+import resultado10 from "@assets/../imagens/resultado-aluno (10).jpg";
+import resultado11 from "@assets/../imagens/resultado-aluno (11).jpg";
+import resultado12 from "@assets/../imagens/resultado-aluno (12).jpg";
 
 export default function ResultsSection() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -19,7 +24,12 @@ export default function ResultsSection() {
     { image: resultado4 },
     { image: resultado5 },
     { image: resultado6 },
-    { image: resultado7 }
+    { image: resultado7 },
+    { image: resultado8 },
+    { image: resultado9 },
+    { image: resultado10 },
+    { image: resultado11 },
+    { image: resultado12 }
   ];
 
   // Auto-play para mobile

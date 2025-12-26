@@ -59,6 +59,7 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
     { nome: 'Frango Desfiado', unidade: 'g', calorias: 1.65, proteinas: 0.31, carboidratos: 0, gorduras: 0.036, categoria: 'proteinas' },
     { nome: 'Frango Grelhado', unidade: 'g', calorias: 1.65, proteinas: 0.31, carboidratos: 0, gorduras: 0.036, categoria: 'proteinas' },
     { nome: 'Frango Assado', unidade: 'g', calorias: 1.90, proteinas: 0.27, carboidratos: 0, gorduras: 0.08, categoria: 'proteinas' },
+    { nome: 'Presunto', unidade: 'fatia', calorias: 45, proteinas: 5, carboidratos: 1, gorduras: 2.5, categoria: 'proteinas' },
     { nome: 'Carne Moída', unidade: 'g', calorias: 2.50, proteinas: 0.26, carboidratos: 0, gorduras: 0.15, categoria: 'proteinas' },
     { nome: 'Carne Vermelha Magra', unidade: 'g', calorias: 2.50, proteinas: 0.26, carboidratos: 0, gorduras: 0.15, categoria: 'proteinas' },
     { nome: 'Ovo Cozido', unidade: 'unidade', calorias: 70, proteinas: 6, carboidratos: 0.6, gorduras: 5, categoria: 'proteinas' },
@@ -74,6 +75,7 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
     { nome: 'Arroz Branco', unidade: 'g', calorias: 1.30, proteinas: 0.027, carboidratos: 0.28, gorduras: 0.003, categoria: 'carboidratos' },
     { nome: 'Arroz', unidade: 'g', calorias: 1.30, proteinas: 0.027, carboidratos: 0.28, gorduras: 0.003, categoria: 'carboidratos' },
     { nome: 'Feijão', unidade: 'g', calorias: 0.77, proteinas: 0.05, carboidratos: 0.14, gorduras: 0.005, categoria: 'carboidratos' },
+    { nome: 'Cuscuz', unidade: 'g', calorias: 1.12, proteinas: 0.038, carboidratos: 0.23, gorduras: 0.002, categoria: 'carboidratos' },
     { nome: 'Batata Doce', unidade: 'g', calorias: 0.86, proteinas: 0.02, carboidratos: 0.20, gorduras: 0.001, categoria: 'carboidratos' },
     { nome: 'Batata Inglesa', unidade: 'g', calorias: 0.77, proteinas: 0.02, carboidratos: 0.17, gorduras: 0.001, categoria: 'carboidratos' },
     { nome: 'Mandioca', unidade: 'g', calorias: 1.60, proteinas: 0.014, carboidratos: 0.38, gorduras: 0.003, categoria: 'carboidratos' },
@@ -103,6 +105,7 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
     { nome: 'Abacate', unidade: 'unidade', calorias: 160, proteinas: 2, carboidratos: 9, gorduras: 15, categoria: 'frutas' },
     
     // Vegetais
+    { nome: 'Alface', unidade: 'g', calorias: 0.15, proteinas: 0.014, carboidratos: 0.029, gorduras: 0.002, categoria: 'vegetais' },
     { nome: 'Tomate', unidade: 'unidade', calorias: 18, proteinas: 0.9, carboidratos: 3.9, gorduras: 0.2, categoria: 'vegetais' },
     { nome: 'Abóbora', unidade: 'g', calorias: 0.26, proteinas: 0.01, carboidratos: 0.07, gorduras: 0.001, categoria: 'vegetais' },
     { nome: 'Cenoura', unidade: 'g', calorias: 0.41, proteinas: 0.009, carboidratos: 0.10, gorduras: 0.002, categoria: 'vegetais' },

@@ -29,6 +29,7 @@ import FichasTreino from "./pages/admin/FichasTreino";
 import AvaliacoesFisicas from "./pages/admin/AvaliacoesFisicas";
 import AvaliacoesPosturais from "./pages/admin/AvaliacoesPosturais";
 import FeedbacksTreinos from "./pages/admin/FeedbacksTreinos";
+import ProgressoTreinos from "./pages/admin/ProgressoTreinos";
 import NotFound from "@/pages/not-found";
 import Login from "./pages/Login";
 import AlunoDashboard from "./pages/aluno/Dashboard";
@@ -106,6 +107,7 @@ function AdminLayout({ userName, onLogout }: {
           <Route path="/admin/planos-alimentares" component={PlanosAlimentares} />
           <Route path="/admin/pagamentos" component={PagamentosAdmin} />
           <Route path="/admin/feedbacks" component={FeedbacksTreinos} />
+          <Route path="/admin/progresso-treinos" component={ProgressoTreinos} />
           <Route>
             <NotFound />
           </Route>

@@ -12,7 +12,8 @@ import {
   X,
   ChevronRight,
   Activity,
-  Star
+  Star,
+  TrendingUp
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,11 @@ const menuItems = [
     icon: Star, 
     label: "Feedbacks de Treinos", 
     href: "/admin/feedbacks"
+  },
+  { 
+    icon: TrendingUp, 
+    label: "Progresso de Treinos", 
+    href: "/admin/progresso-treinos"
   },
   { 
     icon: Calendar, 

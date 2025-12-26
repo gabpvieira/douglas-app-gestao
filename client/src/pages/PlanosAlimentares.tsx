@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Target, Activity, Users, ChefHat, Filter, Search, LayoutGrid, List, Eye, Edit, Trash2, Copy, Utensils } from 'lucide-react';
 import { PlanoAlimentarModal } from '@/components/PlanoAlimentarModal';
@@ -79,7 +78,6 @@ export default function PlanosAlimentares() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroObjetivo, setFiltroObjetivo] = useState<string>('todos');
   const [filtroCategoria, setFiltroCategoria] = useState<string>('todos');
-  const [activeTab, setActiveTab] = useState('planos');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
   // Buscar todos os planos (sem filtro de aluno)
@@ -495,59 +493,40 @@ export default function PlanosAlimentares() {
           </CardContent>
         </Card>
 
-        {/* Tabs - Redesenhadas */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 gap-3 bg-transparent border-0 p-0">
-            <TabsTrigger 
-              value="planos" 
-              className="flex items-center justify-center gap-2 text-sm py-3 px-4 data-[state=active]:bg-blue-600 data-[state=inactive]:bg-gray-800/50 data-[state=inactive]:text-gray-400 data-[state=active]:text-white rounded-lg border border-gray-700 data-[state=active]:border-blue-500 transition-all hover:bg-gray-800/70"
-            >
-              <ChefHat className="h-4 w-4 flex-shrink-0" />
-              <span className="font-semibold">Planos</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="alunos" 
-              className="flex items-center justify-center gap-2 text-sm py-3 px-4 data-[state=active]:bg-purple-600 data-[state=inactive]:bg-gray-800/50 data-[state=inactive]:text-gray-400 data-[state=active]:text-white rounded-lg border border-gray-700 data-[state=active]:border-purple-500 transition-all hover:bg-gray-800/70"
-            >
-              <Users className="h-4 w-4 flex-shrink-0" />
-              <span className="font-semibold">Alunos</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="planos" className="space-y-3 sm:space-y-4 mt-6 sm:mt-4">
-            {loading ? (
-              <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
-                <CardContent className="py-12 text-center">
-                  <p className="text-gray-400 text-sm">Carregando planos...</p>
-                </CardContent>
-              </Card>
-            ) : planosFiltrados.length === 0 ? (
-              <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
-                <CardContent className="py-12 text-center p-6">
-                  <ChefHat className="h-12 w-12 mx-auto text-gray-600 mb-4" />
-                  <h3 className="text-lg font-semibold mb-2 text-white">
-                    {searchTerm ? 'Nenhum plano encontrado' : 'Nenhum plano cadastrado'}
-                  </h3>
-                  <p className="text-gray-400 mb-4 text-sm">
-                    {searchTerm 
-                      ? 'Tente buscar por outro termo.'
-                      : 'Comece criando o primeiro plano alimentar.'
-                    }
-                  </p>
-                  {!searchTerm && (
-                    <Button 
-                      onClick={handleCriarPlano}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      data-testid="button-add-first-plano"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Plano
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ) : viewMode === 'list' ? (
-              /* VISUALIZAÇÃO EM LISTA */
+        {/* Conteúdo Principal - Planos */}
+        {loading ? (
+          <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+            <CardContent className="py-12 text-center">
+              <p className="text-gray-400 text-sm">Carregando planos...</p>
+            </CardContent>
+          </Card>
+        ) : planosFiltrados.length === 0 ? (
+          <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
+            <CardContent className="py-12 text-center p-6">
+              <ChefHat className="h-12 w-12 mx-auto text-gray-600 mb-4" />
+              <h3 className="text-lg font-semibold mb-2 text-white">
+                {searchTerm ? 'Nenhum plano encontrado' : 'Nenhum plano cadastrado'}
+              </h3>
+              <p className="text-gray-400 mb-4 text-sm">
+                {searchTerm 
+                  ? 'Tente buscar por outro termo.'
+                  : 'Comece criando o primeiro plano alimentar.'
+                }
+              </p>
+              {!searchTerm && (
+                <Button 
+                  onClick={handleCriarPlano}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  data-testid="button-add-first-plano"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Plano
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : viewMode === 'list' ? (
+          /* VISUALIZAÇÃO EM LISTA */
               <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
                 <CardContent className="p-0">
                   <div className="divide-y divide-gray-800">
@@ -741,57 +720,6 @@ export default function PlanosAlimentares() {
                 ))}
               </div>
             )}
-          </TabsContent>
-          
-          <TabsContent value="alunos" className="space-y-3 sm:space-y-4 mt-6 sm:mt-4">
-            {loading ? (
-              <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
-                <CardContent className="py-8">
-                  <div className="text-center text-gray-500 text-sm">
-                    Carregando alunos...
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {alunos?.map((aluno) => {
-                  const planosDoAluno = planos?.filter(p => p.alunosAtribuidos?.includes(aluno.id)) || [];
-                  return (
-                    <Card key={aluno.id} className="border-gray-700 bg-gray-800/30 hover:bg-gray-800/50 transition-colors">
-                      <CardHeader className="p-3 sm:p-4">
-                        <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1 min-w-0">
-                            <CardTitle className="text-base sm:text-lg text-white truncate">{aluno.nome}</CardTitle>
-                            <CardDescription className="text-xs sm:text-sm text-gray-400 truncate">{aluno.email}</CardDescription>
-                          </div>
-                          <Badge variant={aluno.ativo ? "default" : "secondary"} className="text-[10px] sm:text-xs flex-shrink-0">
-                            {aluno.ativo ? "Ativo" : "Inativo"}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-3 sm:p-4 pt-0">
-                        <div className="space-y-2">
-                          <p className="text-xs sm:text-sm text-gray-400">
-                            <strong className="text-gray-300">Planos:</strong> {planosDoAluno.length}
-                          </p>
-                          {planosDoAluno.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {planosDoAluno.map(plano => (
-                                <Badge key={plano.id} variant="outline" className="text-[10px] border-gray-600 text-gray-300">
-                                  {plano.nome}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
 
         {/* Modals */}
         <PlanoAlimentarModal
