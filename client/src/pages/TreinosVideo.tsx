@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Video, Users, Clock, Search, Filter, LayoutGrid, List, Play, Edit, Trash2, Target } from 'lucide-react';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Video, Users, Clock, Search, Filter, LayoutGrid, List, Play, Edit, Trash2, Target, X } from 'lucide-react';
 import { TreinoVideoModal } from '@/components/TreinoVideoModal';
 import { TreinoVideosList } from '@/components/TreinoVideosList';
 import { VideoPlayerModal } from '@/components/VideoPlayerModal';
@@ -11,6 +12,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useTreinosVideo, useDeleteTreinoVideo, useUpdateTreinoVideo, useUploadTreinoVideo, useReplaceVideoFile } from '@/hooks/useTreinosVideo';
 import { useAlunos } from '@/hooks/useAlunos';
 import PageHeader from '@/components/PageHeader';
+import { DIVISOES_AGRUPADAS, getDivisaoStyle } from '@/constants/divisoesTreino';
 
 type ViewMode = 'grid' | 'list';
 
@@ -29,6 +31,7 @@ interface TreinoVideo {
   duracao: number;
   videoUrl?: string;
   videoFile?: File;
+  thumbnailFile?: File;
   thumbnail?: string;
   alunosComAcesso: string[];
   dataCriacao: Date;
@@ -44,6 +47,7 @@ export function TreinosVideo() {
   const [treinoParaDeletar, setTreinoParaDeletar] = useState<TreinoVideo | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filtroDivisao, setFiltroDivisao] = useState<string>('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
   const { data: videosSupabase = [], isLoading: loadingTreinos, refetch } = useTreinosVideo();
@@ -59,7 +63,6 @@ export function TreinosVideo() {
       nome: video.nome,
       urlVideo: video.urlVideo,
       thumbnailUrl: video.thumbnailUrl,
-      thumbnail_url: video.thumbnail_url,
       allKeys: Object.keys(video)
     });
     
@@ -76,8 +79,8 @@ export function TreinosVideo() {
       console.error('Data inválida para vídeo:', video.id, video.dataUpload);
     }
     
-    // Tentar diferentes formatos de nome de campo para thumbnail
-    const thumbnailUrl = video.thumbnailUrl || video.thumbnail_url || video.thumbnailurl || undefined;
+    // Usar thumbnailUrl já convertido pelo hook
+    const thumbnailUrl = video.thumbnailUrl || undefined;
     
     console.log('🖼️ Thumbnail URL final:', thumbnailUrl);
     
@@ -88,7 +91,7 @@ export function TreinosVideo() {
       divisaoMuscular: video.objetivo || '',
       nivel: 'intermediario' as const,
       duracao: video.duracao || 0,
-      videoUrl: video.urlVideo || video.url_video,
+      videoUrl: video.urlVideo,
       thumbnail: thumbnailUrl,
       alunosComAcesso: [],
       dataCriacao,
@@ -104,14 +107,24 @@ export function TreinosVideo() {
   }));
 
   const filteredTreinos = useMemo(() => {
-    if (!searchTerm.trim()) return treinos;
+    let resultado = treinos;
     
-    const search = searchTerm.toLowerCase();
-    return treinos.filter(treino =>
-      treino.titulo.toLowerCase().includes(search) ||
-      treino.divisaoMuscular.toLowerCase().includes(search)
-    );
-  }, [treinos, searchTerm]);
+    // Filtro por divisão muscular
+    if (filtroDivisao && filtroDivisao !== 'all') {
+      resultado = resultado.filter(treino => treino.divisaoMuscular === filtroDivisao);
+    }
+    
+    // Filtro por busca textual
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      resultado = resultado.filter(treino =>
+        treino.titulo.toLowerCase().includes(search) ||
+        treino.divisaoMuscular.toLowerCase().includes(search)
+      );
+    }
+    
+    return resultado;
+  }, [treinos, searchTerm, filtroDivisao]);
 
   const handleNovoTreino = () => {
     setTreinoEditando(null);
@@ -347,23 +360,85 @@ export function TreinosVideo() {
           </div>
         </div>
 
-        {/* Filtro de Busca */}
+        {/* Filtros */}
         <Card className="border-gray-800 bg-gray-900/50 backdrop-blur">
           <CardContent className="p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
-              <Input
-                placeholder="Buscar por título ou divisão muscular..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-                data-testid="input-search-videos"
-              />
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Busca por texto */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                <Input
+                  placeholder="Buscar por título..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  data-testid="input-search-videos"
+                />
+              </div>
+              
+              {/* Filtro por divisão muscular */}
+              <div className="w-full sm:w-64">
+                <Select
+                  value={filtroDivisao}
+                  onValueChange={setFiltroDivisao}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white h-10">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-gray-500" />
+                      <SelectValue placeholder="Filtrar por divisão" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 max-h-80">
+                    <SelectItem value="all" className="text-white hover:bg-gray-700 focus:bg-gray-700">
+                      Todas as divisões
+                    </SelectItem>
+                    {DIVISOES_AGRUPADAS.map((grupo) => (
+                      <SelectGroup key={grupo.label}>
+                        <SelectLabel className="text-xs font-semibold text-gray-400 px-2 py-1.5 uppercase tracking-wider">
+                          {grupo.label}
+                        </SelectLabel>
+                        {grupo.options.map((divisao) => (
+                          <SelectItem 
+                            key={divisao} 
+                            value={divisao} 
+                            className="text-white hover:bg-gray-700 focus:bg-gray-700 pl-4"
+                          >
+                            {divisao}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Botão limpar filtros */}
+              {(searchTerm || filtroDivisao) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFiltroDivisao('');
+                  }}
+                  className="border-gray-700 text-gray-400 hover:text-white hover:bg-gray-800 h-10 px-3"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Limpar
+                </Button>
+              )}
             </div>
-            {searchTerm && (
-              <p className="text-xs text-gray-400 mt-2">
-                {filteredTreinos.length} {filteredTreinos.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}
-              </p>
+            
+            {/* Contador de resultados */}
+            {(searchTerm || filtroDivisao) && (
+              <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
+                <span>{filteredTreinos.length} {filteredTreinos.length === 1 ? 'resultado' : 'resultados'}</span>
+                {filtroDivisao && filtroDivisao !== 'all' && (
+                  <Badge variant="secondary" className="bg-gray-700 text-gray-300 text-xs">
+                    {filtroDivisao}
+                  </Badge>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

@@ -89,20 +89,35 @@ export function useCriarAvaliacaoPostural() {
       fotoLateralDirUrl?: string;
       fotoLateralEsqUrl?: string;
     }) => {
+      console.log('Criando avaliação postural com fotos:', data);
+      
+      const insertData = {
+        avaliacao_id: data.avaliacaoId,
+        observacoes: data.observacoes || null,
+        foto_frente_url: data.fotoFrenteUrl || null,
+        foto_costas_url: data.fotoCostasUrl || null,
+        foto_lateral_dir_url: data.fotoLateralDirUrl || null,
+        foto_lateral_esq_url: data.fotoLateralEsqUrl || null,
+      };
+      
+      console.log('Dados para inserção:', insertData);
+      
       const { data: result, error } = await supabase
         .from('avaliacoes_posturais')
-        .insert({
-          avaliacao_id: data.avaliacaoId,
-          observacoes: data.observacoes,
-          foto_frente_url: data.fotoFrenteUrl,
-          foto_costas_url: data.fotoCostasUrl,
-          foto_lateral_dir_url: data.fotoLateralDirUrl,
-          foto_lateral_esq_url: data.fotoLateralEsqUrl,
-        })
+        .insert(insertData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao criar avaliação postural:', error);
+        throw new Error(`Erro ao salvar: ${error.message}`);
+      }
+      
+      if (!result) {
+        throw new Error('Nenhum dado retornado após inserção');
+      }
+      
+      console.log('Avaliação postural criada com sucesso:', result);
       return result;
     },
     onSuccess: () => {
@@ -168,27 +183,45 @@ export function useDeletarAvaliacaoPostural() {
 
 // Upload de foto postural
 export async function uploadFotoPostural(file: File, alunoId: string, tipo: string): Promise<string> {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${tipo}_${Date.now()}.${fileExt}`;
-  const filePath = `${alunoId}/${fileName}`;
+  const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+  const fileName = `postural_${tipo}_${Date.now()}.${fileExt}`;
+  const filePath = `avaliacoes/${alunoId}/${fileName}`;
+
+  console.log('Iniciando upload de foto postural:', { filePath, fileSize: file.size, fileType: file.type });
 
   // Tentar fazer upload
-  const { error: uploadError } = await supabase.storage
+  const { data: uploadData, error: uploadError } = await supabase.storage
     .from('fotos-progresso')
     .upload(filePath, file, {
       cacheControl: '3600',
-      upsert: false
+      upsert: true, // Permite sobrescrever se existir
+      contentType: file.type,
     });
 
   if (uploadError) {
     console.error('Erro no upload:', uploadError);
-    throw uploadError;
+    
+    // Verificar se é erro de bucket não encontrado
+    if (uploadError.message?.includes('Bucket not found')) {
+      throw new Error('Bucket de armazenamento não configurado. Contate o administrador.');
+    }
+    
+    // Verificar se é erro de permissão
+    if (uploadError.message?.includes('not authorized') || uploadError.message?.includes('policy')) {
+      throw new Error('Sem permissão para fazer upload. Verifique as políticas do bucket.');
+    }
+    
+    throw new Error(`Erro no upload: ${uploadError.message}`);
   }
+
+  console.log('Upload concluído:', uploadData);
 
   // Obter URL pública
   const { data } = supabase.storage
     .from('fotos-progresso')
     .getPublicUrl(filePath);
 
+  console.log('URL pública gerada:', data.publicUrl);
+  
   return data.publicUrl;
 }

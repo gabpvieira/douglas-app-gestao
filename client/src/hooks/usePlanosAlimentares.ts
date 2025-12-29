@@ -24,6 +24,7 @@ interface CreatePlanoData {
 }
 
 interface UpdatePlanoData {
+  alunoId?: string;
   titulo?: string;
   conteudoHtml?: string;
   observacoes?: string;
@@ -335,27 +336,30 @@ export function useUpdatePlanoAlimentar() {
       
       // Converter camelCase para snake_case - GARANTIR conversão correta
       const planoDataSnakeCase: Record<string, any> = {};
+      if (planoData.alunoId !== undefined) planoDataSnakeCase.aluno_id = planoData.alunoId;
       if (planoData.titulo !== undefined) planoDataSnakeCase.titulo = planoData.titulo;
       if (planoData.conteudoHtml !== undefined) planoDataSnakeCase.conteudo_html = planoData.conteudoHtml;
       if (planoData.observacoes !== undefined) planoDataSnakeCase.observacoes = planoData.observacoes;
       if (planoData.dadosJson !== undefined) planoDataSnakeCase.dados_json = planoData.dadosJson;
       
       console.log('📤 [Update] Dados convertidos para snake_case:', planoDataSnakeCase);
-      console.log('📤 [Update] Tipo dos dados:', typeof planoDataSnakeCase, Object.keys(planoDataSnakeCase));
       
-      // Garantir que estamos enviando apenas snake_case
-      const updatePayload = {
-        ...(planoDataSnakeCase.titulo && { titulo: planoDataSnakeCase.titulo }),
-        ...(planoDataSnakeCase.conteudo_html && { conteudo_html: planoDataSnakeCase.conteudo_html }),
-        ...(planoDataSnakeCase.observacoes !== undefined && { observacoes: planoDataSnakeCase.observacoes }),
-        ...(planoDataSnakeCase.dados_json && { dados_json: planoDataSnakeCase.dados_json }),
+      // Construir payload de atualização
+      const updatePayload: Record<string, any> = {
         updated_at: new Date().toISOString()
       };
+      
+      // Adicionar campos apenas se definidos
+      if (planoDataSnakeCase.aluno_id) updatePayload.aluno_id = planoDataSnakeCase.aluno_id;
+      if (planoDataSnakeCase.titulo) updatePayload.titulo = planoDataSnakeCase.titulo;
+      if (planoDataSnakeCase.conteudo_html) updatePayload.conteudo_html = planoDataSnakeCase.conteudo_html;
+      if (planoDataSnakeCase.observacoes !== undefined) updatePayload.observacoes = planoDataSnakeCase.observacoes;
+      if (planoDataSnakeCase.dados_json) updatePayload.dados_json = planoDataSnakeCase.dados_json;
       
       console.log('📦 [Update] Payload final:', updatePayload);
       
       // Atualizar plano
-      const { data: plano, error: planoError } = await supabase
+      const { data: plano, error: planoError, count } = await supabase
         .from('planos_alimentares')
         .update(updatePayload)
         .eq('id', id)
@@ -367,6 +371,11 @@ export function useUpdatePlanoAlimentar() {
       if (planoError) {
         console.error('❌ [Update] Erro detalhado:', planoError);
         throw planoError;
+      }
+      
+      // Verificar se o plano foi realmente atualizado
+      if (!plano) {
+        throw new Error('Nenhum plano foi atualizado. Verifique se o ID está correto.');
       }
       
       // Atualizar refeições se fornecidas
@@ -436,20 +445,23 @@ export function useUpdatePlanoAlimentar() {
       return plano;
     },
     onSuccess: (data) => {
+      // Invalidar todas as queries relacionadas a planos alimentares
+      // Isso força um refetch dos dados do banco
       queryClient.invalidateQueries({ queryKey: ['planos-alimentares'] });
       queryClient.invalidateQueries({ queryKey: ['meu-plano-alimentar'] });
       queryClient.invalidateQueries({ queryKey: ['plano-alimentar', data.id] });
-      toast({
-        title: 'Sucesso!',
-        description: 'Plano alimentar atualizado com sucesso'
-      });
+      
+      // Invalidar também por aluno_id se disponível
+      if (data.aluno_id) {
+        queryClient.invalidateQueries({ queryKey: ['planos-alimentares', data.aluno_id] });
+        queryClient.invalidateQueries({ queryKey: ['meu-plano-alimentar', data.aluno_id] });
+      }
+      
+      console.log('✅ [Update] Cache invalidado, dados serão recarregados');
     },
     onError: (error: Error) => {
-      toast({
-        title: 'Erro',
-        description: error.message,
-        variant: 'destructive'
-      });
+      console.error('❌ [Update] Erro na mutation:', error);
+      // Toast de erro será mostrado pela página que chama a mutation
     }
   });
 }

@@ -93,11 +93,17 @@ export function ModulosAdicionaisModal({
 
   const handlePosturalSubmit = async (data: any) => {
     try {
-      // TODO: Upload de fotos se houver
+      // Remover fotos do objeto (não são tratadas aqui)
       const { fotos, ...posturalData } = data;
       
+      console.log('Salvando avaliação postural:', { avaliacaoId, ...posturalData });
+      
       if (postural) {
-        await updatePostural.mutateAsync({ id: postural.id, ...posturalData });
+        await updatePostural.mutateAsync({ 
+          id: postural.id, 
+          avaliacaoId,
+          ...posturalData 
+        });
         toast({ title: 'Avaliação postural atualizada com sucesso!' });
       } else {
         await createPostural.mutateAsync({
@@ -106,9 +112,11 @@ export function ModulosAdicionaisModal({
         });
         toast({ title: 'Avaliação postural criada com sucesso!' });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Erro ao salvar avaliação postural:', error);
       toast({ 
-        title: 'Erro ao salvar avaliação postural', 
+        title: 'Erro ao salvar avaliação postural',
+        description: error?.message || 'Tente novamente',
         variant: 'destructive' 
       });
     }
@@ -116,8 +124,10 @@ export function ModulosAdicionaisModal({
 
   const handleAnamneseSubmit = async (data: any) => {
     try {
+      console.log('Salvando anamnese:', { alunoId, ...data });
+      
       if (anamnese) {
-        await updateAnamnese.mutateAsync({ id: anamnese.id, ...data });
+        await updateAnamnese.mutateAsync({ id: anamnese.id, alunoId, ...data });
         toast({ title: 'Anamnese atualizada com sucesso!' });
       } else {
         await createAnamnese.mutateAsync({
@@ -126,9 +136,11 @@ export function ModulosAdicionaisModal({
         });
         toast({ title: 'Anamnese criada com sucesso!' });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Erro ao salvar anamnese:', error);
       toast({ 
-        title: 'Erro ao salvar anamnese', 
+        title: 'Erro ao salvar anamnese',
+        description: error?.message || 'Tente novamente',
         variant: 'destructive' 
       });
     }
@@ -200,12 +212,17 @@ export function ModulosAdicionaisModal({
             <FormularioPostural
               defaultValues={postural || {}}
               onSubmit={handlePosturalSubmit}
+              isLoading={createPostural.isPending || updatePostural.isPending}
             />
           </TabsContent>
 
           <TabsContent value="anamnese" className="mt-6">
             <FormularioAnamnese
-              defaultValues={anamnese || {}}
+              defaultValues={anamnese ? {
+                ...anamnese,
+                fumante: anamnese.fumante === 'true',
+                praticaAtividadeFisica: anamnese.praticaAtividade === 'true',
+              } : {}}
               onSubmit={handleAnamneseSubmit}
             />
           </TabsContent>

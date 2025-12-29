@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, X, Play, Tag, Target, Clock, FileVideo, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateVideoThumbnail, blobToFile } from '@/utils/videoThumbnail';
+import { DIVISOES_AGRUPADAS, TODAS_DIVISOES, isDivisaoValida } from '@/constants/divisoesTreino';
 
 interface TreinoVideo {
   id: string;
@@ -36,11 +37,6 @@ interface TreinoVideoModalProps {
   treino?: TreinoVideo | null;
   loading?: boolean;
 }
-
-const DIVISOES_MUSCULARES = [
-  'Peito', 'Costas', 'Pernas', 'Ombros', 'Braços', 
-  'Abdômen', 'Glúteos', 'Cardio', 'Funcional', 'Corpo Inteiro'
-];
 
 const TAGS_SUGERIDAS = [
   'hipertrofia', 'força', 'resistência', 'definição', 'queima de gordura',
@@ -318,14 +314,30 @@ export function TreinoVideoModal({
                       value={formData.divisaoMuscular}
                       onValueChange={(value) => handleInputChange('divisaoMuscular', value)}
                     >
-                      <SelectTrigger className="bg-slate-800/50 border-slate-600 text-white h-11 focus:border-blue-500 focus:ring-blue-500/20" data-testid="select-divisao">
-                        <SelectValue placeholder="Selecione a divisão" />
+                      <SelectTrigger 
+                        className={`bg-slate-800/50 border-slate-600 text-white h-11 focus:border-blue-500 focus:ring-blue-500/20 ${
+                          !formData.divisaoMuscular ? 'text-slate-500' : ''
+                        }`} 
+                        data-testid="select-divisao"
+                      >
+                        <SelectValue placeholder="Selecione a divisão muscular" />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
-                        {DIVISOES_MUSCULARES.map(divisao => (
-                          <SelectItem key={divisao} value={divisao} className="text-white hover:bg-slate-700 focus:bg-slate-700">
-                            {divisao}
-                          </SelectItem>
+                      <SelectContent className="bg-slate-800 border-slate-700 max-h-80">
+                        {DIVISOES_AGRUPADAS.map((grupo) => (
+                          <SelectGroup key={grupo.label}>
+                            <SelectLabel className="text-xs font-semibold text-slate-400 px-2 py-1.5 uppercase tracking-wider">
+                              {grupo.label}
+                            </SelectLabel>
+                            {grupo.options.map((divisao) => (
+                              <SelectItem 
+                                key={divisao} 
+                                value={divisao} 
+                                className="text-white hover:bg-slate-700 focus:bg-slate-700 pl-4"
+                              >
+                                {divisao}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         ))}
                       </SelectContent>
                     </Select>

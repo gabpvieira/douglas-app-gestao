@@ -48,15 +48,17 @@ interface FormularioPosturalProps {
   defaultValues?: Partial<PosturalFormData>;
   onSubmit: (data: PosturalFormData & { fotos?: File[] }) => void;
   onBack?: () => void;
+  isLoading?: boolean;
 }
 
-export function FormularioPostural({ defaultValues, onSubmit, onBack }: FormularioPosturalProps) {
+export function FormularioPostural({ defaultValues, onSubmit, onBack, isLoading }: FormularioPosturalProps) {
   const { register, handleSubmit, setValue, watch } = useForm<PosturalFormData>({
     resolver: zodResolver(posturalSchema),
     defaultValues,
   });
 
   const [fotos, setFotos] = useState<File[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -64,9 +66,16 @@ export function FormularioPostural({ defaultValues, onSubmit, onBack }: Formular
     }
   };
 
-  const handleFormSubmit = (data: PosturalFormData) => {
-    onSubmit({ ...data, fotos });
+  const handleFormSubmit = async (data: PosturalFormData) => {
+    setSubmitting(true);
+    try {
+      await onSubmit({ ...data, fotos });
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  const isBusy = isLoading || submitting;
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
@@ -383,12 +392,12 @@ export function FormularioPostural({ defaultValues, onSubmit, onBack }: Formular
       {/* Botões */}
       <div className="flex justify-between pt-4">
         {onBack && (
-          <Button type="button" variant="outline" onClick={onBack}>
+          <Button type="button" variant="outline" onClick={onBack} disabled={isBusy}>
             Voltar
           </Button>
         )}
-        <Button type="submit" className="ml-auto">
-          Salvar Avaliação Postural
+        <Button type="submit" className="ml-auto" disabled={isBusy}>
+          {isBusy ? 'Salvando...' : 'Salvar Avaliação Postural'}
         </Button>
       </div>
     </form>

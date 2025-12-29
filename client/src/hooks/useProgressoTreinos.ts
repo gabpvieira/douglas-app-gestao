@@ -12,15 +12,24 @@ export interface MetricasAluno {
   treinosRealizadosSemana: number;
   exerciciosCompletadosSemana: number;
   
+  // Mês Atual
+  diasTreinadosMes: number;
+  treinosRealizadosMes: number;
+  
   // Histórico
   sequenciaAtual: number;
   melhorSequencia: number;
   totalTreinosRealizados: number;
+  totalDiasTreinados: number;
   
   // Engajamento
   taxaFrequencia: number;
   mediaExerciciosPorTreino: number;
   ultimoTreino: Date | null;
+  
+  // Datas de treinos (para calendário)
+  diasTreinadosSemanaReal: string[]; // datas ISO
+  diasTreinadosMesReal: string[]; // datas ISO
 }
 
 export interface AlunoDestaque {
@@ -32,6 +41,11 @@ export interface AlunoDestaque {
   diasTreinados: number;
   treinosRealizados: number;
   badge: 'ouro' | 'prata' | 'bronze' | 'fogo' | null;
+}
+
+export interface TreinosPorDia {
+  data: string; // formato YYYY-MM-DD
+  quantidade: number;
 }
 
 // Funções auxiliares
@@ -52,10 +66,22 @@ function getFimSemana(): Date {
   return fim;
 }
 
+function getInicioMes(): Date {
+  const hoje = new Date();
+  return new Date(hoje.getFullYear(), hoje.getMonth(), 1, 0, 0, 0, 0);
+}
+
+function getFimMes(): Date {
+  const hoje = new Date();
+  return new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
 // Buscar métricas de um aluno específico
 async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   const inicioSemana = getInicioSemana();
   const fimSemana = getFimSemana();
+  const inicioMes = getInicioMes();
+  const fimMes = getFimMes();
   
   // 1. Buscar dados do aluno
   const { data: alunoData } = await supabase
@@ -93,12 +119,17 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
       diasTreinadosSemana: 0,
       treinosRealizadosSemana: 0,
       exerciciosCompletadosSemana: 0,
+      diasTreinadosMes: 0,
+      treinosRealizadosMes: 0,
       sequenciaAtual: 0,
       melhorSequencia: 0,
       totalTreinosRealizados: 0,
+      totalDiasTreinados: 0,
       taxaFrequencia: 0,
       mediaExerciciosPorTreino: 0,
-      ultimoTreino: null
+      ultimoTreino: null,
+      diasTreinadosSemanaReal: [],
+      diasTreinadosMesReal: []
     };
   }
   
@@ -110,7 +141,15 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     .gte('data_realizacao', inicioSemana.toISOString())
     .lte('data_realizacao', fimSemana.toISOString());
   
-  // 4. Buscar todos os treinos (últimos 90 dias para calcular sequências)
+  // 4. Buscar treinos realizados no mês
+  const { data: treinosMes } = await supabase
+    .from('treinos_realizados')
+    .select('data_realizacao')
+    .in('ficha_aluno_id', fichaIds)
+    .gte('data_realizacao', inicioMes.toISOString())
+    .lte('data_realizacao', fimMes.toISOString());
+  
+  // 5. Buscar todos os treinos (últimos 90 dias para calcular sequências)
   const dataLimite = new Date();
   dataLimite.setDate(dataLimite.getDate() - 90);
   
@@ -121,18 +160,43 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     .gte('data_realizacao', dataLimite.toISOString())
     .order('data_realizacao', { ascending: false });
   
-  // 5. Calcular métricas da semana
-  const diasUnicos = new Set<string>();
+  // 6. Buscar total geral de treinos (histórico completo)
+  const { count: totalGeral } = await supabase
+    .from('treinos_realizados')
+    .select('*', { count: 'exact', head: true })
+    .in('ficha_aluno_id', fichaIds);
+  
+  // 7. Calcular métricas da semana
+  const diasUnicosSemana = new Set<string>();
   treinosSemana?.forEach(treino => {
     const data = new Date(treino.data_realizacao);
-    diasUnicos.add(data.toDateString());
+    diasUnicosSemana.add(data.toISOString().split('T')[0]);
   });
   
-  const diasTreinadosSemana = diasUnicos.size;
+  const diasTreinadosSemana = diasUnicosSemana.size;
   const treinosRealizadosSemana = treinosSemana?.length || 0;
   const exerciciosCompletadosSemana = treinosSemana?.length || 0;
+  const diasTreinadosSemanaReal = Array.from(diasUnicosSemana);
   
-  // 6. Calcular sequências
+  // 8. Calcular métricas do mês
+  const diasUnicosMes = new Set<string>();
+  treinosMes?.forEach(treino => {
+    const data = new Date(treino.data_realizacao);
+    diasUnicosMes.add(data.toISOString().split('T')[0]);
+  });
+  
+  const diasTreinadosMes = diasUnicosMes.size;
+  const treinosRealizadosMes = treinosMes?.length || 0;
+  const diasTreinadosMesReal = Array.from(diasUnicosMes);
+  
+  // 9. Calcular total de dias únicos treinados (histórico completo)
+  const diasUnicosTotal = new Set<string>();
+  todosTreinos?.forEach(treino => {
+    const data = new Date(treino.data_realizacao);
+    diasUnicosTotal.add(data.toISOString().split('T')[0]);
+  });
+  
+  // 10. Calcular sequências
   const diasTreinados = Array.from(
     new Set(todosTreinos?.map(t => new Date(t.data_realizacao).toDateString()))
   ).map(d => new Date(d)).sort((a, b) => b.getTime() - a.getTime());
@@ -164,8 +228,9 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     }
   }
   
-  // 7. Calcular outras métricas
-  const totalTreinosRealizados = todosTreinos?.length || 0;
+  // 11. Calcular outras métricas
+  const totalTreinosRealizados = totalGeral || 0;
+  const totalDiasTreinados = diasUnicosTotal.size;
   const taxaFrequencia = (diasTreinadosSemana / 7) * 100;
   const mediaExerciciosPorTreino = diasTreinadosSemana > 0 
     ? exerciciosCompletadosSemana / diasTreinadosSemana 
@@ -183,12 +248,17 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     diasTreinadosSemana,
     treinosRealizadosSemana,
     exerciciosCompletadosSemana,
+    diasTreinadosMes,
+    treinosRealizadosMes,
     sequenciaAtual,
     melhorSequencia,
     totalTreinosRealizados,
+    totalDiasTreinados,
     taxaFrequencia,
     mediaExerciciosPorTreino,
-    ultimoTreino
+    ultimoTreino,
+    diasTreinadosSemanaReal,
+    diasTreinadosMesReal
   };
 }
 
@@ -323,6 +393,100 @@ export function useHistoricoTreinos(alunoId: string, dias: number = 30) {
         .order('data_realizacao', { ascending: false });
       
       return treinos || [];
+    },
+    enabled: !!alunoId,
+    staleTime: 1000 * 60 * 5
+  });
+}
+
+// Hook: Buscar ranking geral (acumulado)
+export function useRankingGeral() {
+  return useQuery<AlunoDestaque[]>({
+    queryKey: ['ranking-geral'],
+    queryFn: async () => {
+      // 1. Buscar todos os alunos ativos
+      const { data: alunos } = await supabase
+        .from('alunos')
+        .select('id')
+        .eq('status', 'ativo');
+      
+      if (!alunos || alunos.length === 0) return [];
+      
+      // 2. Buscar métricas de cada aluno
+      const metricas = await Promise.all(
+        alunos.map(aluno => buscarMetricasAluno(aluno.id))
+      );
+      
+      // 3. Ordenar por total de treinos realizados (acumulado)
+      const ordenado = metricas.sort((a, b) => {
+        return b.totalTreinosRealizados - a.totalTreinosRealizados;
+      });
+      
+      // 4. Criar ranking com badges
+      const ranking: AlunoDestaque[] = ordenado.map((aluno, index) => {
+        let badge: 'ouro' | 'prata' | 'bronze' | 'fogo' | null = null;
+        
+        if (index === 0) badge = 'ouro';
+        else if (index === 1) badge = 'prata';
+        else if (index === 2) badge = 'bronze';
+        else if (aluno.totalTreinosRealizados >= 50) badge = 'fogo';
+        
+        return {
+          posicao: index + 1,
+          alunoId: aluno.alunoId,
+          nome: aluno.nome,
+          fotoUrl: aluno.fotoUrl,
+          pontuacao: aluno.totalTreinosRealizados,
+          diasTreinados: aluno.totalDiasTreinados,
+          treinosRealizados: aluno.totalTreinosRealizados,
+          badge
+        };
+      });
+      
+      // 5. Retornar top 10
+      return ranking.slice(0, 10);
+    },
+    staleTime: 1000 * 60 * 5
+  });
+}
+
+// Hook: Buscar treinos de um mês específico
+export function useTreinosMes(alunoId: string, ano: number, mes: number) {
+  return useQuery<TreinosPorDia[]>({
+    queryKey: ['treinos-mes', alunoId, ano, mes],
+    queryFn: async () => {
+      const inicioMes = new Date(ano, mes, 1, 0, 0, 0, 0);
+      const fimMes = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
+      
+      // Buscar fichas do aluno
+      const { data: fichas } = await supabase
+        .from('fichas_alunos')
+        .select('id')
+        .eq('aluno_id', alunoId);
+      
+      const fichaIds = fichas?.map(f => f.id) || [];
+      
+      if (fichaIds.length === 0) return [];
+      
+      // Buscar treinos do mês
+      const { data: treinos } = await supabase
+        .from('treinos_realizados')
+        .select('data_realizacao')
+        .in('ficha_aluno_id', fichaIds)
+        .gte('data_realizacao', inicioMes.toISOString())
+        .lte('data_realizacao', fimMes.toISOString());
+      
+      // Agrupar por dia
+      const treinosPorDia: Record<string, number> = {};
+      treinos?.forEach(treino => {
+        const data = new Date(treino.data_realizacao).toISOString().split('T')[0];
+        treinosPorDia[data] = (treinosPorDia[data] || 0) + 1;
+      });
+      
+      return Object.entries(treinosPorDia).map(([data, quantidade]) => ({
+        data,
+        quantidade
+      }));
     },
     enabled: !!alunoId,
     staleTime: 1000 * 60 * 5

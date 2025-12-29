@@ -203,8 +203,14 @@ export default function PlanosAlimentares() {
       };
       
       if (planoEditando) {
-          console.log('📝 [Salvar] Enviando atualização:', {
+        // Pegar o aluno selecionado (primeiro da lista de atribuídos)
+        const alunoIdAtualizado = planoData.alunosAtribuidos.length > 0 
+          ? planoData.alunosAtribuidos[0] 
+          : planoEditando.alunosAtribuidos[0];
+        
+        console.log('📝 [Salvar] Enviando atualização:', {
           id: planoEditando.id,
+          alunoId: alunoIdAtualizado,
           titulo: planoData.nome,
           conteudoHtml: conteudoTexto.substring(0, 100) + '...',
           observacoes: planoData.observacoes,
@@ -215,6 +221,7 @@ export default function PlanosAlimentares() {
         await updatePlano.mutateAsync({
           id: planoEditando.id,
           data: {
+            alunoId: alunoIdAtualizado,
             titulo: planoData.nome,
             conteudoHtml: conteudoTexto,
             observacoes: planoData.observacoes,
