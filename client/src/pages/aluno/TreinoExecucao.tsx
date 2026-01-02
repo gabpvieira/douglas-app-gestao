@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { useAlunoProfile } from "@/hooks/useAlunoData";
 import { useTreinoEmAndamento, ExercicioEmAndamento } from "@/hooks/useTreinoEmAndamento";
 import { useCreateFeedback } from "@/hooks/useFeedbackTreinos";
+import { notifyInicioTreino } from "@/lib/notificationManager";
 
 export default function TreinoExecucao() {
   const [, params] = useRoute("/aluno/treino/:fichaAlunoId");
@@ -115,6 +116,11 @@ export default function TreinoExecucao() {
         alunoId
       );
       setTreinoIniciado(true);
+      
+      // Notificar início do treino
+      notifyInicioTreino(ficha.fichas_treino.nome).catch(err => 
+        console.error('Error sending start notification:', err)
+      );
     }
   }, [ficha, alunoId, treinoCarregado, treinoEmAndamento, fichaAlunoId, treinoIniciado]);
 

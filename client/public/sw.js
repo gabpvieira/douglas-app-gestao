@@ -134,4 +134,153 @@ self.addEventListener('message', function(event) {
       );
     });
   }
+  
+  // Gerenciamento de timers
+  if (event.data && event.data.type === 'START_TIMER') {
+    handleStartTimer(event.data.timer);
+  }
+  
+  if (event.data && event.data.type === 'CANCEL_TIMER') {
+    handleCancelTimer(event.data.timerId);
+  }
+});
+
+// ============================================
+// PUSH NOTIFICATIONS
+// ============================================
+
+// Listener para push events (notificações recebidas do servidor)
+self.addEventListener('push', function(event) {
+  console.log('[SW] Push notification received');
+  
+  var data = {};
+  
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    console.error('[SW] Error parsing push data:', e);
+    data = {
+      title: 'Nova Notificação',
+      body: event.data ? event.data.text() : 'Você tem uma nova notificação'
+    };
+  }
+  
+  var title = data.title || 'Notificação';
+  var options = {
+    body: data.body || 'Nova notificação',
+    icon: data.icon || '/icon-192.png',
+    badge: '/icon-72.png',
+    vibrate: data.vibrate || [200, 100, 200],
+    tag: data.tag || 'notification',
+    requireInteraction: data.requireInteraction || false,
+    data: data.data || {},
+    actions: data.actions || []
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// ============================================
+// SISTEMA DE NOTIFICAÇÕES E TIMERS
+// ============================================
+
+var activeTimers = {};
+
+function handleStartTimer(timer) {
+  console.log('[SW] Starting timer:', timer.id);
+  
+  var delay = timer.duration * 1000;
+  
+  // Usar setTimeout (pode não ser confiável se SW for terminado)
+  var timeoutId = setTimeout(function() {
+    sendTimerNotification(timer);
+    delete activeTimers[timer.id];
+  }, delay);
+  
+  activeTimers[timer.id] = {
+    timeoutId: timeoutId,
+    timer: timer
+  };
+}
+
+function handleCancelTimer(timerId) {
+  console.log('[SW] Canceling timer:', timerId);
+  
+  if (activeTimers[timerId]) {
+    clearTimeout(activeTimers[timerId].timeoutId);
+    delete activeTimers[timerId];
+  }
+}
+
+function sendTimerNotification(timer) {
+  console.log('[SW] Sending timer notification:', timer.id);
+  
+  var title = 'Descanso Completo! 💪';
+  var body = timer.exerciseName 
+    ? 'Pronto para a próxima série de ' + timer.exerciseName
+    : 'Pronto para a próxima série';
+  
+  self.registration.showNotification(title, {
+    body: body,
+    icon: '/icon-192.png',
+    badge: '/icon-72.png',
+    vibrate: [200, 100, 200, 100, 200],
+    tag: 'timer-' + timer.id,
+    requireInteraction: false,
+    actions: [
+      { action: 'view', title: 'Ver Treino' },
+      { action: 'dismiss', title: 'OK' }
+    ],
+    data: {
+      type: 'timer-complete',
+      timerId: timer.id,
+      exerciseName: timer.exerciseName
+    }
+  });
+}
+
+// Listener para cliques em notificações (unificado para timers e push)
+self.addEventListener('notificationclick', function(event) {
+  console.log('[SW] Notification clicked:', event.action);
+  
+  event.notification.close();
+  
+  // Determinar URL de destino
+  var targetUrl = '/';
+  
+  if (event.notification.data) {
+    if (event.notification.data.url) {
+      targetUrl = event.notification.data.url;
+    } else if (event.notification.data.type === 'timer-complete') {
+      targetUrl = '/aluno/treinos';
+    }
+  }
+  
+  if (event.action === 'view' || !event.action) {
+    // Abrir ou focar na aba do app
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then(function(clientList) {
+          // Se já existe uma aba aberta, focar nela
+          for (var i = 0; i < clientList.length; i++) {
+            var client = clientList[i];
+            if (client.url.indexOf(self.location.origin) !== -1 && 'focus' in client) {
+              return client.focus().then(function() {
+                // Navegar para URL específica se necessário
+                if (targetUrl !== '/' && 'navigate' in client) {
+                  return client.navigate(targetUrl);
+                }
+              });
+            }
+          }
+          
+          // Caso contrário, abrir nova aba
+          if (clients.openWindow) {
+            return clients.openWindow(targetUrl);
+          }
+        })
+    );
+  }
 });

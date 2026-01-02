@@ -40,6 +40,7 @@ import AgendaAluno from "./pages/aluno/Agenda";
 import Progresso from "./pages/aluno/Progresso";
 import VideosAluno from "./pages/aluno/Videos";
 import AlunoPerfil from "./pages/aluno/Perfil";
+import Notificacoes from "./pages/aluno/Notificacoes";
 
 // Landing Page Component
 function LandingPage({ onLogin }: { onLogin: () => void }) {
@@ -329,6 +330,7 @@ function Router() {
             <Route path="/aluno/progresso" component={Progresso} />
             <Route path="/aluno/videos" component={VideosAluno} />
             <Route path="/aluno/perfil" component={AlunoPerfil} />
+            <Route path="/aluno/notificacoes" component={Notificacoes} />
             <Route path="/aluno" component={AlunoDashboard} />
           </>
         ) : null}

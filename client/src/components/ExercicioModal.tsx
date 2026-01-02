@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, X, Play } from 'lucide-react';
+import { Save, X } from 'lucide-react';
 import { useTreinosVideo } from '@/hooks/useTreinosVideo';
+import { VideoSearchCombobox } from './VideoSearchCombobox';
 
 interface Exercicio {
   id?: string;
@@ -208,37 +209,21 @@ export function ExercicioModal({ isOpen, onClose, onSave, exercicio }: Exercicio
             <Label htmlFor="videoId" className="text-gray-300">
               Vídeo de Referência (opcional)
             </Label>
-            <Select value={videoId} onValueChange={setVideoId} disabled={loadingVideos}>
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                <SelectValue placeholder={loadingVideos ? "Carregando vídeos..." : "Selecione um vídeo..."} />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700 max-h-[300px]">
-                <SelectItem value="none">
-                  <div className="flex items-center gap-2">
-                    <span>Nenhum vídeo</span>
-                  </div>
-                </SelectItem>
-                {videosSupabase.map((video) => (
-                  <SelectItem key={video.id} value={video.id}>
-                    <div className="flex items-center gap-2">
-                      <Play className="w-3 h-3 text-blue-400" />
-                      <span className="truncate">{video.nome}</span>
-                      {video.objetivo && (
-                        <span className="text-xs text-gray-500">• {video.objetivo}</span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-                {videosSupabase.length === 0 && !loadingVideos && (
-                  <div className="px-2 py-3 text-sm text-gray-500 text-center">
-                    Nenhum vídeo cadastrado ainda
-                  </div>
-                )}
-              </SelectContent>
-            </Select>
+            <VideoSearchCombobox
+              videos={videosSupabase}
+              value={videoId}
+              onValueChange={setVideoId}
+              placeholder={loadingVideos ? "Carregando vídeos..." : "Buscar vídeo..."}
+              disabled={loadingVideos}
+            />
             {videoId && videoId !== 'none' && (
               <p className="text-xs text-gray-500">
                 💡 O aluno poderá assistir este vídeo para ver a execução correta do exercício
+              </p>
+            )}
+            {!loadingVideos && videosSupabase.length === 0 && (
+              <p className="text-xs text-yellow-500">
+                ⚠️ Nenhum vídeo cadastrado ainda. Cadastre vídeos na seção de Treinos em Vídeo.
               </p>
             )}
           </div>

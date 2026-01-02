@@ -19,7 +19,7 @@ interface Exercicio {
 interface ExerciciosListProps {
   exercicios: Exercicio[];
   onEditarExercicio: (exercicio: Exercicio) => void;
-  onExcluirExercicio: (ordem: number) => void;
+  onExcluirExercicio: (exercicioId: string) => void;
   onReordenar: (exercicios: Exercicio[]) => void;
 }
 
@@ -53,11 +53,15 @@ export function ExerciciosList({
 
   return (
     <div className="space-y-2">
-      {exercicios.map((exercicio, index) => (
-        <Card 
-          key={exercicio.ordem}
-          className="p-3 border-gray-800 bg-gray-800/30 hover:bg-gray-800/50 transition-all"
-        >
+      {exercicios.map((exercicio, index) => {
+        // Usar ID do exercício ou criar um identificador único baseado em ordem
+        const exercicioKey = exercicio.id || `temp-${exercicio.ordem}`;
+        
+        return (
+          <Card 
+            key={exercicioKey}
+            className="p-3 border-gray-800 bg-gray-800/30 hover:bg-gray-800/50 transition-all"
+          >
           <div className="flex items-start gap-3">
             {/* Drag Handle */}
             <div className="flex items-center justify-center w-8 h-8 text-gray-500 cursor-move">
@@ -113,7 +117,7 @@ export function ExerciciosList({
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => onExcluirExercicio(exercicio.ordem)}
+                    onClick={() => onExcluirExercicio(exercicioKey)}
                     className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-950/30"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -129,7 +133,8 @@ export function ExerciciosList({
             </div>
           </div>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }

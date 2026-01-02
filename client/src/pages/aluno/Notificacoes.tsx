@@ -1,0 +1,460 @@
+import { useState } from 'react';
+import { Bell, BellOff, Smartphone, Monitor, Tablet, Check, X, TestTube } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import AlunoLayout from '@/components/aluno/AlunoLayout';
+import PageHeader from '@/components/PageHeader';
+import { useAlunoProfile } from '@/hooks/useAlunoData';
+import {
+  usePushSubscriptions,
+  useNotificationSupport,
+  useRequestNotificationPermission,
+  useSubscribePush,
+  useUnsubscribePush,
+  useUpdateNotificationPreferences,
+  useTestNotification,
+} from '@/hooks/usePushNotifications';
+
+// VAPID Public Key (gerada via web-push generate-vapid-keys)
+const VAPID_PUBLIC_KEY = 'BAHJlVrf9a3LsLWMpN4YG7hLK1X4aqSyAJ9mDmAVxyOXg_P21aL9HsUDjptZ8zJ9rWelL2PTecuIboOYDNif910';
+
+export default function Notificacoes() {
+  const { toast } = useToast();
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  
+  // Buscar perfil do aluno
+  const { data: profile } = useAlunoProfile();
+  const alunoId = Array.isArray(profile?.alunos)
+    ? profile?.alunos[0]?.id
+    : profile?.alunos?.id;
+  
+  // Hooks
+  const { supported, permission } = useNotificationSupport();
+  const { data: subscriptions = [], isLoading } = usePushSubscriptions(alunoId);
+  const requestPermission = useRequestNotificationPermission();
+  const subscribePush = useSubscribePush();
+  const unsubscribePush = useUnsubscribePush();
+  const updatePreferences = useUpdateNotificationPreferences();
+  const testNotification = useTestNotification();
+  
+  // Dispositivo atual
+  const currentSubscription = subscriptions.find(sub => sub.enabled);
+  
+  const handleRequestPermission = async () => {
+    try {
+      const result = await requestPermission.mutateAsync();
+      
+      if (result === 'granted') {
+        toast({
+          title: 'Permissão concedida!',
+          description: 'Agora você pode ativar as notificações.',
+        });
+      } else if (result === 'denied') {
+        toast({
+          title: 'Permissão negada',
+          description: 'Você precisará habilitar nas configurações do navegador.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao solicitar permissão',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleSubscribe = async () => {
+    if (!alunoId) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível identificar o aluno.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsSubscribing(true);
+    
+    try {
+      await subscribePush.mutateAsync({
+        alunoId,
+        vapidPublicKey: VAPID_PUBLIC_KEY,
+      });
+      
+      toast({
+        title: 'Notificações ativadas! 🔔',
+        description: 'Você receberá alertas neste dispositivo.',
+      });
+    } catch (error: any) {
+      console.error('Erro ao ativar notificações:', error);
+      toast({
+        title: 'Erro ao ativar notificações',
+        description: error.message || 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+  
+  const handleUnsubscribe = async (subscriptionId: string) => {
+    if (!alunoId) return;
+    
+    try {
+      await unsubscribePush.mutateAsync({ subscriptionId, alunoId });
+      
+      toast({
+        title: 'Notificações desativadas',
+        description: 'Você não receberá mais alertas neste dispositivo.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao desativar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleUpdatePreference = async (
+    subscriptionId: string,
+    key: string,
+    value: boolean
+  ) => {
+    if (!alunoId) return;
+    
+    try {
+      await updatePreferences.mutateAsync({
+        subscriptionId,
+        alunoId,
+        preferences: { [key]: value },
+      });
+      
+      toast({
+        title: 'Preferência atualizada',
+        description: 'Suas configurações foram salvas.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao atualizar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleTestNotification = async () => {
+    try {
+      await testNotification.mutateAsync();
+      
+      toast({
+        title: 'Notificação de teste enviada!',
+        description: 'Verifique se apareceu no seu dispositivo.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao testar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const getDeviceIcon = (type?: string) => {
+    switch (type) {
+      case 'mobile':
+        return <Smartphone className="h-5 w-5" />;
+      case 'tablet':
+        return <Tablet className="h-5 w-5" />;
+      default:
+        return <Monitor className="h-5 w-5" />;
+    }
+  };
+  
+  const getPermissionBadge = () => {
+    if (permission === 'granted') {
+      return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Permitido</Badge>;
+    } else if (permission === 'denied') {
+      return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Negado</Badge>;
+    } else {
+      return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Não solicitado</Badge>;
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <AlunoLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent"></div>
+        </div>
+      </AlunoLayout>
+    );
+  }
+  
+  return (
+    <AlunoLayout>
+      <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6">
+        <PageHeader
+          title="Notificações"
+          description="Configure como você deseja receber alertas e lembretes"
+        />
+        
+        {/* Status do Navegador */}
+        <Card className="border-gray-800 bg-gray-900/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Status das Notificações
+            </CardTitle>
+            <CardDescription>
+              Informações sobre o suporte do seu navegador
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-white">Suporte do Navegador</p>
+                <p className="text-sm text-gray-400">
+                  {supported ? 'Seu navegador suporta notificações' : 'Notificações não suportadas'}
+                </p>
+              </div>
+              {supported ? (
+                <Check className="h-5 w-5 text-green-500" />
+              ) : (
+                <X className="h-5 w-5 text-red-500" />
+              )}
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-white">Permissão</p>
+                <p className="text-sm text-gray-400">
+                  Status atual da permissão de notificações
+                </p>
+              </div>
+              {getPermissionBadge()}
+            </div>
+            
+            {supported && permission === 'default' && (
+              <Button
+                onClick={handleRequestPermission}
+                disabled={requestPermission.isPending}
+                className="w-full"
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Solicitar Permissão
+              </Button>
+            )}
+            
+            {supported && permission === 'denied' && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <p className="text-sm text-red-400">
+                  Você negou a permissão de notificações. Para habilitar, acesse as configurações do seu navegador.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Dispositivos Inscritos */}
+        {supported && permission === 'granted' && (
+          <Card className="border-gray-800 bg-gray-900/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                Dispositivos
+              </CardTitle>
+              <CardDescription>
+                Gerencie os dispositivos que recebem notificações
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {subscriptions.length === 0 ? (
+                <div className="text-center py-8">
+                  <BellOff className="h-12 w-12 mx-auto text-gray-600 mb-4" />
+                  <p className="text-gray-400 mb-4">
+                    Nenhum dispositivo inscrito
+                  </p>
+                  <Button
+                    onClick={handleSubscribe}
+                    disabled={isSubscribing}
+                  >
+                    <Bell className="h-4 w-4 mr-2" />
+                    Ativar Notificações Neste Dispositivo
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {subscriptions.map((sub) => (
+                    <Card key={sub.id} className="border-gray-700 bg-gray-800/50">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            {getDeviceIcon(sub.device_type)}
+                            <div>
+                              <p className="font-medium text-white">
+                                {sub.device_name || 'Dispositivo Desconhecido'}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {sub.browser} • {sub.os}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUnsubscribe(sub.id)}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-950/30"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Remover
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor={`enabled-${sub.id}`} className="text-sm">
+                              Notificações ativadas
+                            </Label>
+                            <Switch
+                              id={`enabled-${sub.id}`}
+                              checked={sub.enabled}
+                              onCheckedChange={(checked) =>
+                                handleUpdatePreference(sub.id, 'enabled', checked)
+                              }
+                            />
+                          </div>
+                          
+                          {sub.enabled && (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor={`treino-${sub.id}`} className="text-sm">
+                                  Alertas de treino
+                                </Label>
+                                <Switch
+                                  id={`treino-${sub.id}`}
+                                  checked={sub.notifications_treino}
+                                  onCheckedChange={(checked) =>
+                                    handleUpdatePreference(sub.id, 'notifications_treino', checked)
+                                  }
+                                />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor={`descanso-${sub.id}`} className="text-sm">
+                                  Fim do descanso
+                                </Label>
+                                <Switch
+                                  id={`descanso-${sub.id}`}
+                                  checked={sub.notifications_descanso}
+                                  onCheckedChange={(checked) =>
+                                    handleUpdatePreference(sub.id, 'notifications_descanso', checked)
+                                  }
+                                />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor={`agenda-${sub.id}`} className="text-sm">
+                                  Lembretes de agenda
+                                </Label>
+                                <Switch
+                                  id={`agenda-${sub.id}`}
+                                  checked={sub.notifications_agenda}
+                                  onCheckedChange={(checked) =>
+                                    handleUpdatePreference(sub.id, 'notifications_agenda', checked)
+                                  }
+                                />
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Label htmlFor={`mensagens-${sub.id}`} className="text-sm">
+                                  Mensagens do treinador
+                                </Label>
+                                <Switch
+                                  id={`mensagens-${sub.id}`}
+                                  checked={sub.notifications_mensagens}
+                                  onCheckedChange={(checked) =>
+                                    handleUpdatePreference(sub.id, 'notifications_mensagens', checked)
+                                  }
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {!currentSubscription && (
+                    <Button
+                      onClick={handleSubscribe}
+                      disabled={isSubscribing}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Bell className="h-4 w-4 mr-2" />
+                      Adicionar Este Dispositivo
+                    </Button>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Testar Notificação */}
+        {supported && permission === 'granted' && subscriptions.length > 0 && (
+          <Card className="border-gray-800 bg-gray-900/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TestTube className="h-5 w-5" />
+                Testar Notificações
+              </CardTitle>
+              <CardDescription>
+                Envie uma notificação de teste para verificar se está funcionando
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleTestNotification}
+                disabled={testNotification.isPending}
+                variant="outline"
+                className="w-full"
+              >
+                <TestTube className="h-4 w-4 mr-2" />
+                Enviar Notificação de Teste
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Informações */}
+        <Card className="border-gray-800 bg-gray-900/50">
+          <CardHeader>
+            <CardTitle>Sobre as Notificações</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-gray-400">
+            <p>
+              💡 <strong className="text-white">Múltiplos dispositivos:</strong> Você pode ativar notificações em vários dispositivos (celular, tablet, computador).
+            </p>
+            <p>
+              🔔 <strong className="text-white">Tipos de notificação:</strong> Receba alertas quando o descanso acabar, lembretes de treino e muito mais.
+            </p>
+            <p>
+              🔒 <strong className="text-white">Privacidade:</strong> Suas preferências são salvas de forma segura e você pode desativar a qualquer momento.
+            </p>
+            <p>
+              📱 <strong className="text-white">Funciona em background:</strong> As notificações chegam mesmo com o app minimizado ou fechado.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </AlunoLayout>
+  );
+}

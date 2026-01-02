@@ -621,3 +621,42 @@ export const insertFeedbackTreinoSchema = createInsertSchema(feedbackTreinos).om
 
 export type InsertFeedbackTreino = z.infer<typeof insertFeedbackTreinoSchema>;
 export type FeedbackTreino = typeof feedbackTreinos.$inferSelect;
+
+// Tabela para inscrições de push notifications
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  
+  // Dados da inscrição
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  
+  // Metadados do dispositivo
+  userAgent: text("user_agent"),
+  deviceName: text("device_name"),
+  deviceType: text("device_type"),
+  browser: text("browser"),
+  os: text("os"),
+  
+  // Preferências
+  enabled: boolean("enabled").notNull().default(true),
+  notificationsTreino: boolean("notifications_treino").notNull().default(true),
+  notificationsDescanso: boolean("notifications_descanso").notNull().default(true),
+  notificationsAgenda: boolean("notifications_agenda").notNull().default(true),
+  notificationsMensagens: boolean("notifications_mensagens").notNull().default(false),
+  
+  // Controle
+  lastUsedAt: timestamp("last_used_at").default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;

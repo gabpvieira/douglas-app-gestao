@@ -86,11 +86,16 @@ export function useCreateFichaTreino() {
       
       // Criar exercícios se fornecidos
       if (exercicios && exercicios.length > 0) {
-        const exerciciosComFichaId = exercicios.map((ex, index) => ({
-          ...ex,
-          ficha_id: novaFicha.id,
-          ordem: ex.ordem || index + 1
-        }));
+        const exerciciosComFichaId = exercicios.map((ex, index) => {
+          // Remover IDs temporários antes de inserir no banco
+          const { id: exercicioId, ...exercicioData } = ex;
+          
+          return {
+            ...exercicioData,
+            ficha_id: novaFicha.id,
+            ordem: ex.ordem || index + 1
+          };
+        });
         
         const { error: exError } = await supabase
           .from('exercicios_ficha')
@@ -127,28 +132,44 @@ export function useUpdateFichaTreino() {
       if (fichaError) throw fichaError;
       
       // Se exercícios foram fornecidos, atualizar
-      if (exercicios && exercicios.length > 0) {
-        // Remover exercícios antigos
-        await supabase.from('exercicios_ficha').delete().eq('ficha_id', id);
-        
-        // Inserir novos exercícios
-        const exerciciosComFichaId = exercicios.map((ex, index) => ({
-          ...ex,
-          ficha_id: id,
-          ordem: index
-        }));
-        
-        const { error: exerciciosError } = await supabase
+      if (exercicios !== undefined) {
+        // Remover exercícios antigos (CASCADE vai cuidar dos relacionamentos)
+        const { error: deleteError } = await supabase
           .from('exercicios_ficha')
-          .insert(exerciciosComFichaId);
+          .delete()
+          .eq('ficha_id', id);
         
-        if (exerciciosError) throw exerciciosError;
+        if (deleteError) throw deleteError;
+        
+        // Inserir novos exercícios (apenas se houver algum)
+        if (exercicios.length > 0) {
+          const exerciciosComFichaId = exercicios.map((ex, index) => {
+            // Remover IDs temporários antes de inserir no banco
+            const { id: exercicioId, ...exercicioData } = ex;
+            const isTemporaryId = typeof exercicioId === 'string' && exercicioId.startsWith('temp-');
+            
+            return {
+              ...exercicioData,
+              // Manter ID real do banco, remover IDs temporários
+              ...(exercicioId && !isTemporaryId ? { id: exercicioId } : {}),
+              ficha_id: id,
+              ordem: index + 1
+            };
+          });
+          
+          const { error: exerciciosError } = await supabase
+            .from('exercicios_ficha')
+            .insert(exerciciosComFichaId);
+          
+          if (exerciciosError) throw exerciciosError;
+        }
       }
       
       return fichaAtualizada;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['fichas-treino'] });
+      queryClient.invalidateQueries({ queryKey: ['fichas-treino', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['fichas-stats'] });
     }
   });

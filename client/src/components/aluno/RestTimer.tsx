@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { startRestTimer as startNotificationTimer } from "@/lib/notificationManager";
 
 interface RestTimerProps {
   tempoInicial: number;
@@ -16,6 +17,26 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
   const [tempoRestante, setTempoRestante] = useState(tempoInicial);
   const [completo, setCompleto] = useState(false);
   const notificationSentRef = useRef(false);
+  const timerIdRef = useRef<string | null>(null);
+
+  // Iniciar timer de notificação
+  useEffect(() => {
+    const initTimer = async () => {
+      try {
+        const timerId = await startNotificationTimer(duration, exercicioNome);
+        timerIdRef.current = timerId;
+      } catch (error) {
+        console.error('Error starting notification timer:', error);
+      }
+    };
+    
+    initTimer();
+    
+    // Cleanup ao desmontar
+    return () => {
+      // Timer será limpo automaticamente pelo sistema de notificações
+    };
+  }, [duration, exercicioNome]);
 
   // Calcular tempo restante baseado em timestamp
   const calculateTimeRemaining = () => {

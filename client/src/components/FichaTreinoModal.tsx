@@ -92,20 +92,29 @@ export function FichaTreinoModal({ isOpen, onClose, onSave, ficha }: FichaTreino
 
   const handleSalvarExercicio = (exercicioData: Exercicio) => {
     if (exercicioEditando) {
-      setExercicios(exercicios.map(ex => 
-        ex.ordem === exercicioEditando.ordem ? exercicioData : ex
-      ));
+      // Usar id ou ordem para identificar o exercício sendo editado
+      const identificador = exercicioEditando.id || `temp-${exercicioEditando.ordem}`;
+      setExercicios(exercicios.map(ex => {
+        const exId = ex.id || `temp-${ex.ordem}`;
+        return exId === identificador ? { ...exercicioData, id: ex.id } : ex;
+      }));
     } else {
       const novaOrdem = exercicios.length + 1;
-      setExercicios([...exercicios, { ...exercicioData, ordem: novaOrdem }]);
+      // Gerar um ID temporário único para novos exercícios
+      const tempId = `temp-${Date.now()}-${novaOrdem}`;
+      setExercicios([...exercicios, { ...exercicioData, id: tempId, ordem: novaOrdem }]);
     }
     setIsExercicioModalOpen(false);
     setExercicioEditando(null);
   };
 
-  const handleExcluirExercicio = (ordem: number) => {
+  const handleExcluirExercicio = (exercicioId: string) => {
+    // Filtrar pelo ID e reordenar
     const novosExercicios = exercicios
-      .filter(ex => ex.ordem !== ordem)
+      .filter(ex => {
+        const exId = ex.id || `temp-${ex.ordem}`;
+        return exId !== exercicioId;
+      })
       .map((ex, index) => ({ ...ex, ordem: index + 1 }));
     setExercicios(novosExercicios);
   };
