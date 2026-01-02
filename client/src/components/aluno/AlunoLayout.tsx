@@ -8,6 +8,7 @@ import {
   TrendingUp, 
   Video, 
   User, 
+  Bell,
   Menu, 
   X,
   LogOut
@@ -27,6 +28,7 @@ const menuItems = [
   { icon: Calendar, label: "Agenda", href: "/aluno/agenda" },
   { icon: TrendingUp, label: "Progresso", href: "/aluno/progresso" },
   { icon: Video, label: "Vídeos", href: "/aluno/videos" },
+  { icon: Bell, label: "Notificações", href: "/aluno/notificacoes" },
   { icon: User, label: "Perfil", href: "/aluno/perfil" },
 ];
 
