@@ -1,12 +1,12 @@
 /**
  * Audio Manager - Sistema de alertas sonoros para treinos
  * 
- * Gerencia sons de alerta com volume alto e claro para:
- * - Fim de descanso entre séries
- * - Conclusão de exercícios
- * - Alertas importantes durante treino
+ * Versão 3.0 - Correção de notificações duplicadas
  * 
- * Versão 2.0 - Suporte a background e notificações do sistema
+ * Mudanças:
+ * - Notificação centralizada no Service Worker (única fonte)
+ * - Som local apenas como fallback quando SW não disponível
+ * - Controle de duplicação via flags
  */
 
 export type AlertSoundType = 'alarm' | 'bell' | 'beep';
@@ -16,24 +16,26 @@ export interface AudioSettings {
   vibrationEnabled: boolean;
   soundType: AlertSoundType;
   volume: number; // 0 a 1
-  backgroundEnabled: boolean; // Permitir execução em segundo plano
-  useSystemNotification: boolean; // Usar notificação do sistema para som
+  backgroundEnabled: boolean;
+  useSystemNotification: boolean;
 }
 
-// Configurações padrão
 const DEFAULT_SETTINGS: AudioSettings = {
   soundEnabled: true,
   vibrationEnabled: true,
   soundType: 'alarm',
-  volume: 0.8,
+  volume: 0.9, // Volume alto por padrão
   backgroundEnabled: true,
   useSystemNotification: true,
 };
 
 const STORAGE_KEY = 'workout_audio_settings';
 
-// AudioContext global para reutilização
 let globalAudioContext: AudioContext | null = null;
+
+// Controle de alertas já disparados para evitar duplicação
+const firedAlerts = new Map<string, number>();
+const ALERT_COOLDOWN = 5000; // 5 segundos de cooldown entre alertas do mesmo timer
 
 /**
  * Obter configurações de áudio do localStorage
@@ -86,45 +88,67 @@ async function ensureAudioContextActive(): Promise<AudioContext> {
 }
 
 /**
- * Criar som de alarme usando Web Audio API
- * Som forte e claro, estilo alarme de celular
+ * Criar som de alarme forte e identificável
+ * Estilo "REV" - som curto, forte e reconhecível
  */
 function createAlarmSound(audioContext: AudioContext, volume: number): void {
   const now = audioContext.currentTime;
-  const duration = 1.5; // 1.5 segundos
   
-  // Criar três bips rápidos e fortes
-  for (let i = 0; i < 3; i++) {
-    const startTime = now + (i * 0.5);
+  // Som de alarme forte: 4 bips rápidos com frequência crescente
+  const frequencies = [880, 1100, 1320, 1540]; // Escala ascendente
+  
+  frequencies.forEach((freq, i) => {
+    const startTime = now + (i * 0.15);
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    // Frequência alta para ser mais perceptível
-    oscillator.frequency.value = 1200;
-    oscillator.type = 'square'; // Som mais "duro" e perceptível
+    oscillator.frequency.value = freq;
+    oscillator.type = 'square'; // Som mais "cortante" e perceptível
     
-    // Volume alto com fade out rápido
-    gainNode.gain.setValueAtTime(volume, startTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+    // Volume alto com ataque rápido
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+    gainNode.gain.setValueAtTime(volume, startTime + 0.08);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.12);
     
     oscillator.start(startTime);
-    oscillator.stop(startTime + 0.3);
-  }
+    oscillator.stop(startTime + 0.12);
+  });
+  
+  // Segundo grupo após pausa curta (padrão reconhecível)
+  setTimeout(() => {
+    frequencies.forEach((freq, i) => {
+      const ctx = getAudioContext();
+      const startTime = ctx.currentTime + (i * 0.15);
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.frequency.value = freq;
+      oscillator.type = 'square';
+      
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+      gainNode.gain.setValueAtTime(volume, startTime + 0.08);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.12);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + 0.12);
+    });
+  }, 400);
 }
 
 /**
- * Criar som de sino usando Web Audio API
- * Som agradável mas perceptível
+ * Criar som de sino
  */
 function createBellSound(audioContext: AudioContext, volume: number): void {
   const now = audioContext.currentTime;
-  const duration = 1.2;
-  
-  // Criar harmônicos de sino
-  const frequencies = [800, 1000, 1200];
+  const frequencies = [523, 659, 784, 1047]; // C5, E5, G5, C6 (acorde maior)
   
   frequencies.forEach((freq, index) => {
     const oscillator = audioContext.createOscillator();
@@ -136,39 +160,38 @@ function createBellSound(audioContext: AudioContext, volume: number): void {
     oscillator.frequency.value = freq;
     oscillator.type = 'sine';
     
-    // Volume decrescente para cada harmônico
-    const harmVolume = volume * (1 - index * 0.2);
+    const harmVolume = volume * (1 - index * 0.15);
     gainNode.gain.setValueAtTime(harmVolume, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
     
     oscillator.start(now);
-    oscillator.stop(now + duration);
+    oscillator.stop(now + 1.0);
   });
 }
 
 /**
- * Criar som de bip simples mas forte
+ * Criar som de bip forte
  */
 function createBeepSound(audioContext: AudioContext, volume: number): void {
   const now = audioContext.currentTime;
   
-  // Dois bips fortes
-  for (let i = 0; i < 2; i++) {
-    const startTime = now + (i * 0.4);
+  // 3 bips fortes
+  for (let i = 0; i < 3; i++) {
+    const startTime = now + (i * 0.25);
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    oscillator.frequency.value = 1000;
+    oscillator.frequency.value = 1200;
     oscillator.type = 'sine';
     
     gainNode.gain.setValueAtTime(volume, startTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.4);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
     
     oscillator.start(startTime);
-    oscillator.stop(startTime + 0.4);
+    oscillator.stop(startTime + 0.15);
   }
 }
 
@@ -179,7 +202,7 @@ export async function playAlertSound(type?: AlertSoundType): Promise<void> {
   const settings = getAudioSettings();
   
   if (!settings.soundEnabled) {
-    console.log('Sound disabled by user settings');
+    console.log('[AudioManager] Sound disabled by user settings');
     return;
   }
   
@@ -188,7 +211,6 @@ export async function playAlertSound(type?: AlertSoundType): Promise<void> {
     const soundType = type || settings.soundType;
     const volume = settings.volume;
     
-    // Tocar som baseado no tipo
     switch (soundType) {
       case 'alarm':
         createAlarmSound(audioContext, volume);
@@ -203,9 +225,9 @@ export async function playAlertSound(type?: AlertSoundType): Promise<void> {
         createAlarmSound(audioContext, volume);
     }
     
-    console.log(`Played ${soundType} sound at volume ${volume}`);
+    console.log(`[AudioManager] Played ${soundType} sound at volume ${volume}`);
   } catch (error) {
-    console.error('Error playing alert sound:', error);
+    console.error('[AudioManager] Error playing alert sound:', error);
   }
 }
 
@@ -216,29 +238,65 @@ export function triggerVibration(pattern?: number | number[]): void {
   const settings = getAudioSettings();
   
   if (!settings.vibrationEnabled) {
-    console.log('Vibration disabled by user settings');
+    console.log('[AudioManager] Vibration disabled by user settings');
     return;
   }
   
   if (!navigator.vibrate) {
-    console.log('Vibration API not supported');
+    console.log('[AudioManager] Vibration API not supported');
     return;
   }
   
   try {
-    // Padrão padrão: vibração forte e perceptível
-    const vibrationPattern = pattern || [300, 100, 300, 100, 300];
+    // Padrão forte e longo para ser perceptível
+    const vibrationPattern = pattern || [400, 100, 400, 100, 400];
     navigator.vibrate(vibrationPattern);
-    console.log('Vibration triggered:', vibrationPattern);
+    console.log('[AudioManager] Vibration triggered:', vibrationPattern);
   } catch (error) {
-    console.error('Error triggering vibration:', error);
+    console.error('[AudioManager] Error triggering vibration:', error);
+  }
+}
+
+/**
+ * Verificar se alerta já foi disparado recentemente (evita duplicação)
+ */
+function canFireAlert(timerId?: string): boolean {
+  if (!timerId) return true;
+  
+  const lastFired = firedAlerts.get(timerId);
+  if (!lastFired) return true;
+  
+  const elapsed = Date.now() - lastFired;
+  return elapsed > ALERT_COOLDOWN;
+}
+
+/**
+ * Marcar alerta como disparado
+ */
+function markAlertFired(timerId?: string): void {
+  if (timerId) {
+    firedAlerts.set(timerId, Date.now());
+    
+    // Limpar após cooldown
+    setTimeout(() => {
+      firedAlerts.delete(timerId);
+    }, ALERT_COOLDOWN + 1000);
   }
 }
 
 /**
  * Tocar alerta completo (som + vibração)
+ * Verifica duplicação antes de disparar
  */
-export async function playCompleteAlert(soundType?: AlertSoundType): Promise<void> {
+export async function playCompleteAlert(soundType?: AlertSoundType, timerId?: string): Promise<void> {
+  // Verificar se já disparamos alerta para este timer recentemente
+  if (!canFireAlert(timerId)) {
+    console.log('[AudioManager] Alert already fired recently for timer:', timerId);
+    return;
+  }
+  
+  markAlertFired(timerId);
+  
   // Tocar som e vibração simultaneamente
   await Promise.all([
     playAlertSound(soundType),
@@ -265,7 +323,7 @@ export async function testSound(soundType: AlertSoundType, volume: number): Prom
         break;
     }
   } catch (error) {
-    console.error('Error testing sound:', error);
+    console.error('[AudioManager] Error testing sound:', error);
   }
 }
 
@@ -274,7 +332,7 @@ export async function testSound(soundType: AlertSoundType, volume: number): Prom
  */
 export function testVibration(): void {
   if (navigator.vibrate) {
-    navigator.vibrate([300, 100, 300]);
+    navigator.vibrate([400, 100, 400]);
   }
 }
 
@@ -284,7 +342,6 @@ export function testVibration(): void {
 
 /**
  * Iniciar timer no Service Worker
- * Funciona mesmo com tela bloqueada
  */
 export async function startBackgroundTimer(
   timerId: string,
@@ -294,12 +351,12 @@ export async function startBackgroundTimer(
   const settings = getAudioSettings();
   
   if (!settings.backgroundEnabled) {
-    console.log('Background timers disabled');
+    console.log('[AudioManager] Background timers disabled');
     return false;
   }
   
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-    console.warn('Service Worker not available for background timer');
+    console.warn('[AudioManager] Service Worker not available for background timer');
     return false;
   }
   
@@ -315,10 +372,10 @@ export async function startBackgroundTimer(
       }
     });
     
-    console.log(`Background timer started: ${timerId}, duration: ${duration}s`);
+    console.log(`[AudioManager] Background timer started: ${timerId}, duration: ${duration}s`);
     return true;
   } catch (error) {
-    console.error('Error starting background timer:', error);
+    console.error('[AudioManager] Error starting background timer:', error);
     return false;
   }
 }
@@ -327,6 +384,9 @@ export async function startBackgroundTimer(
  * Cancelar timer no Service Worker
  */
 export function cancelBackgroundTimer(timerId: string): void {
+  // Limpar registro de alerta disparado
+  firedAlerts.delete(timerId);
+  
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
     return;
   }
@@ -336,9 +396,9 @@ export function cancelBackgroundTimer(timerId: string): void {
       type: 'CANCEL_TIMER',
       timerId
     });
-    console.log(`Background timer canceled: ${timerId}`);
+    console.log(`[AudioManager] Background timer canceled: ${timerId}`);
   } catch (error) {
-    console.error('Error canceling background timer:', error);
+    console.error('[AudioManager] Error canceling background timer:', error);
   }
 }
 
@@ -350,6 +410,7 @@ export async function getBackgroundTimerStatus(timerId: string): Promise<{
   remaining: number;
   completed: boolean;
   exerciseName?: string;
+  notificationSent?: boolean;
 } | null> {
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
     return null;
@@ -362,7 +423,6 @@ export async function getBackgroundTimerStatus(timerId: string): Promise<{
       resolve(event.data);
     };
     
-    // Timeout de 1 segundo
     setTimeout(() => resolve(null), 1000);
     
     navigator.serviceWorker.controller.postMessage(
@@ -373,10 +433,35 @@ export async function getBackgroundTimerStatus(timerId: string): Promise<{
 }
 
 /**
+ * Verificar se notificação já foi enviada pelo SW
+ */
+export async function checkNotificationSentBySW(timerId: string): Promise<boolean> {
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+    return false;
+  }
+  
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    
+    channel.port1.onmessage = (event) => {
+      resolve(event.data?.sent || false);
+    };
+    
+    setTimeout(() => resolve(false), 500);
+    
+    navigator.serviceWorker.controller.postMessage(
+      { type: 'CHECK_NOTIFICATION_SENT', timerId },
+      [channel.port2]
+    );
+  });
+}
+
+/**
  * Listener para mensagens do Service Worker
+ * NÃO dispara som automaticamente - deixa o SW cuidar disso
  */
 export function setupServiceWorkerListener(
-  onTimerComplete?: (timerId: string) => void,
+  onTimerComplete?: (timerId: string, notificationSentBySW: boolean) => void,
   onNotificationClicked?: (action: string, data: any) => void
 ): () => void {
   if (!('serviceWorker' in navigator)) {
@@ -384,12 +469,14 @@ export function setupServiceWorkerListener(
   }
   
   const handler = (event: MessageEvent) => {
-    const { type, timerId, action, data } = event.data || {};
+    const { type, timerId, action, data, notificationSentBySW } = event.data || {};
     
     if (type === 'TIMER_COMPLETE' && onTimerComplete) {
-      // Tocar som local quando timer completa (backup)
-      playCompleteAlert();
-      onTimerComplete(timerId);
+      console.log('[AudioManager] Timer complete from SW:', timerId, 'notification sent:', notificationSentBySW);
+      
+      // Apenas notificar o componente - NÃO tocar som aqui
+      // O SW já enviou a notificação com som
+      onTimerComplete(timerId, notificationSentBySW || false);
     }
     
     if (type === 'NOTIFICATION_CLICKED' && onNotificationClicked) {
@@ -461,11 +548,12 @@ export async function sendTestNotification(): Promise<boolean> {
       badge: '/icon-72.png',
       tag: 'test-notification',
       requireInteraction: false,
+      vibrate: [200, 100, 200],
     });
     
     return true;
   } catch (error) {
-    console.error('Error sending test notification:', error);
+    console.error('[AudioManager] Error sending test notification:', error);
     return false;
   }
 }
@@ -488,13 +576,13 @@ export function startKeepAlive(): void {
     }
   }, 20000);
   
-  console.log('Keep-alive started for Service Worker');
+  console.log('[AudioManager] Keep-alive started for Service Worker');
 }
 
 export function stopKeepAlive(): void {
   if (keepAliveInterval) {
     clearInterval(keepAliveInterval);
     keepAliveInterval = null;
-    console.log('Keep-alive stopped');
+    console.log('[AudioManager] Keep-alive stopped');
   }
 }

@@ -1,15 +1,15 @@
 /**
  * Service Worker com suporte robusto para notificações em background
- * Versão: 2.0.0 - Sistema de alertas de treino melhorado
+ * Versão: 3.0.0 - Sistema de alertas de treino corrigido
  * 
- * Funcionalidades:
- * - Notificações funcionam com tela bloqueada
- * - Timer baseado em timestamps (não depende de setTimeout)
- * - Som de alarme via notificação do sistema
- * - Compatível com Chrome 109+ (Windows 7)
+ * Correções:
+ * - Eliminação de notificações duplicadas
+ * - Som personalizado forte e identificável
+ * - Controle centralizado de notificações
+ * - Funciona com tela bloqueada e app em background
  */
 
-var CACHE_VERSION = 'app-v4';
+var CACHE_VERSION = 'app-v5';
 var STATIC_CACHE = 'static-' + CACHE_VERSION;
 var DYNAMIC_CACHE = 'dynamic-' + CACHE_VERSION;
 
@@ -21,7 +21,8 @@ var STATIC_ASSETS = [
   '/favicon.ico',
   '/favicon.png',
   '/icone-pwa.png',
-  '/apple-touch-icon.png'
+  '/apple-touch-icon.png',
+  '/sounds/workout-alert.mp3'
 ];
 
 // ============================================
@@ -108,12 +109,14 @@ self.addEventListener('fetch', function(event) {
 // ============================================
 
 var activeTimers = {};
-var TIMER_CHECK_INTERVAL = 1000; // Verificar a cada 1 segundo
+var TIMER_CHECK_INTERVAL = 1000;
 var timerCheckIntervalId = null;
+
+// Controle de notificações enviadas para evitar duplicação
+var sentNotifications = {};
 
 /**
  * Inicia o loop de verificação de timers
- * Usa timestamps para calcular tempo restante (funciona em background)
  */
 function startTimerCheckLoop() {
   if (timerCheckIntervalId) return;
@@ -155,17 +158,28 @@ function checkAllTimers() {
     var elapsed = now - timer.startTime;
     var remaining = (timer.duration * 1000) - elapsed;
     
-    // Timer completou
-    if (remaining <= 0 && !timer.notificationSent) {
+    // Timer completou - verificar se já enviamos notificação
+    if (remaining <= 0 && !timer.notificationSent && !sentNotifications[timerId]) {
       console.log('[SW] Timer completed:', timerId);
-      sendTimerCompleteNotification(timer);
-      timer.notificationSent = true;
       
-      // Remover timer após 5 segundos
+      // Marcar como enviado ANTES de enviar para evitar race conditions
+      timer.notificationSent = true;
+      sentNotifications[timerId] = now;
+      
+      // Enviar notificação única
+      sendTimerCompleteNotification(timer);
+      
+      // Notificar clientes (sem som - o SW já cuida disso)
+      notifyClientsTimerComplete(timerId);
+      
+      // Limpar timer após 10 segundos
       setTimeout(function() {
         delete activeTimers[timerId];
-        notifyClientsTimerComplete(timerId);
-      }, 5000);
+        // Manter registro de notificação por 60 segundos para evitar duplicação
+        setTimeout(function() {
+          delete sentNotifications[timerId];
+        }, 60000);
+      }, 10000);
     }
   });
 }
@@ -174,10 +188,18 @@ function checkAllTimers() {
  * Inicia um novo timer
  */
 function handleStartTimer(timerData) {
-  console.log('[SW] Starting timer:', timerData.id, 'duration:', timerData.duration);
+  var timerId = timerData.id;
   
-  activeTimers[timerData.id] = {
-    id: timerData.id,
+  // Se já existe um timer com esse ID e já foi notificado, ignorar
+  if (sentNotifications[timerId]) {
+    console.log('[SW] Timer already completed, ignoring:', timerId);
+    return;
+  }
+  
+  console.log('[SW] Starting timer:', timerId, 'duration:', timerData.duration);
+  
+  activeTimers[timerId] = {
+    id: timerId,
     startTime: timerData.startTime || Date.now(),
     duration: timerData.duration,
     exerciseName: timerData.exerciseName,
@@ -194,6 +216,7 @@ function handleStartTimer(timerData) {
 function handleCancelTimer(timerId) {
   console.log('[SW] Canceling timer:', timerId);
   delete activeTimers[timerId];
+  delete sentNotifications[timerId];
   
   if (Object.keys(activeTimers).length === 0) {
     stopTimerCheckLoop();
@@ -215,34 +238,33 @@ function getTimerStatus(timerId) {
     id: timer.id,
     remaining: Math.ceil(remaining / 1000),
     completed: remaining <= 0,
-    exerciseName: timer.exerciseName
+    exerciseName: timer.exerciseName,
+    notificationSent: timer.notificationSent
   };
 }
 
 // ============================================
-// NOTIFICAÇÕES
+// NOTIFICAÇÕES - FONTE ÚNICA
 // ============================================
 
 /**
  * Envia notificação de timer completo
- * Usa requireInteraction e prioridade alta para funcionar com tela bloqueada
+ * ÚNICA fonte de notificação para evitar duplicação
  */
 function sendTimerCompleteNotification(timer) {
   console.log('[SW] Sending timer complete notification:', timer.id);
   
-  var title = '💪 Descanso Completo!';
-  var body = timer.exerciseName 
-    ? 'Hora de voltar para ' + timer.exerciseName
-    : 'Hora de voltar ao exercício!';
+  var title = '💪 Pausa finalizada';
+  var body = 'Volte ao exercício' + (timer.exerciseName ? ': ' + timer.exerciseName : '!');
   
   var options = {
     body: body,
     icon: '/icon-192.png',
     badge: '/icon-72.png',
-    tag: 'rest-timer-' + timer.id,
+    tag: 'rest-timer-complete', // Tag única para evitar múltiplas notificações
     renotify: true,
-    requireInteraction: true, // Mantém notificação visível até interação
-    vibrate: [300, 100, 300, 100, 300, 100, 300], // Vibração forte
+    requireInteraction: true,
+    vibrate: [400, 100, 400, 100, 400, 100, 400], // Vibração forte e longa
     actions: [
       { action: 'continue', title: '▶️ Continuar' },
       { action: 'dismiss', title: '✓ OK' }
@@ -253,9 +275,11 @@ function sendTimerCompleteNotification(timer) {
       exerciseName: timer.exerciseName,
       timestamp: Date.now()
     },
-    // Configurações para prioridade alta (Android)
+    // Som personalizado (se suportado pelo navegador)
+    sound: '/sounds/workout-alert.mp3',
+    // Prioridade alta para Android
     urgency: 'high',
-    silent: false // Permite som do sistema
+    silent: false
   };
   
   return self.registration.showNotification(title, options);
@@ -263,6 +287,7 @@ function sendTimerCompleteNotification(timer) {
 
 /**
  * Notifica clientes que timer completou
+ * Envia flag indicando que notificação já foi enviada pelo SW
  */
 function notifyClientsTimerComplete(timerId) {
   self.clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -270,7 +295,8 @@ function notifyClientsTimerComplete(timerId) {
       clients.forEach(function(client) {
         client.postMessage({
           type: 'TIMER_COMPLETE',
-          timerId: timerId
+          timerId: timerId,
+          notificationSentBySW: true // Flag para evitar duplicação no frontend
         });
       });
     });
@@ -420,9 +446,16 @@ self.addEventListener('message', function(event) {
       break;
       
     case 'PING':
-      // Keep-alive ping
       if (event.ports && event.ports[0]) {
         event.ports[0].postMessage({ type: 'PONG', timestamp: Date.now() });
+      }
+      break;
+      
+    case 'CHECK_NOTIFICATION_SENT':
+      // Verificar se notificação já foi enviada para um timer
+      var wasSent = !!sentNotifications[data.timerId];
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ sent: wasSent });
       }
       break;
   }

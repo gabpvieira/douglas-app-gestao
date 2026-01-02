@@ -7,7 +7,8 @@ import {
   cancelBackgroundTimer,
   setupServiceWorkerListener,
   startKeepAlive,
-  getAudioSettings
+  getAudioSettings,
+  checkNotificationSentBySW
 } from "@/lib/audioManager";
 
 interface RestTimerProps {
@@ -23,7 +24,10 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
   const [duration] = useState(tempoInicial);
   const [tempoRestante, setTempoRestante] = useState(tempoInicial);
   const [completo, setCompleto] = useState(false);
-  const notificationSentRef = useRef(false);
+  
+  // Refs para controle de estado e evitar duplicações
+  const alertFiredRef = useRef(false);
+  const swNotifiedRef = useRef(false);
   const timerIdRef = useRef<string>(`rest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const cleanupRef = useRef<(() => void) | null>(null);
 
@@ -47,9 +51,12 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     startBackgroundTimer(timerId, duration, exercicioNome);
     
     // Setup listener para quando timer completar via SW
+    // O SW é a fonte única de notificações - não disparamos som aqui
     cleanupRef.current = setupServiceWorkerListener(
-      (completedTimerId) => {
+      (completedTimerId, notificationSentBySW) => {
         if (completedTimerId === timerId && !completo) {
+          console.log('[RestTimer] Timer complete from SW, notification sent:', notificationSentBySW);
+          swNotifiedRef.current = notificationSentBySW;
           setCompleto(true);
         }
       }
@@ -71,23 +78,56 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     }
   }, []);
 
-  // Enviar notificação local quando completar (backup)
-  const sendLocalNotification = useCallback(() => {
-    if (notificationSentRef.current) return;
-    notificationSentRef.current = true;
+  // Efeito quando completar - SOM APENAS SE SW NÃO NOTIFICOU
+  useEffect(() => {
+    if (!completo || alertFiredRef.current) return;
+    
+    alertFiredRef.current = true;
+    const timerId = timerIdRef.current;
+    
+    // Verificar se o SW já enviou notificação
+    const handleCompletion = async () => {
+      // Se o SW já notificou, não precisamos fazer nada
+      // O som já foi tocado via notificação do sistema
+      if (swNotifiedRef.current) {
+        console.log('[RestTimer] SW already sent notification, skipping local alert');
+      } else {
+        // Fallback: SW não disponível ou não notificou
+        // Verificar novamente com o SW antes de tocar som local
+        const swSent = await checkNotificationSentBySW(timerId);
+        
+        if (!swSent) {
+          console.log('[RestTimer] SW did not notify, playing local alert');
+          // Tocar alerta local apenas se SW não enviou
+          await playCompleteAlert(undefined, timerId);
+          
+          // Enviar notificação local como fallback
+          sendLocalNotification();
+        }
+      }
+      
+      // Fechar timer após 3 segundos
+      setTimeout(() => {
+        onComplete();
+      }, 3000);
+    };
+    
+    handleCompletion();
+  }, [completo, onComplete]);
 
-    // Notificação do navegador (fallback se SW não enviou)
+  // Enviar notificação local (fallback quando SW não disponível)
+  const sendLocalNotification = useCallback(() => {
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
-        const notification = new Notification('💪 Descanso Completo!', {
+        const notification = new Notification('💪 Pausa finalizada', {
           body: exercicioNome 
-            ? `Hora de voltar para ${exercicioNome}`
-            : 'Hora de voltar ao exercício!',
+            ? `Volte ao exercício: ${exercicioNome}`
+            : 'Volte ao exercício!',
           icon: '/icon-192.png',
           badge: '/icon-72.png',
-          tag: 'rest-timer-local',
+          tag: 'rest-timer-fallback', // Tag única para evitar duplicação
           requireInteraction: false,
-          silent: false,
+          silent: true, // Silencioso pois já tocamos o som via Web Audio
         });
 
         notification.onclick = () => {
@@ -95,39 +135,20 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
           notification.close();
         };
       } catch (error) {
-        console.error('Error sending local notification:', error);
+        console.error('[RestTimer] Error sending local notification:', error);
       }
     }
   }, [exercicioNome]);
-
-  // Efeito quando completar
-  useEffect(() => {
-    if (completo) {
-      // Tocar alerta completo (som + vibração) baseado nas configurações do usuário
-      playCompleteAlert().catch(err => 
-        console.error('Error playing complete alert:', err)
-      );
-      
-      // Enviar notificação local como backup
-      sendLocalNotification();
-
-      const timeout = setTimeout(() => {
-        onComplete();
-      }, 3000);
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [completo, onComplete, sendLocalNotification]);
 
   // Timer countdown baseado em timestamp
   useEffect(() => {
     if (completo) return;
 
-    // Atualizar a cada 100ms para maior precisão
     const interval = setInterval(() => {
       const remaining = calculateTimeRemaining();
       setTempoRestante(remaining);
 
+      // Timer completou localmente (fallback se SW não notificar)
       if (remaining <= 0 && !completo) {
         setCompleto(true);
       }
@@ -199,10 +220,10 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
 
             <div className="min-w-0">
               <h3 className={`font-semibold ${completo ? "text-white" : "text-foreground"}`}>
-                {completo ? "Descanso Completo!" : "Descansando..."}
+                {completo ? "Pausa finalizada!" : "Descansando..."}
               </h3>
               <p className={`text-sm ${completo ? "text-emerald-100" : "text-muted-foreground"}`}>
-                {completo ? "Pronto para a próxima série" : "Aguarde o timer"}
+                {completo ? "Volte ao exercício" : "Aguarde o timer"}
               </p>
             </div>
           </div>
