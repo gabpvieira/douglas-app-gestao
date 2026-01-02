@@ -23,15 +23,51 @@ export default function MinimizedWorkout({
   onTogglePause,
 }: MinimizedWorkoutProps) {
   const [visible, setVisible] = useState(true);
+  const [localTime, setLocalTime] = useState(tempoDecorrido);
+  const [localTimerDescanso, setLocalTimerDescanso] = useState(timerDescanso?.tempoRestante || 0);
+
+  // Atualizar tempo local a cada segundo para garantir atualização visual
+  useEffect(() => {
+    if (pausado) {
+      setLocalTime(tempoDecorrido);
+      return;
+    }
+
+    // Atualizar imediatamente
+    setLocalTime(tempoDecorrido);
+
+    // Continuar atualizando a cada segundo
+    const interval = setInterval(() => {
+      setLocalTime(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [tempoDecorrido, pausado]);
+
+  // Atualizar timer de descanso local
+  useEffect(() => {
+    if (!timerDescanso) {
+      setLocalTimerDescanso(0);
+      return;
+    }
+
+    setLocalTimerDescanso(timerDescanso.tempoRestante);
+
+    const interval = setInterval(() => {
+      setLocalTimerDescanso(prev => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerDescanso]);
 
   // Atualizar título da página com tempo
   useEffect(() => {
     const originalTitle = document.title;
     
-    if (timerDescanso) {
-      document.title = `⏱️ ${formatarTempo(timerDescanso.tempoRestante)} - Descanso`;
+    if (timerDescanso && localTimerDescanso > 0) {
+      document.title = `⏱️ ${formatarTempo(localTimerDescanso)} - Descanso`;
     } else if (!pausado) {
-      document.title = `💪 ${formatarTempo(tempoDecorrido)} - Treino`;
+      document.title = `💪 ${formatarTempo(localTime)} - Treino`;
     } else {
       document.title = `⏸️ Treino Pausado`;
     }
@@ -39,7 +75,7 @@ export default function MinimizedWorkout({
     return () => {
       document.title = originalTitle;
     };
-  }, [tempoDecorrido, pausado, timerDescanso]);
+  }, [localTime, pausado, timerDescanso, localTimerDescanso]);
 
   const formatarTempo = (segundos: number) => {
     const horas = Math.floor(segundos / 3600);
@@ -55,81 +91,84 @@ export default function MinimizedWorkout({
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-lg border border-primary/30 rounded-xl shadow-2xl p-4 z-50 min-w-[280px] animate-in slide-in-from-bottom-5">
-      <div className="space-y-3">
+    <div className="fixed inset-0 bg-background z-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-gradient-to-br from-primary/10 to-primary/5 backdrop-blur-lg border-2 border-primary/30 rounded-2xl shadow-2xl p-6 space-y-4 animate-in zoom-in-95">
         {/* Header */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-foreground truncate">
-              {nomeFicha}
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              {pausado ? "Pausado" : "Em andamento"}
-            </p>
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/20 mb-2">
+            <span className="text-3xl">💪</span>
           </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 w-8 p-0 flex-shrink-0"
-            onClick={onExpand}
-          >
-            <Maximize2 className="h-4 w-4" />
-          </Button>
+          <h2 className="font-bold text-xl text-foreground">
+            {nomeFicha}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {pausado ? "⏸️ Treino Pausado" : "🔥 Treino em Andamento"}
+          </p>
+        </div>
+
+        {/* Aviso Explicativo */}
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+          <p className="text-sm text-blue-400 text-center leading-relaxed">
+            💡 <strong>O treino continua rodando!</strong><br />
+            Você pode navegar livremente. Os timers continuarão contando em segundo plano.
+          </p>
         </div>
 
         {/* Tempo Total */}
-        <div className="flex items-center justify-between bg-card/50 rounded-lg p-2">
-          <span className="text-xs text-muted-foreground">Tempo Total</span>
-          <span className="text-lg font-bold tabular-nums text-primary">
-            {formatarTempo(tempoDecorrido)}
-          </span>
+        <div className="bg-card/50 rounded-xl p-4 text-center">
+          <span className="text-xs text-muted-foreground uppercase tracking-wide">Tempo Total</span>
+          <div className="text-4xl font-bold tabular-nums text-primary mt-1">
+            {formatarTempo(localTime)}
+          </div>
         </div>
 
         {/* Timer de Descanso */}
-        {timerDescanso && (
-          <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-lg p-2 animate-pulse">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <span className="text-xs text-emerald-400 font-medium">Descansando</span>
-                <p className="text-xs text-emerald-300/70 truncate">
-                  {timerDescanso.exercicioNome}
-                </p>
-              </div>
-              <span className="text-2xl font-bold tabular-nums text-emerald-400 ml-2">
-                {formatarTempo(timerDescanso.tempoRestante)}
-              </span>
+        {timerDescanso && localTimerDescanso > 0 && (
+          <div className="bg-emerald-500/20 border-2 border-emerald-500/40 rounded-xl p-4 text-center animate-pulse">
+            <span className="text-xs text-emerald-400 uppercase tracking-wide font-medium">⏱️ Descansando</span>
+            <div className="text-5xl font-bold tabular-nums text-emerald-400 mt-1">
+              {formatarTempo(localTimerDescanso)}
             </div>
+            <p className="text-sm text-emerald-300/70 mt-2 truncate">
+              {timerDescanso.exercicioNome}
+            </p>
           </div>
         )}
 
         {/* Controles */}
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 pt-2">
           <Button
-            size="sm"
+            size="lg"
+            className="w-full text-base"
+            onClick={onExpand}
+          >
+            <Maximize2 className="h-5 w-5 mr-2" />
+            Ver Treino Completo
+          </Button>
+          <Button
+            size="lg"
             variant="outline"
-            className="flex-1"
+            className="w-full text-base"
             onClick={onTogglePause}
           >
             {pausado ? (
               <>
-                <Play className="h-3 w-3 mr-1" />
-                Retomar
+                <Play className="h-5 w-5 mr-2" />
+                Retomar Treino
               </>
             ) : (
               <>
-                <Pause className="h-3 w-3 mr-1" />
-                Pausar
+                <Pause className="h-5 w-5 mr-2" />
+                Pausar Treino
               </>
             )}
           </Button>
-          <Button
-            size="sm"
-            className="flex-1"
-            onClick={onExpand}
-          >
-            Ver Treino
-          </Button>
         </div>
+
+        {/* Dica */}
+        <p className="text-xs text-center text-muted-foreground">
+          Clique em "Ver Treino Completo" para voltar à tela de execução
+        </p>
       </div>
     </div>
   );
