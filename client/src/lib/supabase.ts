@@ -8,7 +8,7 @@ if (!supabaseAnonKey) {
   console.error('📝 Configure as variáveis de ambiente no Vercel:');
   console.error('   VITE_SUPABASE_URL');
   console.error('   VITE_SUPABASE_ANON_KEY');
-  console.error('📖 Veja VERCEL_SETUP.md para instruções detalhadas');
+  console.error('📖 Veja docs/setup/VERCEL_SETUP.md para instruções detalhadas');
 }
 
 // Create Supabase client for frontend

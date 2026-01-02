@@ -1,4 +1,12 @@
-# Resumo Executivo: Funcionalidade Minimizar Treino
+# [REMOVIDO] Resumo Executivo: Funcionalidade Minimizar Treino
+
+> ⚠️ **ATENÇÃO:** Esta funcionalidade foi removida. O treino agora funciona automaticamente em background sem necessidade de minimizar manualmente.
+> 
+> Ver documentação atualizada em: `REMOCAO_MINIMIZAR_TREINO.md` e `CONFIGURACAO_TREINO_BACKGROUND.md`
+
+---
+
+# Resumo Executivo: Funcionalidade Minimizar Treino (LEGADO)
 
 ## 🎯 O Que É?
 

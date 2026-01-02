@@ -1,4 +1,12 @@
-# Funcionalidade: Minimizar Treino
+# [REMOVIDO] Funcionalidade: Minimizar Treino
+
+> ⚠️ **ATENÇÃO:** Esta funcionalidade foi removida. O treino agora funciona automaticamente em background sem necessidade de minimizar manualmente.
+> 
+> Ver documentação atualizada em: `REMOCAO_MINIMIZAR_TREINO.md` e `CONFIGURACAO_TREINO_BACKGROUND.md`
+
+---
+
+# Funcionalidade: Minimizar Treino (LEGADO)
 
 ## 📋 Visão Geral
 

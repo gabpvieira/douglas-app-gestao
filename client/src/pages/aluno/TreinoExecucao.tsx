@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
-import { Check, X, Save, Minimize2 } from "lucide-react";
+import { Check, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AlunoLayout from "@/components/aluno/AlunoLayout";
 import TreinoHeader from "@/components/aluno/TreinoHeader";
 import ExercicioCard from "@/components/aluno/ExercicioCard";
 import RestTimer from "@/components/aluno/RestTimer";
-import MinimizedWorkout from "@/components/aluno/MinimizedWorkout";
 import FinalizarTreinoModal from "@/components/aluno/FinalizarTreinoModal";
 import { FeedbackTreinoModal } from "@/components/FeedbackTreinoModal";
 import { useQuery } from "@tanstack/react-query";
@@ -28,7 +27,6 @@ export default function TreinoExecucao() {
   const [modalFeedback, setModalFeedback] = useState(false);
   const [treinoIniciado, setTreinoIniciado] = useState(false);
   const [treinoFinalizadoId, setTreinoFinalizadoId] = useState<string | null>(null);
-  const [minimizado, setMinimizado] = useState(false);
   const { toast } = useToast();
   const createFeedback = useCreateFeedback();
   
@@ -216,14 +214,6 @@ export default function TreinoExecucao() {
     togglePausado(!treinoEmAndamento?.pausado);
   };
 
-  const handleMinimizar = () => {
-    setMinimizado(true);
-    toast({
-      title: "Treino minimizado",
-      description: "Continue navegando. O timer continuará rodando.",
-    });
-  };
-
   const handleVoltar = () => {
     // Salvar antes de sair
     salvarImediato();
@@ -313,39 +303,6 @@ export default function TreinoExecucao() {
     setLocation("/aluno/treinos");
   };
 
-  // Calcular tempo restante do timer para o modo minimizado
-  const [timerDescansoMinimizado, setTimerDescansoMinimizado] = useState<{
-    tempoRestante: number;
-    exercicioNome: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (restTimer?.ativo) {
-      const exercicio = exercicios.find(ex => ex.id === restTimer.exercicioId);
-      if (exercicio) {
-        setTimerDescansoMinimizado({
-          tempoRestante: restTimer.tempo, // Será atualizado pelo callback
-          exercicioNome: exercicio.nome,
-        });
-      }
-    } else {
-      setTimerDescansoMinimizado(null);
-    }
-  }, [restTimer, exercicios]);
-
-  // Callback para atualizar tempo restante do timer
-  const handleTimerUpdate = (tempoRestante: number) => {
-    if (restTimer?.ativo) {
-      const exercicio = exercicios.find(ex => ex.id === restTimer.exercicioId);
-      if (exercicio) {
-        setTimerDescansoMinimizado({
-          tempoRestante,
-          exercicioNome: exercicio.nome,
-        });
-      }
-    }
-  };
-
   const exerciciosConcluidos = exercicios.filter((ex) =>
     ex.seriesRealizadas.every((s) => s.concluida)
   ).length;
@@ -411,20 +368,6 @@ export default function TreinoExecucao() {
     );
   }
 
-  // Modo minimizado
-  if (minimizado) {
-    return (
-      <MinimizedWorkout
-        nomeFicha={ficha.fichas_treino?.nome || "Treino"}
-        tempoDecorrido={tempoDecorrido}
-        pausado={treinoEmAndamento?.pausado || false}
-        timerDescanso={timerDescansoMinimizado}
-        onExpand={() => setMinimizado(false)}
-        onTogglePause={handlePausar}
-      />
-    );
-  }
-
   return (
     <AlunoLayout>
       <div className="max-w-4xl mx-auto space-y-4 pb-24 px-4 sm:px-0">
@@ -438,19 +381,6 @@ export default function TreinoExecucao() {
           onPausar={handlePausar}
           onVoltar={handleVoltar}
         />
-
-        {/* Botão Minimizar */}
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleMinimizar}
-            className="gap-2"
-          >
-            <Minimize2 className="h-4 w-4" />
-            Minimizar Treino
-          </Button>
-        </div>
 
         {/* Indicador de salvamento */}
         {salvando && (
@@ -524,7 +454,6 @@ export default function TreinoExecucao() {
             exercicioNome={restTimer.exercicioNome}
             onSkip={() => setRestTimer(null)}
             onComplete={() => setRestTimer(null)}
-            onTimeUpdate={handleTimerUpdate}
           />
         )}
       </div>
