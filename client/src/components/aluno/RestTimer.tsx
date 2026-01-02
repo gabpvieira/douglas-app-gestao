@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { startRestTimer as startNotificationTimer } from "@/lib/notificationManager";
+import { playCompleteAlert } from "@/lib/audioManager";
 
 interface RestTimerProps {
   tempoInicial: number;
@@ -65,10 +66,9 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
           : 'Pronto para a próxima série',
         icon: '/icon-192.png',
         badge: '/icon-72.png',
-        vibrate: [200, 100, 200],
         tag: 'rest-timer',
         requireInteraction: false,
-        silent: false,
+        silent: false, // Deixar o sistema tocar o som da notificação
       });
 
       // Focar na aba quando clicar na notificação
@@ -79,38 +79,16 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     }
   };
 
-  // Criar áudio de notificação
-  const playBeep = () => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      oscillator.frequency.value = 800;
-      oscillator.type = "sine";
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
-    } catch (error) {
-      console.error('Erro ao tocar som:', error);
-    }
-  };
-
   // Efeito quando completar
   useEffect(() => {
     if (completo) {
-      playBeep();
-      sendNotification();
+      // Tocar alerta completo (som + vibração) baseado nas configurações do usuário
+      playCompleteAlert().catch(err => 
+        console.error('Error playing complete alert:', err)
+      );
       
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
-      }
+      // Enviar notificação do navegador
+      sendNotification();
 
       const timeout = setTimeout(() => {
         onComplete();

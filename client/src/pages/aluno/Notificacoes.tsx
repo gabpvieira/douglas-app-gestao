@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, BellOff, Smartphone, Monitor, Tablet, Check, X, TestTube } from 'lucide-react';
+import { Bell, BellOff, Smartphone, Monitor, Tablet, Check, X, TestTube, Volume2, VolumeX, Vibrate } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -18,6 +18,15 @@ import {
   useUpdateNotificationPreferences,
   useTestNotification,
 } from '@/hooks/usePushNotifications';
+import {
+  getAudioSettings,
+  saveAudioSettings,
+  testSound,
+  testVibration,
+  type AlertSoundType,
+} from '@/lib/audioManager';
+import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 // VAPID Public Key (gerada via web-push generate-vapid-keys)
 const VAPID_PUBLIC_KEY = 'BAHJlVrf9a3LsLWMpN4YG7hLK1X4aqSyAJ9mDmAVxyOXg_P21aL9HsUDjptZ8zJ9rWelL2PTecuIboOYDNif910';
@@ -25,6 +34,9 @@ const VAPID_PUBLIC_KEY = 'BAHJlVrf9a3LsLWMpN4YG7hLK1X4aqSyAJ9mDmAVxyOXg_P21aL9Hs
 export default function Notificacoes() {
   const { toast } = useToast();
   const [isSubscribing, setIsSubscribing] = useState(false);
+  
+  // Configurações de áudio
+  const [audioSettings, setAudioSettings] = useState(() => getAudioSettings());
   
   // Buscar perfil do aluno
   const { data: profile } = useAlunoProfile();
@@ -164,6 +176,41 @@ export default function Notificacoes() {
         variant: 'destructive',
       });
     }
+  };
+  
+  const handleUpdateAudioSetting = (key: keyof typeof audioSettings, value: any) => {
+    const updated = { ...audioSettings, [key]: value };
+    setAudioSettings(updated);
+    saveAudioSettings({ [key]: value });
+    
+    toast({
+      title: 'Configuração salva',
+      description: 'Suas preferências de áudio foram atualizadas.',
+    });
+  };
+  
+  const handleTestSound = async () => {
+    try {
+      await testSound(audioSettings.soundType, audioSettings.volume);
+      toast({
+        title: 'Som de teste reproduzido',
+        description: 'Você ouviu o alerta?',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao testar som',
+        description: 'Verifique as permissões do navegador.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleTestVibration = () => {
+    testVibration();
+    toast({
+      title: 'Vibração testada',
+      description: 'Você sentiu a vibração?',
+    });
   };
   
   const getDeviceIcon = (type?: string) => {
@@ -433,6 +480,140 @@ export default function Notificacoes() {
             </CardContent>
           </Card>
         )}
+        
+        {/* Configurações de Som e Vibração */}
+        <Card className="border-gray-800 bg-gray-900/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Volume2 className="h-5 w-5" />
+              Alertas de Treino
+            </CardTitle>
+            <CardDescription>
+              Configure som e vibração para alertas durante o treino
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Ativar/Desativar Som */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="sound-enabled" className="text-base font-medium">
+                  Som de alerta
+                </Label>
+                <p className="text-sm text-gray-400">
+                  Tocar som quando o descanso terminar
+                </p>
+              </div>
+              <Switch
+                id="sound-enabled"
+                checked={audioSettings.soundEnabled}
+                onCheckedChange={(checked) => handleUpdateAudioSetting('soundEnabled', checked)}
+              />
+            </div>
+            
+            {/* Tipo de Som */}
+            {audioSettings.soundEnabled && (
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Tipo de som</Label>
+                <RadioGroup
+                  value={audioSettings.soundType}
+                  onValueChange={(value: AlertSoundType) => handleUpdateAudioSetting('soundType', value)}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="alarm" id="alarm" />
+                    <Label htmlFor="alarm" className="font-normal cursor-pointer">
+                      🚨 Alarme (forte e claro)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="bell" id="bell" />
+                    <Label htmlFor="bell" className="font-normal cursor-pointer">
+                      🔔 Sino (agradável e perceptível)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="beep" id="beep" />
+                    <Label htmlFor="beep" className="font-normal cursor-pointer">
+                      📢 Bip (simples e direto)
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+            
+            {/* Volume */}
+            {audioSettings.soundEnabled && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-medium">Volume</Label>
+                  <span className="text-sm text-gray-400">
+                    {Math.round(audioSettings.volume * 100)}%
+                  </span>
+                </div>
+                <Slider
+                  value={[audioSettings.volume * 100]}
+                  onValueChange={([value]) => handleUpdateAudioSetting('volume', value / 100)}
+                  max={100}
+                  step={5}
+                  className="w-full"
+                />
+              </div>
+            )}
+            
+            {/* Testar Som */}
+            {audioSettings.soundEnabled && (
+              <Button
+                onClick={handleTestSound}
+                variant="outline"
+                className="w-full"
+              >
+                <Volume2 className="h-4 w-4 mr-2" />
+                Testar Som
+              </Button>
+            )}
+            
+            {/* Divisor */}
+            <div className="border-t border-gray-800 my-4"></div>
+            
+            {/* Ativar/Desativar Vibração */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="vibration-enabled" className="text-base font-medium">
+                  Vibração
+                </Label>
+                <p className="text-sm text-gray-400">
+                  Vibrar quando o descanso terminar
+                </p>
+              </div>
+              <Switch
+                id="vibration-enabled"
+                checked={audioSettings.vibrationEnabled}
+                onCheckedChange={(checked) => handleUpdateAudioSetting('vibrationEnabled', checked)}
+              />
+            </div>
+            
+            {/* Testar Vibração */}
+            {audioSettings.vibrationEnabled && (
+              <Button
+                onClick={handleTestVibration}
+                variant="outline"
+                className="w-full"
+              >
+                <Vibrate className="h-4 w-4 mr-2" />
+                Testar Vibração
+              </Button>
+            )}
+            
+            {/* Aviso sobre compatibilidade */}
+            {audioSettings.vibrationEnabled && !navigator.vibrate && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                <p className="text-sm text-yellow-400">
+                  ⚠️ Seu dispositivo ou navegador não suporta vibração.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         
         {/* Informações */}
         <Card className="border-gray-800 bg-gray-900/50">
