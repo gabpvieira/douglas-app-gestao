@@ -1,8 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
-import { startRestTimer as startNotificationTimer } from "@/lib/notificationManager";
-import { playCompleteAlert } from "@/lib/audioManager";
+import { 
+  playCompleteAlert, 
+  startBackgroundTimer, 
+  cancelBackgroundTimer,
+  setupServiceWorkerListener,
+  startKeepAlive,
+  getAudioSettings
+} from "@/lib/audioManager";
 
 interface RestTimerProps {
   tempoInicial: number;
@@ -18,33 +24,45 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
   const [tempoRestante, setTempoRestante] = useState(tempoInicial);
   const [completo, setCompleto] = useState(false);
   const notificationSentRef = useRef(false);
-  const timerIdRef = useRef<string | null>(null);
+  const timerIdRef = useRef<string>(`rest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  // Iniciar timer de notificação
+  // Calcular tempo restante baseado em timestamp
+  const calculateTimeRemaining = useCallback(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    return Math.max(0, duration - elapsed);
+  }, [startTime, duration]);
+
+  // Iniciar timer de background e listeners
   useEffect(() => {
-    const initTimer = async () => {
-      try {
-        const timerId = await startNotificationTimer(duration, exercicioNome);
-        timerIdRef.current = timerId;
-      } catch (error) {
-        console.error('Error starting notification timer:', error);
-      }
-    };
+    const timerId = timerIdRef.current;
+    const settings = getAudioSettings();
     
-    initTimer();
+    // Iniciar keep-alive para manter SW ativo
+    if (settings.backgroundEnabled) {
+      startKeepAlive();
+    }
+    
+    // Iniciar timer no Service Worker
+    startBackgroundTimer(timerId, duration, exercicioNome);
+    
+    // Setup listener para quando timer completar via SW
+    cleanupRef.current = setupServiceWorkerListener(
+      (completedTimerId) => {
+        if (completedTimerId === timerId && !completo) {
+          setCompleto(true);
+        }
+      }
+    );
     
     // Cleanup ao desmontar
     return () => {
-      // Timer será limpo automaticamente pelo sistema de notificações
+      cancelBackgroundTimer(timerId);
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
     };
-  }, [duration, exercicioNome]);
-
-  // Calcular tempo restante baseado em timestamp
-  const calculateTimeRemaining = () => {
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    const remaining = Math.max(0, duration - elapsed);
-    return remaining;
-  };
+  }, [duration, exercicioNome, completo]);
 
   // Solicitar permissão de notificação (apenas uma vez)
   useEffect(() => {
@@ -53,31 +71,34 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     }
   }, []);
 
-  // Enviar notificação quando completar
-  const sendNotification = () => {
+  // Enviar notificação local quando completar (backup)
+  const sendLocalNotification = useCallback(() => {
     if (notificationSentRef.current) return;
     notificationSentRef.current = true;
 
-    // Notificação do navegador
+    // Notificação do navegador (fallback se SW não enviou)
     if ('Notification' in window && Notification.permission === 'granted') {
-      const notification = new Notification('Descanso Completo! 💪', {
-        body: exercicioNome 
-          ? `Pronto para a próxima série de ${exercicioNome}`
-          : 'Pronto para a próxima série',
-        icon: '/icon-192.png',
-        badge: '/icon-72.png',
-        tag: 'rest-timer',
-        requireInteraction: false,
-        silent: false, // Deixar o sistema tocar o som da notificação
-      });
+      try {
+        const notification = new Notification('💪 Descanso Completo!', {
+          body: exercicioNome 
+            ? `Hora de voltar para ${exercicioNome}`
+            : 'Hora de voltar ao exercício!',
+          icon: '/icon-192.png',
+          badge: '/icon-72.png',
+          tag: 'rest-timer-local',
+          requireInteraction: false,
+          silent: false,
+        });
 
-      // Focar na aba quando clicar na notificação
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      } catch (error) {
+        console.error('Error sending local notification:', error);
+      }
     }
-  };
+  }, [exercicioNome]);
 
   // Efeito quando completar
   useEffect(() => {
@@ -87,8 +108,8 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
         console.error('Error playing complete alert:', err)
       );
       
-      // Enviar notificação do navegador
-      sendNotification();
+      // Enviar notificação local como backup
+      sendLocalNotification();
 
       const timeout = setTimeout(() => {
         onComplete();
@@ -96,7 +117,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
       
       return () => clearTimeout(timeout);
     }
-  }, [completo, onComplete]);
+  }, [completo, onComplete, sendLocalNotification]);
 
   // Timer countdown baseado em timestamp
   useEffect(() => {
@@ -113,7 +134,13 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     }, 100);
 
     return () => clearInterval(interval);
-  }, [completo]);
+  }, [completo, calculateTimeRemaining]);
+
+  // Handler para pular/fechar
+  const handleSkip = useCallback(() => {
+    cancelBackgroundTimer(timerIdRef.current);
+    onSkip();
+  }, [onSkip]);
 
   const formatarTempo = (segundos: number) => {
     const mins = Math.floor(segundos / 60);
@@ -184,7 +211,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
           <Button
             size="sm"
             variant="ghost"
-            onClick={onSkip}
+            onClick={handleSkip}
             className={`flex-shrink-0 ${completo ? "text-white hover:bg-emerald-500" : ""}`}
           >
             <X className="h-4 w-4 mr-1" />

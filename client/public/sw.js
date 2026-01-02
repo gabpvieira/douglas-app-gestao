@@ -1,9 +1,15 @@
 /**
- * Service Worker com compatibilidade para Chrome 109 (Windows 7)
- * Versão: 1.1.0 - Atualização do ícone PWA
+ * Service Worker com suporte robusto para notificações em background
+ * Versão: 2.0.0 - Sistema de alertas de treino melhorado
+ * 
+ * Funcionalidades:
+ * - Notificações funcionam com tela bloqueada
+ * - Timer baseado em timestamps (não depende de setTimeout)
+ * - Som de alarme via notificação do sistema
+ * - Compatível com Chrome 109+ (Windows 7)
  */
 
-var CACHE_VERSION = 'app-v3';
+var CACHE_VERSION = 'app-v4';
 var STATIC_CACHE = 'static-' + CACHE_VERSION;
 var DYNAMIC_CACHE = 'dynamic-' + CACHE_VERSION;
 
@@ -18,7 +24,10 @@ var STATIC_ASSETS = [
   '/apple-touch-icon.png'
 ];
 
-// Instalação do Service Worker
+// ============================================
+// INSTALAÇÃO E ATIVAÇÃO
+// ============================================
+
 self.addEventListener('install', function(event) {
   console.log('[SW] Installing Service Worker v' + CACHE_VERSION);
   
@@ -29,7 +38,6 @@ self.addEventListener('install', function(event) {
         return cache.addAll(STATIC_ASSETS);
       })
       .then(function() {
-        // Força ativação imediata
         return self.skipWaiting();
       })
       .catch(function(error) {
@@ -38,7 +46,6 @@ self.addEventListener('install', function(event) {
   );
 });
 
-// Ativação do Service Worker
 self.addEventListener('activate', function(event) {
   console.log('[SW] Activating Service Worker v' + CACHE_VERSION);
   
@@ -48,7 +55,6 @@ self.addEventListener('activate', function(event) {
         return Promise.all(
           cacheNames
             .filter(function(cacheName) {
-              // Remove caches antigos
               return cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE;
             })
             .map(function(cacheName) {
@@ -58,98 +64,222 @@ self.addEventListener('activate', function(event) {
         );
       })
       .then(function() {
-        // Assume controle de todas as páginas imediatamente
         return self.clients.claim();
       })
   );
 });
 
-// Interceptação de requisições (Network First com fallback para cache)
+// ============================================
+// FETCH HANDLER (Network First)
+// ============================================
+
 self.addEventListener('fetch', function(event) {
   var request = event.request;
   
-  // Ignora requisições não-GET
-  if (request.method !== 'GET') {
-    return;
-  }
+  if (request.method !== 'GET') return;
   
-  // Ignora requisições para APIs externas e Supabase
   var url = new URL(request.url);
-  if (url.origin !== self.location.origin) {
-    return;
-  }
-  
-  // Ignora requisições de API
-  if (url.pathname.startsWith('/api/')) {
-    return;
-  }
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api/')) return;
   
   event.respondWith(
     fetch(request)
       .then(function(response) {
-        // Clona a resposta para cache
         var responseClone = response.clone();
-        
-        caches.open(DYNAMIC_CACHE)
-          .then(function(cache) {
-            cache.put(request, responseClone);
-          });
-        
+        caches.open(DYNAMIC_CACHE).then(function(cache) {
+          cache.put(request, responseClone);
+        });
         return response;
       })
       .catch(function() {
-        // Fallback para cache se offline
-        return caches.match(request)
-          .then(function(cachedResponse) {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            
-            // Fallback para página principal se for navegação
-            if (request.mode === 'navigate') {
-              return caches.match('/index.html');
-            }
-            
-            return new Response('Offline', {
-              status: 503,
-              statusText: 'Service Unavailable'
-            });
-          });
+        return caches.match(request).then(function(cachedResponse) {
+          if (cachedResponse) return cachedResponse;
+          if (request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+          return new Response('Offline', { status: 503 });
+        });
       })
   );
 });
 
-// Listener para mensagens (atualização forçada)
-self.addEventListener('message', function(event) {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+// ============================================
+// SISTEMA DE TIMERS ROBUSTO
+// ============================================
+
+var activeTimers = {};
+var TIMER_CHECK_INTERVAL = 1000; // Verificar a cada 1 segundo
+var timerCheckIntervalId = null;
+
+/**
+ * Inicia o loop de verificação de timers
+ * Usa timestamps para calcular tempo restante (funciona em background)
+ */
+function startTimerCheckLoop() {
+  if (timerCheckIntervalId) return;
+  
+  console.log('[SW] Starting timer check loop');
+  
+  timerCheckIntervalId = setInterval(function() {
+    checkAllTimers();
+  }, TIMER_CHECK_INTERVAL);
+}
+
+/**
+ * Para o loop de verificação
+ */
+function stopTimerCheckLoop() {
+  if (timerCheckIntervalId) {
+    clearInterval(timerCheckIntervalId);
+    timerCheckIntervalId = null;
+    console.log('[SW] Stopped timer check loop');
+  }
+}
+
+/**
+ * Verifica todos os timers ativos
+ */
+function checkAllTimers() {
+  var now = Date.now();
+  var timerIds = Object.keys(activeTimers);
+  
+  if (timerIds.length === 0) {
+    stopTimerCheckLoop();
+    return;
   }
   
-  if (event.data && event.data.type === 'CLEAR_CACHE') {
-    caches.keys().then(function(cacheNames) {
-      return Promise.all(
-        cacheNames.map(function(cacheName) {
-          return caches.delete(cacheName);
-        })
-      );
+  timerIds.forEach(function(timerId) {
+    var timer = activeTimers[timerId];
+    if (!timer) return;
+    
+    var elapsed = now - timer.startTime;
+    var remaining = (timer.duration * 1000) - elapsed;
+    
+    // Timer completou
+    if (remaining <= 0 && !timer.notificationSent) {
+      console.log('[SW] Timer completed:', timerId);
+      sendTimerCompleteNotification(timer);
+      timer.notificationSent = true;
+      
+      // Remover timer após 5 segundos
+      setTimeout(function() {
+        delete activeTimers[timerId];
+        notifyClientsTimerComplete(timerId);
+      }, 5000);
+    }
+  });
+}
+
+/**
+ * Inicia um novo timer
+ */
+function handleStartTimer(timerData) {
+  console.log('[SW] Starting timer:', timerData.id, 'duration:', timerData.duration);
+  
+  activeTimers[timerData.id] = {
+    id: timerData.id,
+    startTime: timerData.startTime || Date.now(),
+    duration: timerData.duration,
+    exerciseName: timerData.exerciseName,
+    notificationSent: false,
+    soundType: timerData.soundType || 'alarm'
+  };
+  
+  startTimerCheckLoop();
+}
+
+/**
+ * Cancela um timer
+ */
+function handleCancelTimer(timerId) {
+  console.log('[SW] Canceling timer:', timerId);
+  delete activeTimers[timerId];
+  
+  if (Object.keys(activeTimers).length === 0) {
+    stopTimerCheckLoop();
+  }
+}
+
+/**
+ * Retorna status de um timer
+ */
+function getTimerStatus(timerId) {
+  var timer = activeTimers[timerId];
+  if (!timer) return null;
+  
+  var now = Date.now();
+  var elapsed = now - timer.startTime;
+  var remaining = Math.max(0, (timer.duration * 1000) - elapsed);
+  
+  return {
+    id: timer.id,
+    remaining: Math.ceil(remaining / 1000),
+    completed: remaining <= 0,
+    exerciseName: timer.exerciseName
+  };
+}
+
+// ============================================
+// NOTIFICAÇÕES
+// ============================================
+
+/**
+ * Envia notificação de timer completo
+ * Usa requireInteraction e prioridade alta para funcionar com tela bloqueada
+ */
+function sendTimerCompleteNotification(timer) {
+  console.log('[SW] Sending timer complete notification:', timer.id);
+  
+  var title = '💪 Descanso Completo!';
+  var body = timer.exerciseName 
+    ? 'Hora de voltar para ' + timer.exerciseName
+    : 'Hora de voltar ao exercício!';
+  
+  var options = {
+    body: body,
+    icon: '/icon-192.png',
+    badge: '/icon-72.png',
+    tag: 'rest-timer-' + timer.id,
+    renotify: true,
+    requireInteraction: true, // Mantém notificação visível até interação
+    vibrate: [300, 100, 300, 100, 300, 100, 300], // Vibração forte
+    actions: [
+      { action: 'continue', title: '▶️ Continuar' },
+      { action: 'dismiss', title: '✓ OK' }
+    ],
+    data: {
+      type: 'timer-complete',
+      timerId: timer.id,
+      exerciseName: timer.exerciseName,
+      timestamp: Date.now()
+    },
+    // Configurações para prioridade alta (Android)
+    urgency: 'high',
+    silent: false // Permite som do sistema
+  };
+  
+  return self.registration.showNotification(title, options);
+}
+
+/**
+ * Notifica clientes que timer completou
+ */
+function notifyClientsTimerComplete(timerId) {
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then(function(clients) {
+      clients.forEach(function(client) {
+        client.postMessage({
+          type: 'TIMER_COMPLETE',
+          timerId: timerId
+        });
+      });
     });
-  }
-  
-  // Gerenciamento de timers
-  if (event.data && event.data.type === 'START_TIMER') {
-    handleStartTimer(event.data.timer);
-  }
-  
-  if (event.data && event.data.type === 'CANCEL_TIMER') {
-    handleCancelTimer(event.data.timerId);
-  }
-});
+}
 
 // ============================================
 // PUSH NOTIFICATIONS
 // ============================================
 
-// Listener para push events (notificações recebidas do servidor)
 self.addEventListener('push', function(event) {
   console.log('[SW] Push notification received');
   
@@ -174,7 +304,8 @@ self.addEventListener('push', function(event) {
     tag: data.tag || 'notification',
     requireInteraction: data.requireInteraction || false,
     data: data.data || {},
-    actions: data.actions || []
+    actions: data.actions || [],
+    silent: false
   };
   
   event.waitUntil(
@@ -183,72 +314,15 @@ self.addEventListener('push', function(event) {
 });
 
 // ============================================
-// SISTEMA DE NOTIFICAÇÕES E TIMERS
+// NOTIFICATION CLICK HANDLER
 // ============================================
 
-var activeTimers = {};
-
-function handleStartTimer(timer) {
-  console.log('[SW] Starting timer:', timer.id);
-  
-  var delay = timer.duration * 1000;
-  
-  // Usar setTimeout (pode não ser confiável se SW for terminado)
-  var timeoutId = setTimeout(function() {
-    sendTimerNotification(timer);
-    delete activeTimers[timer.id];
-  }, delay);
-  
-  activeTimers[timer.id] = {
-    timeoutId: timeoutId,
-    timer: timer
-  };
-}
-
-function handleCancelTimer(timerId) {
-  console.log('[SW] Canceling timer:', timerId);
-  
-  if (activeTimers[timerId]) {
-    clearTimeout(activeTimers[timerId].timeoutId);
-    delete activeTimers[timerId];
-  }
-}
-
-function sendTimerNotification(timer) {
-  console.log('[SW] Sending timer notification:', timer.id);
-  
-  var title = 'Descanso Completo! 💪';
-  var body = timer.exerciseName 
-    ? 'Pronto para a próxima série de ' + timer.exerciseName
-    : 'Pronto para a próxima série';
-  
-  self.registration.showNotification(title, {
-    body: body,
-    icon: '/icon-192.png',
-    badge: '/icon-72.png',
-    vibrate: [200, 100, 200, 100, 200],
-    tag: 'timer-' + timer.id,
-    requireInteraction: false,
-    actions: [
-      { action: 'view', title: 'Ver Treino' },
-      { action: 'dismiss', title: 'OK' }
-    ],
-    data: {
-      type: 'timer-complete',
-      timerId: timer.id,
-      exerciseName: timer.exerciseName
-    }
-  });
-}
-
-// Listener para cliques em notificações (unificado para timers e push)
 self.addEventListener('notificationclick', function(event) {
   console.log('[SW] Notification clicked:', event.action);
   
   event.notification.close();
   
-  // Determinar URL de destino
-  var targetUrl = '/';
+  var targetUrl = '/aluno/treinos';
   
   if (event.notification.data) {
     if (event.notification.data.url) {
@@ -258,29 +332,120 @@ self.addEventListener('notificationclick', function(event) {
     }
   }
   
-  if (event.action === 'view' || !event.action) {
-    // Abrir ou focar na aba do app
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then(function(clientList) {
-          // Se já existe uma aba aberta, focar nela
-          for (var i = 0; i < clientList.length; i++) {
-            var client = clientList[i];
-            if (client.url.indexOf(self.location.origin) !== -1 && 'focus' in client) {
-              return client.focus().then(function() {
-                // Navegar para URL específica se necessário
-                if (targetUrl !== '/' && 'navigate' in client) {
-                  return client.navigate(targetUrl);
-                }
-              });
-            }
+  // Notificar clientes sobre o clique
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then(function(clients) {
+      clients.forEach(function(client) {
+        client.postMessage({
+          type: 'NOTIFICATION_CLICKED',
+          action: event.action,
+          data: event.notification.data
+        });
+      });
+    });
+  
+  if (event.action === 'dismiss') {
+    return;
+  }
+  
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(function(clientList) {
+        for (var i = 0; i < clientList.length; i++) {
+          var client = clientList[i];
+          if (client.url.indexOf(self.location.origin) !== -1 && 'focus' in client) {
+            return client.focus().then(function(focusedClient) {
+              if ('navigate' in focusedClient) {
+                return focusedClient.navigate(targetUrl);
+              }
+            });
           }
-          
-          // Caso contrário, abrir nova aba
-          if (clients.openWindow) {
-            return clients.openWindow(targetUrl);
-          }
-        })
-    );
+        }
+        
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(targetUrl);
+        }
+      })
+  );
+});
+
+// ============================================
+// MESSAGE HANDLER
+// ============================================
+
+self.addEventListener('message', function(event) {
+  var data = event.data;
+  
+  if (!data || !data.type) return;
+  
+  console.log('[SW] Message received:', data.type);
+  
+  switch (data.type) {
+    case 'SKIP_WAITING':
+      self.skipWaiting();
+      break;
+      
+    case 'CLEAR_CACHE':
+      caches.keys().then(function(cacheNames) {
+        return Promise.all(
+          cacheNames.map(function(cacheName) {
+            return caches.delete(cacheName);
+          })
+        );
+      });
+      break;
+      
+    case 'START_TIMER':
+      handleStartTimer(data.timer);
+      break;
+      
+    case 'CANCEL_TIMER':
+      handleCancelTimer(data.timerId);
+      break;
+      
+    case 'GET_TIMER_STATUS':
+      var status = getTimerStatus(data.timerId);
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage(status);
+      }
+      break;
+      
+    case 'GET_ALL_TIMERS':
+      var allStatus = Object.keys(activeTimers).map(function(id) {
+        return getTimerStatus(id);
+      }).filter(Boolean);
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage(allStatus);
+      }
+      break;
+      
+    case 'PING':
+      // Keep-alive ping
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ type: 'PONG', timestamp: Date.now() });
+      }
+      break;
   }
 });
+
+// ============================================
+// PERIODIC SYNC (para manter SW ativo)
+// ============================================
+
+self.addEventListener('periodicsync', function(event) {
+  if (event.tag === 'check-timers') {
+    event.waitUntil(checkAllTimers());
+  }
+});
+
+// ============================================
+// BACKGROUND SYNC
+// ============================================
+
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'sync-timers') {
+    event.waitUntil(checkAllTimers());
+  }
+});
+
+console.log('[SW] Service Worker loaded v' + CACHE_VERSION);

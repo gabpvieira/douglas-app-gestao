@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, BellOff, Smartphone, Monitor, Tablet, Check, X, TestTube, Volume2, VolumeX, Vibrate } from 'lucide-react';
+import { Bell, BellOff, Smartphone, Monitor, Tablet, Check, X, TestTube, Volume2, VolumeX, Vibrate, Settings2, AlertTriangle, Info, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -23,6 +23,10 @@ import {
   saveAudioSettings,
   testSound,
   testVibration,
+  supportsBackgroundNotifications,
+  getNotificationPermission,
+  requestNotificationPermission,
+  sendTestNotification,
   type AlertSoundType,
 } from '@/lib/audioManager';
 import { Slider } from '@/components/ui/slider';
@@ -212,6 +216,41 @@ export default function Notificacoes() {
       description: 'Você sentiu a vibração?',
     });
   };
+  
+  const handleTestBackgroundNotification = async () => {
+    const success = await sendTestNotification();
+    if (success) {
+      toast({
+        title: 'Notificação enviada!',
+        description: 'Verifique se apareceu mesmo com o app em segundo plano.',
+      });
+    } else {
+      toast({
+        title: 'Erro ao enviar',
+        description: 'Verifique as permissões do navegador.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleRequestBackgroundPermission = async () => {
+    const result = await requestNotificationPermission();
+    if (result === 'granted') {
+      toast({
+        title: 'Permissão concedida!',
+        description: 'Agora os alertas funcionarão em segundo plano.',
+      });
+    } else if (result === 'denied') {
+      toast({
+        title: 'Permissão negada',
+        description: 'Você precisará habilitar nas configurações do navegador.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const backgroundPermission = getNotificationPermission();
+  const supportsBackground = supportsBackgroundNotifications();
   
   const getDeviceIcon = (type?: string) => {
     switch (type) {
@@ -612,6 +651,141 @@ export default function Notificacoes() {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+        
+        {/* Configurações de Segundo Plano */}
+        <Card className="border-gray-800 bg-gray-900/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5" />
+              Alertas em Segundo Plano
+            </CardTitle>
+            <CardDescription>
+              Configure para receber alertas mesmo com a tela bloqueada
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Status do suporte */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-white">Suporte do Navegador</p>
+                <p className="text-sm text-gray-400">
+                  {supportsBackground 
+                    ? 'Seu navegador suporta alertas em segundo plano' 
+                    : 'Alertas em segundo plano não suportados'}
+                </p>
+              </div>
+              {supportsBackground ? (
+                <Check className="h-5 w-5 text-green-500" />
+              ) : (
+                <X className="h-5 w-5 text-red-500" />
+              )}
+            </div>
+            
+            {/* Status da permissão */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-white">Permissão de Notificação</p>
+                <p className="text-sm text-gray-400">
+                  Necessária para alertas com tela bloqueada
+                </p>
+              </div>
+              {backgroundPermission === 'granted' ? (
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Permitido</Badge>
+              ) : backgroundPermission === 'denied' ? (
+                <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Negado</Badge>
+              ) : (
+                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">Não solicitado</Badge>
+              )}
+            </div>
+            
+            {/* Botão para solicitar permissão */}
+            {supportsBackground && backgroundPermission === 'default' && (
+              <Button
+                onClick={handleRequestBackgroundPermission}
+                className="w-full"
+              >
+                <Bell className="h-4 w-4 mr-2" />
+                Permitir Notificações em Segundo Plano
+              </Button>
+            )}
+            
+            {/* Ativar/Desativar segundo plano */}
+            {supportsBackground && backgroundPermission === 'granted' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="background-enabled" className="text-base font-medium">
+                      Execução em segundo plano
+                    </Label>
+                    <p className="text-sm text-gray-400">
+                      Alertas funcionam com app minimizado
+                    </p>
+                  </div>
+                  <Switch
+                    id="background-enabled"
+                    checked={audioSettings.backgroundEnabled}
+                    onCheckedChange={(checked) => handleUpdateAudioSetting('backgroundEnabled', checked)}
+                  />
+                </div>
+                
+                {/* Testar notificação em background */}
+                {audioSettings.backgroundEnabled && (
+                  <Button
+                    onClick={handleTestBackgroundNotification}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <TestTube className="h-4 w-4 mr-2" />
+                    Testar Alerta em Segundo Plano
+                  </Button>
+                )}
+              </>
+            )}
+            
+            {/* Aviso sobre permissão negada */}
+            {backgroundPermission === 'denied' && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <p className="text-sm text-red-400">
+                  Você negou a permissão de notificações. Para habilitar alertas em segundo plano, 
+                  acesse as configurações do seu navegador e permita notificações para este site.
+                </p>
+              </div>
+            )}
+            
+            {/* Instruções para Android */}
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <Info className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-blue-300 mb-2">
+                    Para garantir alertas com tela bloqueada:
+                  </p>
+                  <ul className="text-sm text-blue-200/80 space-y-1.5 list-disc list-inside">
+                    <li>Instale o app na tela inicial (PWA)</li>
+                    <li>Permita notificações nas configurações do sistema</li>
+                    <li>Desative otimização de bateria para este app</li>
+                    <li>Mantenha o volume de notificações alto</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            {/* Aviso sobre limitações */}
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-yellow-300 mb-1">Limitações conhecidas:</p>
+                  <ul className="text-sm text-yellow-200/80 space-y-1 list-disc list-inside">
+                    <li>iOS/Safari: Funciona melhor com PWA instalado</li>
+                    <li>Alguns dispositivos limitam apps em segundo plano</li>
+                    <li>O som depende do volume de notificações do sistema</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
         

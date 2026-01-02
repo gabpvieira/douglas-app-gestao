@@ -5,6 +5,8 @@
  * - Fim de descanso entre séries
  * - Conclusão de exercícios
  * - Alertas importantes durante treino
+ * 
+ * Versão 2.0 - Suporte a background e notificações do sistema
  */
 
 export type AlertSoundType = 'alarm' | 'bell' | 'beep';
@@ -14,6 +16,8 @@ export interface AudioSettings {
   vibrationEnabled: boolean;
   soundType: AlertSoundType;
   volume: number; // 0 a 1
+  backgroundEnabled: boolean; // Permitir execução em segundo plano
+  useSystemNotification: boolean; // Usar notificação do sistema para som
 }
 
 // Configurações padrão
@@ -22,9 +26,14 @@ const DEFAULT_SETTINGS: AudioSettings = {
   vibrationEnabled: true,
   soundType: 'alarm',
   volume: 0.8,
+  backgroundEnabled: true,
+  useSystemNotification: true,
 };
 
 const STORAGE_KEY = 'workout_audio_settings';
+
+// AudioContext global para reutilização
+let globalAudioContext: AudioContext | null = null;
 
 /**
  * Obter configurações de áudio do localStorage
@@ -52,6 +61,28 @@ export function saveAudioSettings(settings: Partial<AudioSettings>): void {
   } catch (error) {
     console.error('Error saving audio settings:', error);
   }
+}
+
+/**
+ * Obter ou criar AudioContext global
+ */
+function getAudioContext(): AudioContext {
+  if (!globalAudioContext || globalAudioContext.state === 'closed') {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    globalAudioContext = new AudioContextClass();
+  }
+  return globalAudioContext;
+}
+
+/**
+ * Garantir que AudioContext está ativo
+ */
+async function ensureAudioContextActive(): Promise<AudioContext> {
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') {
+    await ctx.resume();
+  }
+  return ctx;
 }
 
 /**
@@ -153,15 +184,7 @@ export async function playAlertSound(type?: AlertSoundType): Promise<void> {
   }
   
   try {
-    // Criar AudioContext (precisa de interação do usuário na primeira vez)
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const audioContext = new AudioContextClass();
-    
-    // Garantir que o contexto está rodando
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume();
-    }
-    
+    const audioContext = await ensureAudioContextActive();
     const soundType = type || settings.soundType;
     const volume = settings.volume;
     
@@ -228,12 +251,7 @@ export async function playCompleteAlert(soundType?: AlertSoundType): Promise<voi
  */
 export async function testSound(soundType: AlertSoundType, volume: number): Promise<void> {
   try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const audioContext = new AudioContextClass();
-    
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume();
-    }
+    const audioContext = await ensureAudioContextActive();
     
     switch (soundType) {
       case 'alarm':
@@ -257,5 +275,226 @@ export async function testSound(soundType: AlertSoundType, volume: number): Prom
 export function testVibration(): void {
   if (navigator.vibrate) {
     navigator.vibrate([300, 100, 300]);
+  }
+}
+
+// ============================================
+// SISTEMA DE TIMER COM SERVICE WORKER
+// ============================================
+
+/**
+ * Iniciar timer no Service Worker
+ * Funciona mesmo com tela bloqueada
+ */
+export async function startBackgroundTimer(
+  timerId: string,
+  duration: number,
+  exerciseName?: string
+): Promise<boolean> {
+  const settings = getAudioSettings();
+  
+  if (!settings.backgroundEnabled) {
+    console.log('Background timers disabled');
+    return false;
+  }
+  
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+    console.warn('Service Worker not available for background timer');
+    return false;
+  }
+  
+  try {
+    navigator.serviceWorker.controller!.postMessage({
+      type: 'START_TIMER',
+      timer: {
+        id: timerId,
+        duration,
+        exerciseName,
+        startTime: Date.now(),
+        soundType: settings.soundType
+      }
+    });
+    
+    console.log(`Background timer started: ${timerId}, duration: ${duration}s`);
+    return true;
+  } catch (error) {
+    console.error('Error starting background timer:', error);
+    return false;
+  }
+}
+
+/**
+ * Cancelar timer no Service Worker
+ */
+export function cancelBackgroundTimer(timerId: string): void {
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+    return;
+  }
+  
+  try {
+    navigator.serviceWorker.controller.postMessage({
+      type: 'CANCEL_TIMER',
+      timerId
+    });
+    console.log(`Background timer canceled: ${timerId}`);
+  } catch (error) {
+    console.error('Error canceling background timer:', error);
+  }
+}
+
+/**
+ * Obter status de um timer do Service Worker
+ */
+export async function getBackgroundTimerStatus(timerId: string): Promise<{
+  id: string;
+  remaining: number;
+  completed: boolean;
+  exerciseName?: string;
+} | null> {
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+    return null;
+  }
+  
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    
+    channel.port1.onmessage = (event) => {
+      resolve(event.data);
+    };
+    
+    // Timeout de 1 segundo
+    setTimeout(() => resolve(null), 1000);
+    
+    navigator.serviceWorker.controller.postMessage(
+      { type: 'GET_TIMER_STATUS', timerId },
+      [channel.port2]
+    );
+  });
+}
+
+/**
+ * Listener para mensagens do Service Worker
+ */
+export function setupServiceWorkerListener(
+  onTimerComplete?: (timerId: string) => void,
+  onNotificationClicked?: (action: string, data: any) => void
+): () => void {
+  if (!('serviceWorker' in navigator)) {
+    return () => {};
+  }
+  
+  const handler = (event: MessageEvent) => {
+    const { type, timerId, action, data } = event.data || {};
+    
+    if (type === 'TIMER_COMPLETE' && onTimerComplete) {
+      // Tocar som local quando timer completa (backup)
+      playCompleteAlert();
+      onTimerComplete(timerId);
+    }
+    
+    if (type === 'NOTIFICATION_CLICKED' && onNotificationClicked) {
+      onNotificationClicked(action, data);
+    }
+  };
+  
+  navigator.serviceWorker.addEventListener('message', handler);
+  
+  return () => {
+    navigator.serviceWorker.removeEventListener('message', handler);
+  };
+}
+
+/**
+ * Verificar se o navegador suporta notificações em background
+ */
+export function supportsBackgroundNotifications(): boolean {
+  return (
+    'serviceWorker' in navigator &&
+    'Notification' in window &&
+    'PushManager' in window
+  );
+}
+
+/**
+ * Verificar permissão de notificação
+ */
+export function getNotificationPermission(): NotificationPermission | 'unsupported' {
+  if (!('Notification' in window)) {
+    return 'unsupported';
+  }
+  return Notification.permission;
+}
+
+/**
+ * Solicitar permissão de notificação
+ */
+export async function requestNotificationPermission(): Promise<NotificationPermission | 'unsupported'> {
+  if (!('Notification' in window)) {
+    return 'unsupported';
+  }
+  
+  if (Notification.permission === 'granted') {
+    return 'granted';
+  }
+  
+  if (Notification.permission === 'denied') {
+    return 'denied';
+  }
+  
+  return await Notification.requestPermission();
+}
+
+/**
+ * Enviar notificação de teste via Service Worker
+ */
+export async function sendTestNotification(): Promise<boolean> {
+  if (!('serviceWorker' in navigator)) {
+    return false;
+  }
+  
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    
+    await registration.showNotification('🔔 Teste de Notificação', {
+      body: 'Se você está vendo isso, as notificações estão funcionando!',
+      icon: '/icon-192.png',
+      badge: '/icon-72.png',
+      tag: 'test-notification',
+      requireInteraction: false,
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending test notification:', error);
+    return false;
+  }
+}
+
+/**
+ * Manter Service Worker ativo (ping periódico)
+ */
+let keepAliveInterval: number | null = null;
+
+export function startKeepAlive(): void {
+  if (keepAliveInterval) return;
+  
+  const settings = getAudioSettings();
+  if (!settings.backgroundEnabled) return;
+  
+  // Ping a cada 20 segundos para manter SW ativo
+  keepAliveInterval = window.setInterval(() => {
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'PING' });
+    }
+  }, 20000);
+  
+  console.log('Keep-alive started for Service Worker');
+}
+
+export function stopKeepAlive(): void {
+  if (keepAliveInterval) {
+    clearInterval(keepAliveInterval);
+    keepAliveInterval = null;
+    console.log('Keep-alive stopped');
   }
 }

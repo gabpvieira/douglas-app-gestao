@@ -119,6 +119,7 @@ export default function FichasTreino() {
         duracao_semanas: fichaData.duracaoSemanas,
         ativo: fichaData.ativo !== undefined ? (fichaData.ativo ? 'true' : 'false') : 'true',
         exercicios: fichaData.exercicios?.map((ex: any) => ({
+          id: ex.id, // Preservar ID para atualização correta
           nome: ex.nome,
           grupo_muscular: ex.grupoMuscular,
           ordem: ex.ordem,

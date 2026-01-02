@@ -131,37 +131,109 @@ export function useUpdateFichaTreino() {
       
       if (fichaError) throw fichaError;
       
-      // Se exercícios foram fornecidos, atualizar
+      // Se exercícios foram fornecidos, atualizar usando estratégia de upsert
       if (exercicios !== undefined) {
-        // Remover exercícios antigos (CASCADE vai cuidar dos relacionamentos)
-        const { error: deleteError } = await supabase
+        // Buscar exercícios atuais da ficha
+        const { data: exerciciosAtuais, error: fetchError } = await supabase
           .from('exercicios_ficha')
-          .delete()
+          .select('id')
           .eq('ficha_id', id);
         
-        if (deleteError) throw deleteError;
+        if (fetchError) throw fetchError;
         
-        // Inserir novos exercícios (apenas se houver algum)
-        if (exercicios.length > 0) {
-          const exerciciosComFichaId = exercicios.map((ex, index) => {
-            // Remover IDs temporários antes de inserir no banco
-            const { id: exercicioId, ...exercicioData } = ex;
-            const isTemporaryId = typeof exercicioId === 'string' && exercicioId.startsWith('temp-');
+        const idsAtuais = new Set(exerciciosAtuais?.map(e => e.id) || []);
+        
+        // Separar exercícios em: novos, existentes para atualizar, e para deletar
+        const exerciciosParaInserir: typeof exercicios = [];
+        const exerciciosParaAtualizar: typeof exercicios = [];
+        const idsParaManter = new Set<string>();
+        
+        exercicios.forEach((ex, index) => {
+          const exercicioId = ex.id;
+          const isTemporaryId = typeof exercicioId === 'string' && exercicioId.startsWith('temp-');
+          
+          if (!exercicioId || isTemporaryId) {
+            // Novo exercício
+            exerciciosParaInserir.push({ ...ex, ordem: index + 1 });
+          } else if (idsAtuais.has(exercicioId)) {
+            // Exercício existente - atualizar
+            exerciciosParaAtualizar.push({ ...ex, ordem: index + 1 });
+            idsParaManter.add(exercicioId);
+          } else {
+            // ID não existe no banco - tratar como novo
+            exerciciosParaInserir.push({ ...ex, ordem: index + 1 });
+          }
+        });
+        
+        // IDs para deletar (existem no banco mas não estão mais na lista)
+        const idsParaDeletar = Array.from(idsAtuais).filter(id => !idsParaManter.has(id));
+        
+        // 1. Deletar exercícios removidos (apenas os que não têm treinos realizados)
+        if (idsParaDeletar.length > 0) {
+          // Verificar quais exercícios têm treinos realizados
+          const { data: exerciciosComTreinos } = await supabase
+            .from('treinos_realizados')
+            .select('exercicio_id')
+            .in('exercicio_id', idsParaDeletar);
+          
+          const idsComTreinos = new Set(exerciciosComTreinos?.map(t => t.exercicio_id) || []);
+          const idsSegurosParaDeletar = idsParaDeletar.filter(id => !idsComTreinos.has(id));
+          
+          if (idsSegurosParaDeletar.length > 0) {
+            const { error: deleteError } = await supabase
+              .from('exercicios_ficha')
+              .delete()
+              .in('id', idsSegurosParaDeletar);
             
+            if (deleteError) {
+              console.error('Erro ao deletar exercícios:', deleteError);
+              // Não lançar erro, continuar com as outras operações
+            }
+          }
+          
+          // Se há exercícios com treinos que não podem ser deletados, apenas desvinculá-los
+          // marcando como inativos ou movendo para outra ficha (opcional - por ora apenas log)
+          if (idsComTreinos.size > 0) {
+            console.warn('Exercícios com histórico de treinos não foram deletados:', Array.from(idsComTreinos));
+          }
+        }
+        
+        // 2. Atualizar exercícios existentes
+        for (const ex of exerciciosParaAtualizar) {
+          const { id: exercicioId, ...exercicioData } = ex;
+          const { error: updateError } = await supabase
+            .from('exercicios_ficha')
+            .update({
+              ...exercicioData,
+              ficha_id: id,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', exercicioId);
+          
+          if (updateError) {
+            console.error('Erro ao atualizar exercício:', updateError);
+            throw updateError;
+          }
+        }
+        
+        // 3. Inserir novos exercícios
+        if (exerciciosParaInserir.length > 0) {
+          const novosExercicios = exerciciosParaInserir.map(ex => {
+            const { id: _, ...exercicioData } = ex;
             return {
               ...exercicioData,
-              // Manter ID real do banco, remover IDs temporários
-              ...(exercicioId && !isTemporaryId ? { id: exercicioId } : {}),
-              ficha_id: id,
-              ordem: index + 1
+              ficha_id: id
             };
           });
           
-          const { error: exerciciosError } = await supabase
+          const { error: insertError } = await supabase
             .from('exercicios_ficha')
-            .insert(exerciciosComFichaId);
+            .insert(novosExercicios);
           
-          if (exerciciosError) throw exerciciosError;
+          if (insertError) {
+            console.error('Erro ao inserir exercícios:', insertError);
+            throw insertError;
+          }
         }
       }
       
