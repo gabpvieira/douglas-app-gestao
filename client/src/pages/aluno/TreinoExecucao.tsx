@@ -323,21 +323,28 @@ export default function TreinoExecucao() {
     if (restTimer?.ativo) {
       const exercicio = exercicios.find(ex => ex.id === restTimer.exercicioId);
       if (exercicio) {
-        // Atualizar a cada segundo
-        const interval = setInterval(() => {
-          // O RestTimer já calcula baseado em timestamp, então pegamos o tempo atual
-          setTimerDescansoMinimizado({
-            tempoRestante: restTimer.tempo,
-            exercicioNome: exercicio.nome,
-          });
-        }, 1000);
-        
-        return () => clearInterval(interval);
+        setTimerDescansoMinimizado({
+          tempoRestante: restTimer.tempo, // Será atualizado pelo callback
+          exercicioNome: exercicio.nome,
+        });
       }
     } else {
       setTimerDescansoMinimizado(null);
     }
   }, [restTimer, exercicios]);
+
+  // Callback para atualizar tempo restante do timer
+  const handleTimerUpdate = (tempoRestante: number) => {
+    if (restTimer?.ativo) {
+      const exercicio = exercicios.find(ex => ex.id === restTimer.exercicioId);
+      if (exercicio) {
+        setTimerDescansoMinimizado({
+          tempoRestante,
+          exercicioNome: exercicio.nome,
+        });
+      }
+    }
+  };
 
   const exerciciosConcluidos = exercicios.filter((ex) =>
     ex.seriesRealizadas.every((s) => s.concluida)
@@ -517,6 +524,7 @@ export default function TreinoExecucao() {
             exercicioNome={restTimer.exercicioNome}
             onSkip={() => setRestTimer(null)}
             onComplete={() => setRestTimer(null)}
+            onTimeUpdate={handleTimerUpdate}
           />
         )}
       </div>

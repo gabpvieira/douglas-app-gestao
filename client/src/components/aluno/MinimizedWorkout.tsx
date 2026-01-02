@@ -24,7 +24,6 @@ export default function MinimizedWorkout({
 }: MinimizedWorkoutProps) {
   const [visible, setVisible] = useState(true);
   const [localTime, setLocalTime] = useState(tempoDecorrido);
-  const [localTimerDescanso, setLocalTimerDescanso] = useState(timerDescanso?.tempoRestante || 0);
 
   // Atualizar tempo local a cada segundo para garantir atualização visual
   useEffect(() => {
@@ -44,28 +43,12 @@ export default function MinimizedWorkout({
     return () => clearInterval(interval);
   }, [tempoDecorrido, pausado]);
 
-  // Atualizar timer de descanso local
-  useEffect(() => {
-    if (!timerDescanso) {
-      setLocalTimerDescanso(0);
-      return;
-    }
-
-    setLocalTimerDescanso(timerDescanso.tempoRestante);
-
-    const interval = setInterval(() => {
-      setLocalTimerDescanso(prev => Math.max(0, prev - 1));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [timerDescanso]);
-
   // Atualizar título da página com tempo
   useEffect(() => {
     const originalTitle = document.title;
     
-    if (timerDescanso && localTimerDescanso > 0) {
-      document.title = `⏱️ ${formatarTempo(localTimerDescanso)} - Descanso`;
+    if (timerDescanso && timerDescanso.tempoRestante > 0) {
+      document.title = `⏱️ ${formatarTempo(timerDescanso.tempoRestante)} - Descanso`;
     } else if (!pausado) {
       document.title = `💪 ${formatarTempo(localTime)} - Treino`;
     } else {
@@ -75,7 +58,7 @@ export default function MinimizedWorkout({
     return () => {
       document.title = originalTitle;
     };
-  }, [localTime, pausado, timerDescanso, localTimerDescanso]);
+  }, [localTime, pausado, timerDescanso]);
 
   const formatarTempo = (segundos: number) => {
     const horas = Math.floor(segundos / 3600);
@@ -123,11 +106,11 @@ export default function MinimizedWorkout({
         </div>
 
         {/* Timer de Descanso */}
-        {timerDescanso && localTimerDescanso > 0 && (
+        {timerDescanso && timerDescanso.tempoRestante > 0 && (
           <div className="bg-emerald-500/20 border-2 border-emerald-500/40 rounded-xl p-4 text-center animate-pulse">
             <span className="text-xs text-emerald-400 uppercase tracking-wide font-medium">⏱️ Descansando</span>
             <div className="text-5xl font-bold tabular-nums text-emerald-400 mt-1">
-              {formatarTempo(localTimerDescanso)}
+              {formatarTempo(timerDescanso.tempoRestante)}
             </div>
             <p className="text-sm text-emerald-300/70 mt-2 truncate">
               {timerDescanso.exercicioNome}

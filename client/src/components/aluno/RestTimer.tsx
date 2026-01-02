@@ -8,9 +8,10 @@ interface RestTimerProps {
   onSkip: () => void;
   onComplete: () => void;
   exercicioNome?: string;
+  onTimeUpdate?: (tempoRestante: number) => void; // Novo callback
 }
 
-export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioNome }: RestTimerProps) {
+export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioNome, onTimeUpdate }: RestTimerProps) {
   // Timer baseado em timestamp para funcionar em background
   const [startTime] = useState(() => Date.now());
   const [duration] = useState(tempoInicial);
@@ -129,13 +130,18 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
       const remaining = calculateTimeRemaining();
       setTempoRestante(remaining);
 
+      // Notificar componente pai sobre atualização de tempo
+      if (onTimeUpdate) {
+        onTimeUpdate(remaining);
+      }
+
       if (remaining <= 0 && !completo) {
         setCompleto(true);
       }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [completo]);
+  }, [completo, onTimeUpdate]);
 
   const formatarTempo = (segundos: number) => {
     const mins = Math.floor(segundos / 60);
