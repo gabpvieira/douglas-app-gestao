@@ -51,6 +51,17 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
   const [novoSuplemento, setNovoSuplemento] = useState('');
   const [activeTab, setActiveTab] = useState('informacoes');
   const [buscaAlimentos, setBuscaAlimentos] = useState<{ [refeicaoId: string]: { [alimentoId: string]: string } }>({});
+  const [buscaAlunos, setBuscaAlunos] = useState('');
+
+  // Filtrar alunos pela busca
+  const alunosFiltrados = useMemo(() => {
+    if (!buscaAlunos.trim()) return alunos;
+    const busca = buscaAlunos.toLowerCase().trim();
+    return alunos.filter(aluno => 
+      aluno.nome.toLowerCase().includes(busca) ||
+      aluno.email.toLowerCase().includes(busca)
+    );
+  }, [alunos, buscaAlunos]);
 
   // Banco de alimentos pré-definidos
   const alimentosDisponiveis: Omit<Alimento, 'id' | 'quantidade'>[] = [
@@ -212,6 +223,7 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
       setRefeicoes([]);
     }
     setActiveTab('informacoes');
+    setBuscaAlunos('');
   }, [plano, isOpen]);
 
   const calcularMacros = () => {
@@ -1096,51 +1108,91 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
               <CardHeader className="pb-3">
                 <CardTitle className="text-white flex items-center gap-2 text-base">
                   <Users className="h-4 w-4 text-purple-400" />
-                  Atribuir Plano aos Alunos
+                  Atribuir Plano ao Aluno
                 </CardTitle>
                 <CardDescription className="text-xs text-gray-400">
-                  Selecione os alunos que receberão este plano
+                  Selecione o aluno que receberá este plano alimentar
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {alunos.map((aluno) => (
-                    <div key={aluno.id} className="flex items-center space-x-2 p-2.5 bg-gray-700/50 rounded-lg border border-gray-700">
-                      <Checkbox
-                        id={`aluno-${aluno.id}`}
-                        checked={formData.alunosAtribuidos.includes(aluno.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setFormData(prev => ({
-                              ...prev,
-                              alunosAtribuidos: [...prev.alunosAtribuidos, aluno.id]
-                            }));
-                          } else {
-                            setFormData(prev => ({
-                              ...prev,
-                              alunosAtribuidos: prev.alunosAtribuidos.filter(id => id !== aluno.id)
-                            }));
-                          }
-                        }}
-                        className="border-gray-500"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <Label htmlFor={`aluno-${aluno.id}`} className="text-white font-medium cursor-pointer text-sm line-clamp-1">
-                          {aluno.nome}
-                        </Label>
-                        <p className="text-xs text-gray-400 line-clamp-1">{aluno.email}</p>
-                      </div>
-                      <Badge variant="outline" className="border-gray-500 text-gray-300 text-[10px] flex-shrink-0">
-                        {aluno.objetivo}
-                      </Badge>
-                    </div>
-                  ))}
+                {/* Busca de alunos */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                  <Input
+                    placeholder="Buscar aluno por nome..."
+                    value={buscaAlunos}
+                    onChange={(e) => setBuscaAlunos(e.target.value)}
+                    className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400 h-9 text-sm"
+                  />
+                  {buscaAlunos && (
+                    <button
+                      onClick={() => setBuscaAlunos('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
-                {alunos.length === 0 && (
-                  <div className="text-center py-6">
-                    <Users className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-400 text-sm">Nenhum aluno cadastrado</p>
+                {/* Lista de alunos com seleção única (radio button behavior) */}
+                <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                  {alunosFiltrados.length > 0 ? (
+                    alunosFiltrados.map((aluno) => {
+                      const isSelected = formData.alunosAtribuidos.includes(aluno.id);
+                      return (
+                        <div 
+                          key={aluno.id} 
+                          onClick={() => {
+                            // Seleção única: substitui o array inteiro
+                            setFormData(prev => ({
+                              ...prev,
+                              alunosAtribuidos: [aluno.id]
+                            }));
+                          }}
+                          className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'bg-blue-600/20 border-blue-500 ring-1 ring-blue-500' 
+                              : 'bg-gray-700/50 border-gray-700 hover:bg-gray-700 hover:border-gray-600'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-500'
+                          }`}>
+                            {isSelected && (
+                              <div className="w-2 h-2 rounded-full bg-white" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium text-sm truncate">
+                              {aluno.nome}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">{aluno.email}</p>
+                          </div>
+                          {isSelected && (
+                            <Badge className="bg-blue-600 text-white text-[10px] flex-shrink-0">
+                              Selecionado
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-6">
+                      <Users className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-400 text-sm">
+                        {buscaAlunos ? 'Nenhum aluno encontrado' : 'Nenhum aluno cadastrado'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Aluno selecionado */}
+                {formData.alunosAtribuidos.length > 0 && (
+                  <div className="mt-3 p-3 bg-blue-600/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-xs text-blue-400 mb-1">Aluno selecionado:</p>
+                    <p className="text-white font-medium text-sm">
+                      {alunos.find(a => a.id === formData.alunosAtribuidos[0])?.nome || 'Aluno não encontrado'}
+                    </p>
                   </div>
                 )}
               </CardContent>

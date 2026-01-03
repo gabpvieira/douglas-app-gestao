@@ -330,7 +330,12 @@ export function useUpdatePlanoAlimentar() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdatePlanoData }) => {
-      console.log('🔄 [Update] Dados recebidos:', data);
+      console.log('🔄 [Update] Dados recebidos:', {
+        id,
+        alunoId: data.alunoId,
+        titulo: data.titulo,
+        hasRefeicoes: !!data.refeicoes
+      });
       
       const { refeicoes, ...planoData } = data;
       
@@ -344,19 +349,20 @@ export function useUpdatePlanoAlimentar() {
       
       console.log('📤 [Update] Dados convertidos para snake_case:', planoDataSnakeCase);
       
-      // Construir payload de atualização
+      // Construir payload de atualização - SEMPRE incluir aluno_id se fornecido
       const updatePayload: Record<string, any> = {
         updated_at: new Date().toISOString()
       };
       
-      // Adicionar campos apenas se definidos
-      if (planoDataSnakeCase.aluno_id) updatePayload.aluno_id = planoDataSnakeCase.aluno_id;
-      if (planoDataSnakeCase.titulo) updatePayload.titulo = planoDataSnakeCase.titulo;
-      if (planoDataSnakeCase.conteudo_html) updatePayload.conteudo_html = planoDataSnakeCase.conteudo_html;
+      // Adicionar campos apenas se definidos (usar !== undefined para permitir strings vazias)
+      if (planoDataSnakeCase.aluno_id !== undefined) updatePayload.aluno_id = planoDataSnakeCase.aluno_id;
+      if (planoDataSnakeCase.titulo !== undefined) updatePayload.titulo = planoDataSnakeCase.titulo;
+      if (planoDataSnakeCase.conteudo_html !== undefined) updatePayload.conteudo_html = planoDataSnakeCase.conteudo_html;
       if (planoDataSnakeCase.observacoes !== undefined) updatePayload.observacoes = planoDataSnakeCase.observacoes;
-      if (planoDataSnakeCase.dados_json) updatePayload.dados_json = planoDataSnakeCase.dados_json;
+      if (planoDataSnakeCase.dados_json !== undefined) updatePayload.dados_json = planoDataSnakeCase.dados_json;
       
       console.log('📦 [Update] Payload final:', updatePayload);
+      console.log('🎯 [Update] aluno_id no payload:', updatePayload.aluno_id);
       
       // Atualizar plano
       const { data: plano, error: planoError, count } = await supabase
