@@ -73,29 +73,39 @@ export function useAlunoFichas(alunoId: string | undefined) {
   });
 }
 
-// Hook para buscar plano alimentar do aluno
+// Hook para buscar plano alimentar do aluno (via tabela de relacionamento N:N)
 export function useAlunoPlanoAlimentar(alunoId: string | undefined) {
   return useQuery({
     queryKey: ["aluno-plano-alimentar", alunoId],
     queryFn: async () => {
       if (!alunoId) return null;
 
+      // Buscar planos atribuídos ao aluno via tabela de relacionamento
       const { data, error } = await supabase
-        .from("planos_alimentares")
+        .from("planos_alunos")
         .select(`
-          *,
-          refeicoes_plano(
+          plano_id,
+          data_atribuicao,
+          planos_alimentares (
             *,
-            alimentos_refeicao(*)
+            refeicoes_plano(
+              *,
+              alimentos_refeicao(*)
+            )
           )
         `)
         .eq("aluno_id", alunoId)
-        .order("data_criacao", { ascending: false })
+        .eq("ativo", true)
+        .order("data_atribuicao", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      
+      // Extrair o plano do resultado
+      if (!data || !data.planos_alimentares) return null;
+      
+      return data.planos_alimentares;
     },
     enabled: !!alunoId,
   });

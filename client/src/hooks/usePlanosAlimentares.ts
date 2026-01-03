@@ -67,7 +67,7 @@ export function usePlanosAlimentares(alunoId?: string) {
             )
           `)
           .eq('aluno_id', alunoId)
-          .eq('status', 'ativo');
+          .eq('ativo', true);
         
         if (error) {
           console.error('❌ [usePlanosAlimentares] Erro:', error);
@@ -113,14 +113,15 @@ export function usePlanosAlimentares(alunoId?: string) {
             observacoes,
             alimentos:alimentos_refeicao(*)
           ),
-          planos_alunos(aluno_id, status)
+          planos_alunos(aluno_id)
         `)
         .order('created_at', { ascending: false });
       
       console.log('📊 [usePlanosAlimentares] Resultado da query:', {
         sucesso: !error,
         erro: error,
-        quantidadePlanos: data?.length
+        quantidadePlanos: data?.length,
+        primeiroPlano: data?.[0]
       });
       
       if (error) {
@@ -128,8 +129,8 @@ export function usePlanosAlimentares(alunoId?: string) {
         throw error;
       }
       
-      // Converter snake_case para camelCase e extrair alunos atribuídos
-      const converted = (data || []).map((plano: any) => ({
+      // Converter snake_case para camelCase e extrair IDs dos alunos
+      const converted = (data || []).map(plano => ({
         id: plano.id,
         titulo: plano.titulo,
         conteudoHtml: plano.conteudo_html,
@@ -139,30 +140,30 @@ export function usePlanosAlimentares(alunoId?: string) {
         createdAt: plano.created_at,
         updatedAt: plano.updated_at,
         refeicoes: plano.refeicoes || [],
-        alunosAtribuidos: (plano.planos_alunos || [])
-          .filter((pa: any) => pa.status === 'ativo')
-          .map((pa: any) => pa.aluno_id)
+        alunosAtribuidos: (plano.planos_alunos || []).map((pa: any) => pa.aluno_id)
       }));
       
-      console.log('✅ [usePlanosAlimentares] Dados convertidos:', converted.length, 'planos');
+      console.log('✅ [usePlanosAlimentares] Dados convertidos:', converted);
       
       return converted;
     }
   });
 }
 
-// Obter plano atual do aluno (via tabela de relacionamento)
+
+// Obter plano atual do aluno (mais recente)
 export function useMyPlanoAlimentar(alunoId: string) {
   return useQuery<PlanoAlimentar | null>({
     queryKey: ['meu-plano-alimentar', alunoId],
     queryFn: async () => {
       console.log('🔍 [useMyPlanoAlimentar] Buscando plano do aluno:', alunoId);
       
-      // Buscar via tabela de relacionamento
+      // Buscar planos atribuídos ao aluno via tabela de relacionamento
       const { data, error } = await supabase
         .from('planos_alunos')
         .select(`
           plano_id,
+          data_atribuicao,
           planos_alimentares (
             id,
             titulo,
@@ -184,8 +185,8 @@ export function useMyPlanoAlimentar(alunoId: string) {
           )
         `)
         .eq('aluno_id', alunoId)
-        .eq('status', 'ativo')
-        .order('created_at', { ascending: false })
+        .eq('ativo', true)
+        .order('data_atribuicao', { ascending: false })
         .limit(1)
         .maybeSingle();
       
@@ -224,7 +225,7 @@ export function useMyPlanoAlimentar(alunoId: string) {
   });
 }
 
-// Obter plano específico com alunos atribuídos
+// Obter plano específico
 export function usePlanoAlimentar(id: string) {
   return useQuery<PlanoAlimentar>({
     queryKey: ['plano-alimentar', id],
@@ -249,7 +250,7 @@ export function usePlanoAlimentar(id: string) {
             observacoes,
             alimentos:alimentos_refeicao(*)
           ),
-          planos_alunos(aluno_id, status)
+          planos_alunos(aluno_id)
         `)
         .eq('id', id)
         .single();
@@ -267,17 +268,14 @@ export function usePlanoAlimentar(id: string) {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         refeicoes: data.refeicoes || [],
-        alunosAtribuidos: (data.planos_alunos || [])
-          .filter((pa: any) => pa.status === 'ativo')
-          .map((pa: any) => pa.aluno_id)
+        alunosAtribuidos: (data.planos_alunos || []).map((pa: any) => pa.aluno_id)
       };
     },
     enabled: !!id
   });
 }
 
-
-// Criar plano alimentar com atribuição a múltiplos alunos
+// Criar plano alimentar
 export function useCreatePlanoAlimentar() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -285,8 +283,6 @@ export function useCreatePlanoAlimentar() {
   return useMutation({
     mutationFn: async (data: CreatePlanoData) => {
       const { refeicoes, alunosIds, ...planoData } = data;
-      
-      console.log('📝 [Create] Criando plano com alunos:', alunosIds);
       
       // Converter camelCase para snake_case
       const planoDataSnakeCase = {
@@ -309,8 +305,7 @@ export function useCreatePlanoAlimentar() {
       if (alunosIds && alunosIds.length > 0) {
         const atribuicoes = alunosIds.map(alunoId => ({
           plano_id: plano.id,
-          aluno_id: alunoId,
-          status: 'ativo'
+          aluno_id: alunoId
         }));
         
         const { error: atribError } = await supabase
@@ -398,7 +393,7 @@ export function useCreatePlanoAlimentar() {
   });
 }
 
-// Atualizar plano alimentar e suas atribuições
+// Atualizar plano alimentar
 export function useUpdatePlanoAlimentar() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -434,6 +429,8 @@ export function useUpdatePlanoAlimentar() {
         .select()
         .single();
       
+      console.log('✅ [Update] Resposta do Supabase:', { plano, error: planoError });
+      
       if (planoError) {
         console.error('❌ [Update] Erro detalhado:', planoError);
         throw planoError;
@@ -443,11 +440,11 @@ export function useUpdatePlanoAlimentar() {
         throw new Error('Nenhum plano foi atualizado. Verifique se o ID está correto.');
       }
       
-      // Atualizar atribuições de alunos se fornecidas
+      // Atualizar atribuições de alunos
       if (alunosIds !== undefined) {
         console.log('👥 [Update] Atualizando atribuições de alunos:', alunosIds);
         
-        // Remover todas as atribuições existentes
+        // Remover atribuições antigas
         await supabase
           .from('planos_alunos')
           .delete()
@@ -457,8 +454,7 @@ export function useUpdatePlanoAlimentar() {
         if (alunosIds.length > 0) {
           const atribuicoes = alunosIds.map(alunoId => ({
             plano_id: id,
-            aluno_id: alunoId,
-            status: 'ativo'
+            aluno_id: alunoId
           }));
           
           const { error: atribError } = await supabase
@@ -471,18 +467,20 @@ export function useUpdatePlanoAlimentar() {
           }
         }
         
-        console.log('✅ [Update] Atribuições atualizadas:', alunosIds.length, 'alunos');
+        console.log('✅ [Update] Atribuições atualizadas');
       }
       
       // Atualizar refeições se fornecidas
       if (refeicoes) {
         console.log('🍽️ [Update] Atualizando refeições:', refeicoes.length);
         
+        // Remover refeições antigas
         await supabase
           .from('refeicoes_plano')
           .delete()
           .eq('plano_id', id);
         
+        // Inserir novas refeições
         if (refeicoes.length > 0) {
           for (const refeicao of refeicoes) {
             const { alimentos, calorias, ...refeicaoData } = refeicao;
@@ -555,7 +553,7 @@ export function useDeletePlanoAlimentar() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Remover atribuições (cascade deve cuidar disso, mas por segurança)
+      // Remover atribuições primeiro
       await supabase
         .from('planos_alunos')
         .delete()
