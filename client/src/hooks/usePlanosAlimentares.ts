@@ -67,7 +67,7 @@ export function usePlanosAlimentares(alunoId?: string) {
             )
           `)
           .eq('aluno_id', alunoId)
-          .eq('ativo', true);
+          .eq('status', 'ativo');
         
         if (error) {
           console.error('❌ [usePlanosAlimentares] Erro:', error);
@@ -185,7 +185,7 @@ export function useMyPlanoAlimentar(alunoId: string) {
           )
         `)
         .eq('aluno_id', alunoId)
-        .eq('ativo', true)
+        .eq('status', 'ativo')
         .order('data_atribuicao', { ascending: false })
         .limit(1)
         .maybeSingle();

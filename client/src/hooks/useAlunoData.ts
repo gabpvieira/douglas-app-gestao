@@ -80,6 +80,8 @@ export function useAlunoPlanoAlimentar(alunoId: string | undefined) {
     queryFn: async () => {
       if (!alunoId) return null;
 
+      console.log("🔍 [useAlunoPlanoAlimentar] Buscando plano para aluno:", alunoId);
+
       // Buscar planos atribuídos ao aluno via tabela de relacionamento
       const { data, error } = await supabase
         .from("planos_alunos")
@@ -95,15 +97,23 @@ export function useAlunoPlanoAlimentar(alunoId: string | undefined) {
           )
         `)
         .eq("aluno_id", alunoId)
-        .eq("ativo", true)
+        .eq("status", "ativo")
         .order("data_atribuicao", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ [useAlunoPlanoAlimentar] Erro:", error);
+        throw error;
+      }
+      
+      console.log("📊 [useAlunoPlanoAlimentar] Resultado:", data);
       
       // Extrair o plano do resultado
-      if (!data || !data.planos_alimentares) return null;
+      if (!data || !data.planos_alimentares) {
+        console.log("⚠️ [useAlunoPlanoAlimentar] Nenhum plano encontrado");
+        return null;
+      }
       
       return data.planos_alimentares;
     },
