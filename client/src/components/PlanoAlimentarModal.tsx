@@ -1108,10 +1108,10 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
               <CardHeader className="pb-3">
                 <CardTitle className="text-white flex items-center gap-2 text-base">
                   <Users className="h-4 w-4 text-purple-400" />
-                  Atribuir Plano ao Aluno
+                  Atribuir Plano aos Alunos
                 </CardTitle>
                 <CardDescription className="text-xs text-gray-400">
-                  Selecione o aluno que receberá este plano alimentar
+                  Selecione os alunos que receberão este plano alimentar padronizado
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -1134,7 +1134,29 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                   )}
                 </div>
 
-                {/* Lista de alunos com seleção única (radio button behavior) */}
+                {/* Ações rápidas */}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormData(prev => ({ ...prev, alunosAtribuidos: alunosFiltrados.map(a => a.id) }))}
+                    className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    Selecionar Todos
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormData(prev => ({ ...prev, alunosAtribuidos: [] }))}
+                    className="text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    Limpar Seleção
+                  </Button>
+                </div>
+
+                {/* Lista de alunos com checkboxes múltiplos */}
                 <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                   {alunosFiltrados.length > 0 ? (
                     alunosFiltrados.map((aluno) => {
@@ -1143,36 +1165,30 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                         <div 
                           key={aluno.id} 
                           onClick={() => {
-                            // Seleção única: substitui o array inteiro
+                            // Toggle: adiciona ou remove do array
                             setFormData(prev => ({
                               ...prev,
-                              alunosAtribuidos: [aluno.id]
+                              alunosAtribuidos: isSelected
+                                ? prev.alunosAtribuidos.filter(id => id !== aluno.id)
+                                : [...prev.alunosAtribuidos, aluno.id]
                             }));
                           }}
                           className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${
                             isSelected 
-                              ? 'bg-blue-600/20 border-blue-500 ring-1 ring-blue-500' 
+                              ? 'bg-blue-600/20 border-blue-500' 
                               : 'bg-gray-700/50 border-gray-700 hover:bg-gray-700 hover:border-gray-600'
                           }`}
                         >
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                            isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-500'
-                          }`}>
-                            {isSelected && (
-                              <div className="w-2 h-2 rounded-full bg-white" />
-                            )}
-                          </div>
+                          <Checkbox
+                            checked={isSelected}
+                            className="border-gray-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                          />
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-medium text-sm truncate">
                               {aluno.nome}
                             </p>
                             <p className="text-xs text-gray-400 truncate">{aluno.email}</p>
                           </div>
-                          {isSelected && (
-                            <Badge className="bg-blue-600 text-white text-[10px] flex-shrink-0">
-                              Selecionado
-                            </Badge>
-                          )}
                         </div>
                       );
                     })
@@ -1186,13 +1202,27 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
                   )}
                 </div>
 
-                {/* Aluno selecionado */}
+                {/* Resumo de seleção */}
                 {formData.alunosAtribuidos.length > 0 && (
                   <div className="mt-3 p-3 bg-blue-600/10 border border-blue-500/30 rounded-lg">
-                    <p className="text-xs text-blue-400 mb-1">Aluno selecionado:</p>
-                    <p className="text-white font-medium text-sm">
-                      {alunos.find(a => a.id === formData.alunosAtribuidos[0])?.nome || 'Aluno não encontrado'}
+                    <p className="text-xs text-blue-400 mb-2">
+                      {formData.alunosAtribuidos.length} aluno(s) selecionado(s):
                     </p>
+                    <div className="flex flex-wrap gap-1">
+                      {formData.alunosAtribuidos.slice(0, 5).map(alunoId => {
+                        const aluno = alunos.find(a => a.id === alunoId);
+                        return aluno ? (
+                          <Badge key={alunoId} variant="secondary" className="bg-blue-600/30 text-blue-300 text-[10px]">
+                            {aluno.nome.split(' ')[0]}
+                          </Badge>
+                        ) : null;
+                      })}
+                      {formData.alunosAtribuidos.length > 5 && (
+                        <Badge variant="secondary" className="bg-gray-600/30 text-gray-300 text-[10px]">
+                          +{formData.alunosAtribuidos.length - 5} mais
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>

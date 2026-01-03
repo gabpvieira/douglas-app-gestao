@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 
 interface PlanoAlimentar {
   id: string;
-  alunoId: string;
   titulo: string;
   conteudoHtml: string;
   observacoes: string | null;
@@ -12,38 +11,92 @@ interface PlanoAlimentar {
   dataCriacao: string;
   createdAt: string;
   updatedAt: string;
+  refeicoes?: any[];
+  alunosAtribuidos?: string[]; // IDs dos alunos atribuídos
 }
 
 interface CreatePlanoData {
-  alunoId: string;
   titulo: string;
   conteudoHtml: string;
   observacoes?: string;
   dadosJson?: any;
   refeicoes?: any[];
+  alunosIds?: string[]; // Array de IDs de alunos para atribuir
 }
 
 interface UpdatePlanoData {
-  alunoId?: string;
   titulo?: string;
   conteudoHtml?: string;
   observacoes?: string;
   dadosJson?: any;
   refeicoes?: any[];
+  alunosIds?: string[]; // Array de IDs de alunos para atribuir
 }
 
-// Listar planos de um aluno (Admin)
+// Listar todos os planos (Admin) ou planos de um aluno específico
 export function usePlanosAlimentares(alunoId?: string) {
   return useQuery<PlanoAlimentar[]>({
     queryKey: ['planos-alimentares', alunoId],
     queryFn: async () => {
       console.log('🔍 [usePlanosAlimentares] Iniciando busca...', { alunoId });
       
-      let query = supabase
+      if (alunoId) {
+        // Buscar planos atribuídos a um aluno específico via tabela de relacionamento
+        const { data, error } = await supabase
+          .from('planos_alunos')
+          .select(`
+            plano_id,
+            planos_alimentares (
+              id,
+              titulo,
+              conteudo_html,
+              observacoes,
+              dados_json,
+              data_criacao,
+              created_at,
+              updated_at,
+              refeicoes:refeicoes_plano(
+                id,
+                nome,
+                horario,
+                ordem,
+                calorias_calculadas,
+                observacoes,
+                alimentos:alimentos_refeicao(*)
+              )
+            )
+          `)
+          .eq('aluno_id', alunoId)
+          .eq('status', 'ativo');
+        
+        if (error) {
+          console.error('❌ [usePlanosAlimentares] Erro:', error);
+          throw error;
+        }
+        
+        // Extrair planos do resultado
+        const planos = (data || [])
+          .map((item: any) => item.planos_alimentares)
+          .filter(Boolean);
+        
+        return planos.map((plano: any) => ({
+          id: plano.id,
+          titulo: plano.titulo,
+          conteudoHtml: plano.conteudo_html,
+          observacoes: plano.observacoes,
+          dadosJson: plano.dados_json,
+          dataCriacao: plano.data_criacao,
+          createdAt: plano.created_at,
+          updatedAt: plano.updated_at,
+          refeicoes: plano.refeicoes || []
+        }));
+      }
+      
+      // Buscar todos os planos com seus alunos atribuídos
+      const { data, error } = await supabase
         .from('planos_alimentares')
         .select(`
           id,
-          aluno_id,
           titulo,
           conteudo_html,
           observacoes,
@@ -59,21 +112,15 @@ export function usePlanosAlimentares(alunoId?: string) {
             calorias_calculadas,
             observacoes,
             alimentos:alimentos_refeicao(*)
-          )
+          ),
+          planos_alunos(aluno_id, status)
         `)
         .order('created_at', { ascending: false });
-      
-      if (alunoId) {
-        query = query.eq('aluno_id', alunoId);
-      }
-      
-      const { data, error } = await query;
       
       console.log('📊 [usePlanosAlimentares] Resultado da query:', {
         sucesso: !error,
         erro: error,
-        quantidadePlanos: data?.length,
-        primeiroPlano: data?.[0]
+        quantidadePlanos: data?.length
       });
       
       if (error) {
@@ -81,10 +128,9 @@ export function usePlanosAlimentares(alunoId?: string) {
         throw error;
       }
       
-      // Converter snake_case para camelCase
-      const converted = (data || []).map(plano => ({
+      // Converter snake_case para camelCase e extrair alunos atribuídos
+      const converted = (data || []).map((plano: any) => ({
         id: plano.id,
-        alunoId: plano.aluno_id,
         titulo: plano.titulo,
         conteudoHtml: plano.conteudo_html,
         observacoes: plano.observacoes,
@@ -92,46 +138,53 @@ export function usePlanosAlimentares(alunoId?: string) {
         dataCriacao: plano.data_criacao,
         createdAt: plano.created_at,
         updatedAt: plano.updated_at,
-        refeicoes: plano.refeicoes || []
+        refeicoes: plano.refeicoes || [],
+        alunosAtribuidos: (plano.planos_alunos || [])
+          .filter((pa: any) => pa.status === 'ativo')
+          .map((pa: any) => pa.aluno_id)
       }));
       
-      console.log('✅ [usePlanosAlimentares] Dados convertidos:', converted);
+      console.log('✅ [usePlanosAlimentares] Dados convertidos:', converted.length, 'planos');
       
       return converted;
     }
   });
 }
 
-// Obter plano atual do aluno
+// Obter plano atual do aluno (via tabela de relacionamento)
 export function useMyPlanoAlimentar(alunoId: string) {
   return useQuery<PlanoAlimentar | null>({
     queryKey: ['meu-plano-alimentar', alunoId],
     queryFn: async () => {
       console.log('🔍 [useMyPlanoAlimentar] Buscando plano do aluno:', alunoId);
       
+      // Buscar via tabela de relacionamento
       const { data, error } = await supabase
-        .from('planos_alimentares')
+        .from('planos_alunos')
         .select(`
-          id,
-          aluno_id,
-          titulo,
-          conteudo_html,
-          observacoes,
-          dados_json,
-          data_criacao,
-          created_at,
-          updated_at,
-          refeicoes:refeicoes_plano(
+          plano_id,
+          planos_alimentares (
             id,
-            nome,
-            horario,
-            ordem,
-            calorias_calculadas,
+            titulo,
+            conteudo_html,
             observacoes,
-            alimentos:alimentos_refeicao(*)
+            dados_json,
+            data_criacao,
+            created_at,
+            updated_at,
+            refeicoes:refeicoes_plano(
+              id,
+              nome,
+              horario,
+              ordem,
+              calorias_calculadas,
+              observacoes,
+              alimentos:alimentos_refeicao(*)
+            )
           )
         `)
         .eq('aluno_id', alunoId)
+        .eq('status', 'ativo')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -143,23 +196,24 @@ export function useMyPlanoAlimentar(alunoId: string) {
         throw error;
       }
       
-      if (!data) {
+      if (!data || !data.planos_alimentares) {
         console.log('⚠️ [useMyPlanoAlimentar] Nenhum plano encontrado');
         return null;
       }
       
+      const plano = data.planos_alimentares as any;
+      
       // Converter snake_case para camelCase
       const converted = {
-        id: data.id,
-        alunoId: data.aluno_id,
-        titulo: data.titulo,
-        conteudoHtml: data.conteudo_html,
-        observacoes: data.observacoes,
-        dadosJson: data.dados_json,
-        dataCriacao: data.data_criacao,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        refeicoes: data.refeicoes || []
+        id: plano.id,
+        titulo: plano.titulo,
+        conteudoHtml: plano.conteudo_html,
+        observacoes: plano.observacoes,
+        dadosJson: plano.dados_json,
+        dataCriacao: plano.data_criacao,
+        createdAt: plano.created_at,
+        updatedAt: plano.updated_at,
+        refeicoes: plano.refeicoes || []
       };
       
       console.log('✅ [useMyPlanoAlimentar] Plano convertido:', converted);
@@ -170,7 +224,7 @@ export function useMyPlanoAlimentar(alunoId: string) {
   });
 }
 
-// Obter plano específico
+// Obter plano específico com alunos atribuídos
 export function usePlanoAlimentar(id: string) {
   return useQuery<PlanoAlimentar>({
     queryKey: ['plano-alimentar', id],
@@ -179,7 +233,6 @@ export function usePlanoAlimentar(id: string) {
         .from('planos_alimentares')
         .select(`
           id,
-          aluno_id,
           titulo,
           conteudo_html,
           observacoes,
@@ -195,7 +248,8 @@ export function usePlanoAlimentar(id: string) {
             calorias_calculadas,
             observacoes,
             alimentos:alimentos_refeicao(*)
-          )
+          ),
+          planos_alunos(aluno_id, status)
         `)
         .eq('id', id)
         .single();
@@ -205,7 +259,6 @@ export function usePlanoAlimentar(id: string) {
       // Converter snake_case para camelCase
       return {
         id: data.id,
-        alunoId: data.aluno_id,
         titulo: data.titulo,
         conteudoHtml: data.conteudo_html,
         observacoes: data.observacoes,
@@ -213,25 +266,30 @@ export function usePlanoAlimentar(id: string) {
         dataCriacao: data.data_criacao,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
-        refeicoes: data.refeicoes || []
+        refeicoes: data.refeicoes || [],
+        alunosAtribuidos: (data.planos_alunos || [])
+          .filter((pa: any) => pa.status === 'ativo')
+          .map((pa: any) => pa.aluno_id)
       };
     },
     enabled: !!id
   });
 }
 
-// Criar plano alimentar
+
+// Criar plano alimentar com atribuição a múltiplos alunos
 export function useCreatePlanoAlimentar() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (data: CreatePlanoData) => {
-      const { refeicoes, ...planoData } = data;
+      const { refeicoes, alunosIds, ...planoData } = data;
+      
+      console.log('📝 [Create] Criando plano com alunos:', alunosIds);
       
       // Converter camelCase para snake_case
       const planoDataSnakeCase = {
-        aluno_id: planoData.alunoId,
         titulo: planoData.titulo,
         conteudo_html: planoData.conteudoHtml,
         observacoes: planoData.observacoes,
@@ -247,6 +305,26 @@ export function useCreatePlanoAlimentar() {
       
       if (planoError) throw planoError;
       
+      // Atribuir alunos ao plano
+      if (alunosIds && alunosIds.length > 0) {
+        const atribuicoes = alunosIds.map(alunoId => ({
+          plano_id: plano.id,
+          aluno_id: alunoId,
+          status: 'ativo'
+        }));
+        
+        const { error: atribError } = await supabase
+          .from('planos_alunos')
+          .insert(atribuicoes);
+        
+        if (atribError) {
+          console.error('❌ [Create] Erro ao atribuir alunos:', atribError);
+          throw atribError;
+        }
+        
+        console.log('✅ [Create] Alunos atribuídos:', alunosIds.length);
+      }
+      
       // Criar refeições se fornecidas
       if (refeicoes && refeicoes.length > 0) {
         console.log('🍽️ [Create] Criando refeições:', refeicoes.length);
@@ -254,7 +332,6 @@ export function useCreatePlanoAlimentar() {
         for (const refeicao of refeicoes) {
           const { alimentos, calorias, ...refeicaoData } = refeicao;
           
-          // Inserir refeição (sem alimentos)
           const { data: refeicaoInserida, error: refeicaoError } = await supabase
             .from('refeicoes_plano')
             .insert({
@@ -273,7 +350,6 @@ export function useCreatePlanoAlimentar() {
             throw refeicaoError;
           }
           
-          // Inserir alimentos da refeição
           if (alimentos && alimentos.length > 0) {
             const alimentosParaInserir = alimentos.map((alimento: any, index: number) => ({
               refeicao_id: refeicaoInserida.id,
@@ -304,10 +380,9 @@ export function useCreatePlanoAlimentar() {
       
       return plano;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['planos-alimentares'] });
-      queryClient.invalidateQueries({ queryKey: ['planos-alimentares', variables.alunoId] });
-      queryClient.invalidateQueries({ queryKey: ['meu-plano-alimentar', variables.alunoId] });
+      queryClient.invalidateQueries({ queryKey: ['meu-plano-alimentar'] });
       toast({
         title: 'Sucesso!',
         description: 'Plano alimentar criado com sucesso'
@@ -323,7 +398,7 @@ export function useCreatePlanoAlimentar() {
   });
 }
 
-// Atualizar plano alimentar
+// Atualizar plano alimentar e suas atribuições
 export function useUpdatePlanoAlimentar() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -332,74 +407,86 @@ export function useUpdatePlanoAlimentar() {
     mutationFn: async ({ id, data }: { id: string; data: UpdatePlanoData }) => {
       console.log('🔄 [Update] Dados recebidos:', {
         id,
-        alunoId: data.alunoId,
         titulo: data.titulo,
+        alunosIds: data.alunosIds,
         hasRefeicoes: !!data.refeicoes
       });
       
-      const { refeicoes, ...planoData } = data;
+      const { refeicoes, alunosIds, ...planoData } = data;
       
-      // Converter camelCase para snake_case - GARANTIR conversão correta
-      const planoDataSnakeCase: Record<string, any> = {};
-      if (planoData.alunoId !== undefined) planoDataSnakeCase.aluno_id = planoData.alunoId;
-      if (planoData.titulo !== undefined) planoDataSnakeCase.titulo = planoData.titulo;
-      if (planoData.conteudoHtml !== undefined) planoDataSnakeCase.conteudo_html = planoData.conteudoHtml;
-      if (planoData.observacoes !== undefined) planoDataSnakeCase.observacoes = planoData.observacoes;
-      if (planoData.dadosJson !== undefined) planoDataSnakeCase.dados_json = planoData.dadosJson;
-      
-      console.log('📤 [Update] Dados convertidos para snake_case:', planoDataSnakeCase);
-      
-      // Construir payload de atualização - SEMPRE incluir aluno_id se fornecido
+      // Construir payload de atualização
       const updatePayload: Record<string, any> = {
         updated_at: new Date().toISOString()
       };
       
-      // Adicionar campos apenas se definidos (usar !== undefined para permitir strings vazias)
-      if (planoDataSnakeCase.aluno_id !== undefined) updatePayload.aluno_id = planoDataSnakeCase.aluno_id;
-      if (planoDataSnakeCase.titulo !== undefined) updatePayload.titulo = planoDataSnakeCase.titulo;
-      if (planoDataSnakeCase.conteudo_html !== undefined) updatePayload.conteudo_html = planoDataSnakeCase.conteudo_html;
-      if (planoDataSnakeCase.observacoes !== undefined) updatePayload.observacoes = planoDataSnakeCase.observacoes;
-      if (planoDataSnakeCase.dados_json !== undefined) updatePayload.dados_json = planoDataSnakeCase.dados_json;
+      if (planoData.titulo !== undefined) updatePayload.titulo = planoData.titulo;
+      if (planoData.conteudoHtml !== undefined) updatePayload.conteudo_html = planoData.conteudoHtml;
+      if (planoData.observacoes !== undefined) updatePayload.observacoes = planoData.observacoes;
+      if (planoData.dadosJson !== undefined) updatePayload.dados_json = planoData.dadosJson;
       
       console.log('📦 [Update] Payload final:', updatePayload);
-      console.log('🎯 [Update] aluno_id no payload:', updatePayload.aluno_id);
       
       // Atualizar plano
-      const { data: plano, error: planoError, count } = await supabase
+      const { data: plano, error: planoError } = await supabase
         .from('planos_alimentares')
         .update(updatePayload)
         .eq('id', id)
         .select()
         .single();
       
-      console.log('✅ [Update] Resposta do Supabase:', { plano, error: planoError });
-      
       if (planoError) {
         console.error('❌ [Update] Erro detalhado:', planoError);
         throw planoError;
       }
       
-      // Verificar se o plano foi realmente atualizado
       if (!plano) {
         throw new Error('Nenhum plano foi atualizado. Verifique se o ID está correto.');
+      }
+      
+      // Atualizar atribuições de alunos se fornecidas
+      if (alunosIds !== undefined) {
+        console.log('👥 [Update] Atualizando atribuições de alunos:', alunosIds);
+        
+        // Remover todas as atribuições existentes
+        await supabase
+          .from('planos_alunos')
+          .delete()
+          .eq('plano_id', id);
+        
+        // Inserir novas atribuições
+        if (alunosIds.length > 0) {
+          const atribuicoes = alunosIds.map(alunoId => ({
+            plano_id: id,
+            aluno_id: alunoId,
+            status: 'ativo'
+          }));
+          
+          const { error: atribError } = await supabase
+            .from('planos_alunos')
+            .insert(atribuicoes);
+          
+          if (atribError) {
+            console.error('❌ [Update] Erro ao atribuir alunos:', atribError);
+            throw atribError;
+          }
+        }
+        
+        console.log('✅ [Update] Atribuições atualizadas:', alunosIds.length, 'alunos');
       }
       
       // Atualizar refeições se fornecidas
       if (refeicoes) {
         console.log('🍽️ [Update] Atualizando refeições:', refeicoes.length);
         
-        // Remover refeições antigas (cascade vai deletar alimentos também)
         await supabase
           .from('refeicoes_plano')
           .delete()
           .eq('plano_id', id);
         
-        // Inserir novas refeições
         if (refeicoes.length > 0) {
           for (const refeicao of refeicoes) {
             const { alimentos, calorias, ...refeicaoData } = refeicao;
             
-            // Inserir refeição (sem alimentos)
             const { data: refeicaoInserida, error: refeicaoError } = await supabase
               .from('refeicoes_plano')
               .insert({
@@ -418,7 +505,6 @@ export function useUpdatePlanoAlimentar() {
               throw refeicaoError;
             }
             
-            // Inserir alimentos da refeição
             if (alimentos && alimentos.length > 0) {
               const alimentosParaInserir = alimentos.map((alimento: any, index: number) => ({
                 refeicao_id: refeicaoInserida.id,
@@ -451,23 +537,13 @@ export function useUpdatePlanoAlimentar() {
       return plano;
     },
     onSuccess: (data) => {
-      // Invalidar todas as queries relacionadas a planos alimentares
-      // Isso força um refetch dos dados do banco
       queryClient.invalidateQueries({ queryKey: ['planos-alimentares'] });
       queryClient.invalidateQueries({ queryKey: ['meu-plano-alimentar'] });
       queryClient.invalidateQueries({ queryKey: ['plano-alimentar', data.id] });
-      
-      // Invalidar também por aluno_id se disponível
-      if (data.aluno_id) {
-        queryClient.invalidateQueries({ queryKey: ['planos-alimentares', data.aluno_id] });
-        queryClient.invalidateQueries({ queryKey: ['meu-plano-alimentar', data.aluno_id] });
-      }
-      
       console.log('✅ [Update] Cache invalidado, dados serão recarregados');
     },
     onError: (error: Error) => {
       console.error('❌ [Update] Erro na mutation:', error);
-      // Toast de erro será mostrado pela página que chama a mutation
     }
   });
 }
@@ -479,7 +555,13 @@ export function useDeletePlanoAlimentar() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      // Remover refeições primeiro
+      // Remover atribuições (cascade deve cuidar disso, mas por segurança)
+      await supabase
+        .from('planos_alunos')
+        .delete()
+        .eq('plano_id', id);
+      
+      // Remover refeições
       await supabase
         .from('refeicoes_plano')
         .delete()

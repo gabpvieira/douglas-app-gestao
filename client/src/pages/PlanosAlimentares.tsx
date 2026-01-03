@@ -139,7 +139,8 @@ export default function PlanosAlimentares() {
       restricoes: dadosJson.restricoes || [],
       observacoes: plano.observacoes,
       refeicoes: refeicoes,
-      alunosAtribuidos: [plano.alunoId],
+      // Usar alunosAtribuidos da nova tabela de relacionamento N:N
+      alunosAtribuidos: plano.alunosAtribuidos || [],
       criadoEm: plano.dataCriacao?.split('T')[0] || '',
       atualizadoEm: plano.updatedAt?.split('T')[0] || '',
       ativo: true
@@ -203,25 +204,17 @@ export default function PlanosAlimentares() {
       };
       
       if (planoEditando) {
-        // Pegar o aluno selecionado (primeiro da lista de atribuídos)
-        const alunoIdAtualizado = planoData.alunosAtribuidos.length > 0 
-          ? planoData.alunosAtribuidos[0] 
-          : planoEditando.alunosAtribuidos[0];
-        
         console.log('📝 [Salvar] Enviando atualização:', {
           id: planoEditando.id,
-          alunoId: alunoIdAtualizado,
+          alunosIds: planoData.alunosAtribuidos,
           titulo: planoData.nome,
-          conteudoHtml: conteudoTexto.substring(0, 100) + '...',
-          observacoes: planoData.observacoes,
-          dadosJson,
           refeicoesCount: planoData.refeicoes?.length || 0
         });
         
         await updatePlano.mutateAsync({
           id: planoEditando.id,
           data: {
-            alunoId: alunoIdAtualizado,
+            alunosIds: planoData.alunosAtribuidos,
             titulo: planoData.nome,
             conteudoHtml: conteudoTexto,
             observacoes: planoData.observacoes,
@@ -237,15 +230,13 @@ export default function PlanosAlimentares() {
       } else {
         if (planoData.alunosAtribuidos.length === 0) {
           toast({
-            title: 'Erro',
-            description: 'Selecione pelo menos um aluno',
-            variant: 'destructive'
+            title: 'Aviso',
+            description: 'Nenhum aluno selecionado. O plano será criado sem atribuições.',
           });
-          return;
         }
         
         await createPlano.mutateAsync({
-          alunoId: planoData.alunosAtribuidos[0],
+          alunosIds: planoData.alunosAtribuidos,
           titulo: planoData.nome,
           conteudoHtml: conteudoTexto,
           observacoes: planoData.observacoes,
@@ -255,7 +246,7 @@ export default function PlanosAlimentares() {
         
         toast({
           title: 'Sucesso',
-          description: 'Plano alimentar criado com sucesso!',
+          description: `Plano alimentar criado e atribuído a ${planoData.alunosAtribuidos.length} aluno(s)!`,
         });
       }
       setIsModalOpen(false);
