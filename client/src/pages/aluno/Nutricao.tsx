@@ -2,6 +2,7 @@ import AlunoLayout from "@/components/aluno/AlunoLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAlunoProfile, useAlunoPlanoAlimentar } from "@/hooks/useAlunoData";
+import PlanoAlimentarPDF from "@/components/PlanoAlimentarPDF";
 import {
   Apple,
   Loader2,
@@ -100,14 +101,27 @@ export default function Nutricao() {
     { calorias: 0, proteinas: 0, carboidratos: 0, gorduras: 0 }
   );
 
+  // Extrair nome do aluno
+  const nomeAluno = profile?.nome || 'Aluno';
+
   return (
     <AlunoLayout>
       <div className="min-h-screen bg-gray-950 p-3 sm:p-6 pt-3 md:pt-6 pb-20">
         <div className="w-full space-y-4 sm:space-y-6">
           {/* Header */}
           <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-6">
-            <h1 className="text-2xl font-semibold text-white mb-1">Nutrição</h1>
-            <p className="text-sm text-gray-400">Seu plano alimentar personalizado</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold text-white mb-1">Nutrição</h1>
+                <p className="text-sm text-gray-400">Seu plano alimentar personalizado</p>
+              </div>
+              {/* Botão de Exportação Premium */}
+              <PlanoAlimentarPDF 
+                plano={plano} 
+                nomeAluno={nomeAluno}
+                isPremium={true}
+              />
+            </div>
           </div>
 
           {/* Título do Plano */}

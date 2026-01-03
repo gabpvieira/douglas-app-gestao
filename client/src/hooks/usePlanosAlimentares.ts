@@ -301,11 +301,31 @@ export function useCreatePlanoAlimentar() {
       
       if (planoError) throw planoError;
       
-      // Atribuir alunos ao plano
+      // Atribuir alunos ao plano (REGRA: cada aluno só pode ter UM plano ativo)
       if (alunosIds && alunosIds.length > 0) {
+        console.log('👥 [Create] Atribuindo plano a alunos (removendo planos anteriores):', alunosIds);
+        
+        // Para cada aluno, desativar planos anteriores antes de atribuir o novo
+        for (const alunoId of alunosIds) {
+          // Desativar todos os planos ativos do aluno
+          const { error: desativarError } = await supabase
+            .from('planos_alunos')
+            .update({ status: 'inativo', updated_at: new Date().toISOString() })
+            .eq('aluno_id', alunoId)
+            .eq('status', 'ativo');
+          
+          if (desativarError) {
+            console.error('❌ [Create] Erro ao desativar planos anteriores:', desativarError);
+            // Continua mesmo com erro para não bloquear a atribuição
+          }
+        }
+        
+        // Inserir novas atribuições
         const atribuicoes = alunosIds.map(alunoId => ({
           plano_id: plano.id,
-          aluno_id: alunoId
+          aluno_id: alunoId,
+          status: 'ativo',
+          data_atribuicao: new Date().toISOString().split('T')[0]
         }));
         
         const { error: atribError } = await supabase
@@ -317,7 +337,7 @@ export function useCreatePlanoAlimentar() {
           throw atribError;
         }
         
-        console.log('✅ [Create] Alunos atribuídos:', alunosIds.length);
+        console.log('✅ [Create] Alunos atribuídos (planos anteriores desativados):', alunosIds.length);
       }
       
       // Criar refeições se fornecidas
@@ -440,21 +460,46 @@ export function useUpdatePlanoAlimentar() {
         throw new Error('Nenhum plano foi atualizado. Verifique se o ID está correto.');
       }
       
-      // Atualizar atribuições de alunos
+      // Atualizar atribuições de alunos (REGRA: cada aluno só pode ter UM plano ativo)
       if (alunosIds !== undefined) {
         console.log('👥 [Update] Atualizando atribuições de alunos:', alunosIds);
         
-        // Remover atribuições antigas
+        // Buscar alunos que estavam atribuídos a este plano
+        const { data: atribuicoesAntigas } = await supabase
+          .from('planos_alunos')
+          .select('aluno_id')
+          .eq('plano_id', id);
+        
+        const alunosAntigos = (atribuicoesAntigas || []).map(a => a.aluno_id);
+        
+        // Remover atribuições antigas deste plano
         await supabase
           .from('planos_alunos')
           .delete()
           .eq('plano_id', id);
         
-        // Inserir novas atribuições
+        // Para cada novo aluno, desativar planos anteriores antes de atribuir
         if (alunosIds.length > 0) {
+          for (const alunoId of alunosIds) {
+            // Desativar todos os outros planos ativos do aluno
+            const { error: desativarError } = await supabase
+              .from('planos_alunos')
+              .update({ status: 'inativo', updated_at: new Date().toISOString() })
+              .eq('aluno_id', alunoId)
+              .eq('status', 'ativo')
+              .neq('plano_id', id);
+            
+            if (desativarError) {
+              console.error('❌ [Update] Erro ao desativar planos anteriores:', desativarError);
+            }
+          }
+          
+          // Inserir novas atribuições
           const atribuicoes = alunosIds.map(alunoId => ({
             plano_id: id,
-            aluno_id: alunoId
+            aluno_id: alunoId,
+            status: 'ativo',
+            data_atribuicao: new Date().toISOString().split('T')[0]
           }));
           
           const { error: atribError } = await supabase
@@ -467,7 +512,7 @@ export function useUpdatePlanoAlimentar() {
           }
         }
         
-        console.log('✅ [Update] Atribuições atualizadas');
+        console.log('✅ [Update] Atribuições atualizadas (planos anteriores desativados)');
       }
       
       // Atualizar refeições se fornecidas
