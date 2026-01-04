@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAlunoProfile, useAlunoFichas, useHistoricoTreinos } from "@/hooks/useAlunoData";
 import { useTreinoEmAndamento } from "@/hooks/useTreinoEmAndamento";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   Dumbbell,
   Loader2,
@@ -43,6 +44,7 @@ function formatarTempo(segundos: number): string {
 export default function MeusTreinos() {
   const [, setLocation] = useLocation();
   const [expandedFichas, setExpandedFichas] = useState<Set<string>>(new Set());
+  const [showDescartarDialog, setShowDescartarDialog] = useState(false);
   
   const { data: profile, isLoading: loadingProfile } = useAlunoProfile();
 
@@ -191,11 +193,7 @@ export default function MeusTreinos() {
                   <Button
                     variant="outline"
                     className="border-gray-700 text-gray-300 hover:bg-gray-800 h-11"
-                    onClick={() => {
-                      if (confirm("Tem certeza que deseja descartar este treino? Todo o progresso será perdido.")) {
-                        finalizarTreino();
-                      }
-                    }}
+                    onClick={() => setShowDescartarDialog(true)}
                   >
                     Descartar
                   </Button>
@@ -714,6 +712,18 @@ export default function MeusTreinos() {
           )}
         </div>
       </div>
+
+      {/* Dialog de confirmação para descartar treino */}
+      <ConfirmDialog
+        open={showDescartarDialog}
+        onOpenChange={setShowDescartarDialog}
+        onConfirm={finalizarTreino}
+        title="Descartar treino?"
+        description="Tem certeza que deseja descartar este treino? Todo o progresso será perdido e não poderá ser recuperado."
+        confirmText="Descartar"
+        cancelText="Cancelar"
+        variant="destructive"
+      />
     </AlunoLayout>
   );
 }

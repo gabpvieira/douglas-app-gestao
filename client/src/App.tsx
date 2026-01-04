@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { NotificationProvider } from "@/components/notifications";
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
+import { initializeWorkoutNotifications } from "./lib/audioManager";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -363,6 +364,11 @@ function App() {
   // Force dark mode for the fitness platform
   useEffect(() => {
     document.documentElement.classList.add('dark');
+  }, []);
+
+  // Inicializar sistema de notificações de treino
+  useEffect(() => {
+    initializeWorkoutNotifications();
   }, []);
 
   return (

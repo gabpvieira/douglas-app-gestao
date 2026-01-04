@@ -8,7 +8,8 @@ import {
   setupServiceWorkerListener,
   startKeepAlive,
   getAudioSettings,
-  checkNotificationSentBySW
+  checkNotificationSentBySW,
+  getBackgroundTimerStatus
 } from "@/lib/audioManager";
 
 interface RestTimerProps {
@@ -30,12 +31,41 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
   const swNotifiedRef = useRef(false);
   const timerIdRef = useRef<string>(`rest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const cleanupRef = useRef<(() => void) | null>(null);
+  const swAvailableRef = useRef(false);
+  const lastSWCheckRef = useRef(0);
 
   // Calcular tempo restante baseado em timestamp
   const calculateTimeRemaining = useCallback(() => {
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
     return Math.max(0, duration - elapsed);
   }, [startTime, duration]);
+
+  // Verificar status do timer no SW periodicamente
+  const checkSWTimerStatus = useCallback(async () => {
+    const timerId = timerIdRef.current;
+    const now = Date.now();
+    
+    // Não verificar mais que a cada 2 segundos
+    if (now - lastSWCheckRef.current < 2000) return;
+    lastSWCheckRef.current = now;
+    
+    try {
+      const status = await getBackgroundTimerStatus(timerId);
+      
+      if (status) {
+        swAvailableRef.current = true;
+        
+        // Se SW diz que completou e ainda não processamos
+        if (status.completed && !completo) {
+          console.log('[RestTimer] SW reports timer complete');
+          swNotifiedRef.current = status.notificationSent || false;
+          setCompleto(true);
+        }
+      }
+    } catch (error) {
+      console.warn('[RestTimer] Error checking SW timer status:', error);
+    }
+  }, [completo]);
 
   // Iniciar timer de background e listeners
   useEffect(() => {
@@ -48,10 +78,18 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     }
     
     // Iniciar timer no Service Worker
-    startBackgroundTimer(timerId, duration, exercicioNome);
+    const initTimer = async () => {
+      const started = await startBackgroundTimer(timerId, duration, exercicioNome);
+      swAvailableRef.current = started;
+      
+      if (!started) {
+        console.warn('[RestTimer] SW timer not started, using local fallback');
+      }
+    };
+    
+    initTimer();
     
     // Setup listener para quando timer completar via SW
-    // O SW é a fonte única de notificações - não disparamos som aqui
     cleanupRef.current = setupServiceWorkerListener(
       (completedTimerId, notificationSentBySW) => {
         if (completedTimerId === timerId && !completo) {
@@ -88,7 +126,6 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     // Verificar se o SW já enviou notificação
     const handleCompletion = async () => {
       // Se o SW já notificou, não precisamos fazer nada
-      // O som já foi tocado via notificação do sistema
       if (swNotifiedRef.current) {
         console.log('[RestTimer] SW already sent notification, skipping local alert');
       } else {
@@ -103,6 +140,8 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
           
           // Enviar notificação local como fallback
           sendLocalNotification();
+        } else {
+          console.log('[RestTimer] SW confirmed notification was sent');
         }
       }
       
@@ -125,7 +164,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
             : 'Volte ao exercício!',
           icon: '/icon-192.png',
           badge: '/icon-72.png',
-          tag: 'rest-timer-fallback', // Tag única para evitar duplicação
+          tag: 'rest-timer-fallback',
           requireInteraction: false,
           silent: true, // Silencioso pois já tocamos o som via Web Audio
         });
@@ -140,7 +179,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     }
   }, [exercicioNome]);
 
-  // Timer countdown baseado em timestamp
+  // Timer countdown baseado em timestamp com verificação de SW
   useEffect(() => {
     if (completo) return;
 
@@ -148,14 +187,23 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
       const remaining = calculateTimeRemaining();
       setTempoRestante(remaining);
 
+      // Verificar status do SW periodicamente
+      checkSWTimerStatus();
+
       // Timer completou localmente (fallback se SW não notificar)
       if (remaining <= 0 && !completo) {
-        setCompleto(true);
+        // Dar uma pequena margem para o SW notificar primeiro
+        setTimeout(() => {
+          if (!completo) {
+            console.log('[RestTimer] Local timer completed, SW may have missed');
+            setCompleto(true);
+          }
+        }, 500);
       }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [completo, calculateTimeRemaining]);
+  }, [completo, calculateTimeRemaining, checkSWTimerStatus]);
 
   // Handler para pular/fechar
   const handleSkip = useCallback(() => {

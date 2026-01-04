@@ -559,9 +559,94 @@ export async function sendTestNotification(): Promise<boolean> {
 }
 
 /**
- * Manter Service Worker ativo (ping periódico)
+ * Inicializar sistema de notificações de treino
+ * Deve ser chamado quando o app inicia
+ */
+export async function initializeWorkoutNotifications(): Promise<void> {
+  console.log('[AudioManager] Initializing workout notification system');
+  
+  // Verificar suporte
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[AudioManager] Service Worker not supported');
+    return;
+  }
+  
+  try {
+    // Aguardar SW estar pronto
+    const registration = await navigator.serviceWorker.ready;
+    console.log('[AudioManager] Service Worker ready:', registration.active?.state);
+    
+    // Solicitar permissão de notificação se necessário
+    if ('Notification' in window && Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      console.log('[AudioManager] Notification permission:', permission);
+    }
+    
+    // Enviar comando para restaurar timers do IndexedDB (caso SW tenha reiniciado)
+    if (registration.active) {
+      registration.active.postMessage({ type: 'RESTORE_TIMERS' });
+    }
+    
+    // Iniciar keep-alive
+    const settings = getAudioSettings();
+    if (settings.backgroundEnabled) {
+      startKeepAlive();
+    }
+    
+    console.log('[AudioManager] Workout notification system initialized');
+  } catch (error) {
+    console.error('[AudioManager] Error initializing notification system:', error);
+  }
+}
+
+/**
+ * Verificar saúde do sistema de notificações
+ */
+export async function checkNotificationSystemHealth(): Promise<{
+  swReady: boolean;
+  swResponsive: boolean;
+  notificationPermission: NotificationPermission | 'unsupported';
+  activeTimers: number;
+  loopRunning: boolean;
+}> {
+  const result = {
+    swReady: false,
+    swResponsive: false,
+    notificationPermission: getNotificationPermission(),
+    activeTimers: 0,
+    loopRunning: false
+  };
+  
+  if (!('serviceWorker' in navigator)) {
+    return result;
+  }
+  
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    result.swReady = !!registration.active;
+    
+    if (registration.active) {
+      const response = await sendPingWithTimeout(2000);
+      if (response) {
+        result.swResponsive = true;
+        result.activeTimers = response.activeTimers || 0;
+        result.loopRunning = response.loopRunning || false;
+      }
+    }
+  } catch (error) {
+    console.error('[AudioManager] Error checking system health:', error);
+  }
+  
+  return result;
+}
+
+/**
+ * Manter Service Worker ativo (ping periódico com verificação de saúde)
  */
 let keepAliveInterval: number | null = null;
+let lastPongTime: number = 0;
+let missedPongs: number = 0;
+const MAX_MISSED_PONGS = 3;
 
 export function startKeepAlive(): void {
   if (keepAliveInterval) return;
@@ -569,14 +654,89 @@ export function startKeepAlive(): void {
   const settings = getAudioSettings();
   if (!settings.backgroundEnabled) return;
   
-  // Ping a cada 20 segundos para manter SW ativo
-  keepAliveInterval = window.setInterval(() => {
-    if (navigator.serviceWorker?.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'PING' });
-    }
-  }, 20000);
+  lastPongTime = Date.now();
+  missedPongs = 0;
   
-  console.log('[AudioManager] Keep-alive started for Service Worker');
+  // Ping a cada 10 segundos para manter SW ativo (mais frequente)
+  keepAliveInterval = window.setInterval(async () => {
+    if (!navigator.serviceWorker?.controller) {
+      console.log('[AudioManager] SW not available, attempting to restore');
+      await attemptSWRestore();
+      return;
+    }
+    
+    try {
+      const response = await sendPingWithTimeout(2000);
+      
+      if (response) {
+        lastPongTime = Date.now();
+        missedPongs = 0;
+        
+        // Verificar se o loop de timers está rodando quando deveria
+        if (response.activeTimers > 0 && !response.loopRunning) {
+          console.log('[AudioManager] Timer loop stalled, forcing check');
+          navigator.serviceWorker.controller?.postMessage({ type: 'FORCE_CHECK_TIMERS' });
+        }
+      } else {
+        missedPongs++;
+        console.warn('[AudioManager] Missed pong', missedPongs, '/', MAX_MISSED_PONGS);
+        
+        if (missedPongs >= MAX_MISSED_PONGS) {
+          console.error('[AudioManager] SW unresponsive, attempting restore');
+          await attemptSWRestore();
+        }
+      }
+    } catch (error) {
+      console.error('[AudioManager] Keep-alive error:', error);
+      missedPongs++;
+    }
+  }, 10000);
+  
+  console.log('[AudioManager] Keep-alive started for Service Worker (10s interval)');
+}
+
+/**
+ * Enviar ping com timeout
+ */
+async function sendPingWithTimeout(timeout: number): Promise<{
+  type: string;
+  timestamp: number;
+  activeTimers: number;
+  loopRunning: boolean;
+} | null> {
+  if (!navigator.serviceWorker?.controller) return null;
+  
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timeoutId = setTimeout(() => resolve(null), timeout);
+    
+    channel.port1.onmessage = (event) => {
+      clearTimeout(timeoutId);
+      resolve(event.data);
+    };
+    
+    navigator.serviceWorker.controller.postMessage({ type: 'PING' }, [channel.port2]);
+  });
+}
+
+/**
+ * Tentar restaurar conexão com SW
+ */
+async function attemptSWRestore(): Promise<void> {
+  try {
+    // Verificar se SW está registrado
+    const registration = await navigator.serviceWorker.ready;
+    
+    if (registration.active) {
+      // Forçar restauração de timers do IndexedDB
+      registration.active.postMessage({ type: 'RESTORE_TIMERS' });
+      console.log('[AudioManager] Sent RESTORE_TIMERS to SW');
+    }
+    
+    missedPongs = 0;
+  } catch (error) {
+    console.error('[AudioManager] Failed to restore SW:', error);
+  }
 }
 
 export function stopKeepAlive(): void {

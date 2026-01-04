@@ -640,7 +640,96 @@ export default function Progresso() {
                 )}
               </div>
 
-              {fotos.length === 0 ? (
+              {/* Fotos das Avaliações Físicas/Posturais */}
+              {avaliacoes.some((a: any) => a.foto_frente_url || a.foto_costas_url || a.foto_lateral_url || a.foto_lateral_direita_url || a.foto_lateral_esquerda_url) && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-gray-400">Fotos das Avaliações</h3>
+                  {avaliacoes
+                    .filter((a: any) => a.foto_frente_url || a.foto_costas_url || a.foto_lateral_url || a.foto_lateral_direita_url || a.foto_lateral_esquerda_url)
+                    .map((avaliacao: any) => (
+                      <Card key={avaliacao.id} className="border-gray-800 bg-gray-900/30">
+                        <div className="p-4 sm:p-5">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="h-8 w-8 rounded-lg bg-green-600 flex items-center justify-center flex-shrink-0">
+                              <Activity className="h-4 w-4 text-white" />
+                            </div>
+                            <p className="font-medium text-white text-sm">
+                              Avaliação - {new Date(avaliacao.data_avaliacao + 'T00:00:00').toLocaleDateString('pt-BR', { 
+                                day: '2-digit', month: 'long', year: 'numeric' 
+                              })}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                            {avaliacao.foto_frente_url && (
+                              <div className="space-y-2">
+                                <p className="text-xs text-gray-400 text-center">Frente</p>
+                                <div 
+                                  className="aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                                  onClick={() => setFotoSelecionada(avaliacao.foto_frente_url)}
+                                >
+                                  <img 
+                                    src={avaliacao.foto_frente_url} 
+                                    alt="Foto Frente" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                            {avaliacao.foto_costas_url && (
+                              <div className="space-y-2">
+                                <p className="text-xs text-gray-400 text-center">Costas</p>
+                                <div 
+                                  className="aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                                  onClick={() => setFotoSelecionada(avaliacao.foto_costas_url)}
+                                >
+                                  <img 
+                                    src={avaliacao.foto_costas_url} 
+                                    alt="Foto Costas" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                            {(avaliacao.foto_lateral_url || avaliacao.foto_lateral_direita_url) && (
+                              <div className="space-y-2">
+                                <p className="text-xs text-gray-400 text-center">Lateral Dir.</p>
+                                <div 
+                                  className="aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                                  onClick={() => setFotoSelecionada(avaliacao.foto_lateral_url || avaliacao.foto_lateral_direita_url)}
+                                >
+                                  <img 
+                                    src={avaliacao.foto_lateral_url || avaliacao.foto_lateral_direita_url} 
+                                    alt="Foto Lateral Direita" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                            {avaliacao.foto_lateral_esquerda_url && (
+                              <div className="space-y-2">
+                                <p className="text-xs text-gray-400 text-center">Lateral Esq.</p>
+                                <div 
+                                  className="aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+                                  onClick={() => setFotoSelecionada(avaliacao.foto_lateral_esquerda_url)}
+                                >
+                                  <img 
+                                    src={avaliacao.foto_lateral_esquerda_url} 
+                                    alt="Foto Lateral Esquerda" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                </div>
+              )}
+
+              {/* Fotos de Progresso (tabela fotos_progresso) */}
+              {fotos.length === 0 && !avaliacoes.some((a: any) => a.foto_frente_url || a.foto_costas_url || a.foto_lateral_url || a.foto_lateral_direita_url || a.foto_lateral_esquerda_url) ? (
                 <Card className="border-gray-800 bg-gray-900/30">
                   <div className="py-12 text-center">
                     <Camera className="h-12 w-12 text-gray-600 mx-auto mb-4" />
@@ -648,8 +737,11 @@ export default function Progresso() {
                     <p className="text-sm text-gray-400">Seu personal trainer registrará fotos periodicamente para acompanhar sua evolução visual.</p>
                   </div>
                 </Card>
-              ) : (
+              ) : fotos.length > 0 && (
                 <div className="space-y-6">
+                  {fotos.length > 0 && (
+                    <h3 className="text-sm font-medium text-gray-400">Fotos de Progresso</h3>
+                  )}
                   {datasComFotos.map((data) => {
                     const fotosData = fotosPorData[data];
                     const fotoFront = fotosData.find((f: any) => f.tipo === 'front');

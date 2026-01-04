@@ -1,17 +1,20 @@
 /**
  * Service Worker com suporte robusto para notificações em background
- * Versão: 3.0.0 - Sistema de alertas de treino corrigido
+ * Versão: 4.0.0 - Sistema de alertas de treino 100% confiável
  * 
- * Correções:
- * - Eliminação de notificações duplicadas
- * - Som personalizado forte e identificável
- * - Controle centralizado de notificações
- * - Funciona com tela bloqueada e app em background
+ * Correções v4.0:
+ * - Persistência de timers via IndexedDB (sobrevive restart do SW)
+ * - Loop de verificação mais robusto com auto-recovery
+ * - Keep-alive melhorado com múltiplas estratégias
+ * - Fallback para setTimeout quando setInterval falha
+ * - Logs detalhados para debug
  */
 
-var CACHE_VERSION = 'app-v5';
+var CACHE_VERSION = 'app-v6';
 var STATIC_CACHE = 'static-' + CACHE_VERSION;
 var DYNAMIC_CACHE = 'dynamic-' + CACHE_VERSION;
+var TIMER_DB_NAME = 'sw-timers-db';
+var TIMER_STORE_NAME = 'active-timers';
 
 // Assets estáticos para cache
 var STATIC_ASSETS = [
@@ -24,6 +27,95 @@ var STATIC_ASSETS = [
   '/apple-touch-icon.png',
   '/sounds/workout-alert.mp3'
 ];
+
+// ============================================
+// INDEXEDDB PARA PERSISTÊNCIA DE TIMERS
+// ============================================
+
+var dbPromise = null;
+
+function openTimerDB() {
+  if (dbPromise) return dbPromise;
+  
+  dbPromise = new Promise(function(resolve, reject) {
+    var request = indexedDB.open(TIMER_DB_NAME, 1);
+    
+    request.onerror = function() {
+      console.error('[SW] IndexedDB error:', request.error);
+      reject(request.error);
+    };
+    
+    request.onsuccess = function() {
+      resolve(request.result);
+    };
+    
+    request.onupgradeneeded = function(event) {
+      var db = event.target.result;
+      if (!db.objectStoreNames.contains(TIMER_STORE_NAME)) {
+        db.createObjectStore(TIMER_STORE_NAME, { keyPath: 'id' });
+      }
+    };
+  });
+  
+  return dbPromise;
+}
+
+function saveTimerToDB(timer) {
+  return openTimerDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(TIMER_STORE_NAME, 'readwrite');
+      var store = tx.objectStore(TIMER_STORE_NAME);
+      var request = store.put(timer);
+      request.onsuccess = function() { resolve(); };
+      request.onerror = function() { reject(request.error); };
+    });
+  }).catch(function(err) {
+    console.error('[SW] Error saving timer to DB:', err);
+  });
+}
+
+function removeTimerFromDB(timerId) {
+  return openTimerDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(TIMER_STORE_NAME, 'readwrite');
+      var store = tx.objectStore(TIMER_STORE_NAME);
+      var request = store.delete(timerId);
+      request.onsuccess = function() { resolve(); };
+      request.onerror = function() { reject(request.error); };
+    });
+  }).catch(function(err) {
+    console.error('[SW] Error removing timer from DB:', err);
+  });
+}
+
+function loadTimersFromDB() {
+  return openTimerDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(TIMER_STORE_NAME, 'readonly');
+      var store = tx.objectStore(TIMER_STORE_NAME);
+      var request = store.getAll();
+      request.onsuccess = function() { resolve(request.result || []); };
+      request.onerror = function() { reject(request.error); };
+    });
+  }).catch(function(err) {
+    console.error('[SW] Error loading timers from DB:', err);
+    return [];
+  });
+}
+
+function clearAllTimersFromDB() {
+  return openTimerDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(TIMER_STORE_NAME, 'readwrite');
+      var store = tx.objectStore(TIMER_STORE_NAME);
+      var request = store.clear();
+      request.onsuccess = function() { resolve(); };
+      request.onerror = function() { reject(request.error); };
+    });
+  }).catch(function(err) {
+    console.error('[SW] Error clearing timers from DB:', err);
+  });
+}
 
 // ============================================
 // INSTALAÇÃO E ATIVAÇÃO
@@ -63,6 +155,10 @@ self.addEventListener('activate', function(event) {
               return caches.delete(cacheName);
             })
         );
+      })
+      .then(function() {
+        // Restaurar timers do IndexedDB após ativação
+        return restoreTimersFromDB();
       })
       .then(function() {
         return self.clients.claim();
@@ -105,38 +201,127 @@ self.addEventListener('fetch', function(event) {
 });
 
 // ============================================
-// SISTEMA DE TIMERS ROBUSTO
+// SISTEMA DE TIMERS ROBUSTO v4.0
 // ============================================
 
 var activeTimers = {};
-var TIMER_CHECK_INTERVAL = 1000;
+var TIMER_CHECK_INTERVAL = 500; // Verificar a cada 500ms para maior precisão
 var timerCheckIntervalId = null;
+var timerCheckTimeoutId = null;
+var lastCheckTime = 0;
+var checkLoopRunning = false;
 
 // Controle de notificações enviadas para evitar duplicação
 var sentNotifications = {};
 
 /**
- * Inicia o loop de verificação de timers
+ * Restaurar timers do IndexedDB após SW reiniciar
+ */
+function restoreTimersFromDB() {
+  return loadTimersFromDB().then(function(timers) {
+    var now = Date.now();
+    var restoredCount = 0;
+    
+    timers.forEach(function(timer) {
+      // Verificar se timer ainda é válido (não expirou há muito tempo)
+      var elapsed = now - timer.startTime;
+      var remaining = (timer.duration * 1000) - elapsed;
+      
+      // Se expirou há menos de 30 segundos, ainda processar
+      if (remaining > -30000 && !sentNotifications[timer.id]) {
+        activeTimers[timer.id] = timer;
+        restoredCount++;
+        console.log('[SW] Restored timer from DB:', timer.id, 'remaining:', Math.ceil(remaining / 1000) + 's');
+      } else {
+        // Timer muito antigo, remover do DB
+        removeTimerFromDB(timer.id);
+      }
+    });
+    
+    if (restoredCount > 0) {
+      console.log('[SW] Restored', restoredCount, 'timers from IndexedDB');
+      startTimerCheckLoop();
+    }
+  });
+}
+
+/**
+ * Inicia o loop de verificação de timers com múltiplas estratégias
  */
 function startTimerCheckLoop() {
-  if (timerCheckIntervalId) return;
+  if (checkLoopRunning) {
+    console.log('[SW] Timer check loop already running');
+    return;
+  }
   
+  checkLoopRunning = true;
+  lastCheckTime = Date.now();
   console.log('[SW] Starting timer check loop');
   
+  // Estratégia 1: setInterval (principal)
+  if (timerCheckIntervalId) {
+    clearInterval(timerCheckIntervalId);
+  }
   timerCheckIntervalId = setInterval(function() {
-    checkAllTimers();
+    runTimerCheck();
   }, TIMER_CHECK_INTERVAL);
+  
+  // Estratégia 2: setTimeout recursivo (backup)
+  scheduleNextCheck();
+}
+
+/**
+ * Agenda próxima verificação via setTimeout (mais confiável em alguns navegadores)
+ */
+function scheduleNextCheck() {
+  if (timerCheckTimeoutId) {
+    clearTimeout(timerCheckTimeoutId);
+  }
+  
+  if (!checkLoopRunning) return;
+  
+  timerCheckTimeoutId = setTimeout(function() {
+    // Verificar se setInterval está funcionando
+    var timeSinceLastCheck = Date.now() - lastCheckTime;
+    
+    // Se passou mais de 2 segundos desde última verificação, setInterval pode ter falhado
+    if (timeSinceLastCheck > 2000) {
+      console.log('[SW] setInterval may have stalled, running check via setTimeout');
+      runTimerCheck();
+    }
+    
+    // Reagendar
+    if (checkLoopRunning && Object.keys(activeTimers).length > 0) {
+      scheduleNextCheck();
+    }
+  }, TIMER_CHECK_INTERVAL * 2);
+}
+
+/**
+ * Executa verificação de timers
+ */
+function runTimerCheck() {
+  lastCheckTime = Date.now();
+  checkAllTimers();
 }
 
 /**
  * Para o loop de verificação
  */
 function stopTimerCheckLoop() {
+  checkLoopRunning = false;
+  
   if (timerCheckIntervalId) {
     clearInterval(timerCheckIntervalId);
     timerCheckIntervalId = null;
-    console.log('[SW] Stopped timer check loop');
   }
+  
+  if (timerCheckTimeoutId) {
+    clearTimeout(timerCheckTimeoutId);
+    timerCheckTimeoutId = null;
+  }
+  
+  console.log('[SW] Stopped timer check loop');
 }
 
 /**
@@ -160,11 +345,14 @@ function checkAllTimers() {
     
     // Timer completou - verificar se já enviamos notificação
     if (remaining <= 0 && !timer.notificationSent && !sentNotifications[timerId]) {
-      console.log('[SW] Timer completed:', timerId);
+      console.log('[SW] Timer completed:', timerId, 'elapsed:', Math.floor(elapsed / 1000) + 's');
       
       // Marcar como enviado ANTES de enviar para evitar race conditions
       timer.notificationSent = true;
       sentNotifications[timerId] = now;
+      
+      // Atualizar no DB
+      saveTimerToDB(timer);
       
       // Enviar notificação única
       sendTimerCompleteNotification(timer);
@@ -175,10 +363,17 @@ function checkAllTimers() {
       // Limpar timer após 10 segundos
       setTimeout(function() {
         delete activeTimers[timerId];
+        removeTimerFromDB(timerId);
+        
         // Manter registro de notificação por 60 segundos para evitar duplicação
         setTimeout(function() {
           delete sentNotifications[timerId];
         }, 60000);
+        
+        // Verificar se ainda há timers ativos
+        if (Object.keys(activeTimers).length === 0) {
+          stopTimerCheckLoop();
+        }
       }, 10000);
     }
   });
@@ -196,9 +391,9 @@ function handleStartTimer(timerData) {
     return;
   }
   
-  console.log('[SW] Starting timer:', timerId, 'duration:', timerData.duration);
+  console.log('[SW] Starting timer:', timerId, 'duration:', timerData.duration + 's');
   
-  activeTimers[timerId] = {
+  var timer = {
     id: timerId,
     startTime: timerData.startTime || Date.now(),
     duration: timerData.duration,
@@ -207,7 +402,15 @@ function handleStartTimer(timerData) {
     soundType: timerData.soundType || 'alarm'
   };
   
+  activeTimers[timerId] = timer;
+  
+  // Persistir no IndexedDB
+  saveTimerToDB(timer);
+  
   startTimerCheckLoop();
+  
+  // Confirmar para o cliente que timer foi iniciado
+  notifyClientsTimerStarted(timerId, timer.duration);
 }
 
 /**
@@ -217,6 +420,9 @@ function handleCancelTimer(timerId) {
   console.log('[SW] Canceling timer:', timerId);
   delete activeTimers[timerId];
   delete sentNotifications[timerId];
+  
+  // Remover do IndexedDB
+  removeTimerFromDB(timerId);
   
   if (Object.keys(activeTimers).length === 0) {
     stopTimerCheckLoop();
@@ -241,6 +447,22 @@ function getTimerStatus(timerId) {
     exerciseName: timer.exerciseName,
     notificationSent: timer.notificationSent
   };
+}
+
+/**
+ * Notifica clientes que timer foi iniciado
+ */
+function notifyClientsTimerStarted(timerId, duration) {
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then(function(clients) {
+      clients.forEach(function(client) {
+        client.postMessage({
+          type: 'TIMER_STARTED',
+          timerId: timerId,
+          duration: duration
+        });
+      });
+    });
 }
 
 // ============================================
@@ -446,8 +668,18 @@ self.addEventListener('message', function(event) {
       break;
       
     case 'PING':
+      // Keep-alive ping - também verifica se há timers pendentes
+      if (Object.keys(activeTimers).length > 0 && !checkLoopRunning) {
+        console.log('[SW] PING detected stalled timer loop, restarting');
+        startTimerCheckLoop();
+      }
       if (event.ports && event.ports[0]) {
-        event.ports[0].postMessage({ type: 'PONG', timestamp: Date.now() });
+        event.ports[0].postMessage({ 
+          type: 'PONG', 
+          timestamp: Date.now(),
+          activeTimers: Object.keys(activeTimers).length,
+          loopRunning: checkLoopRunning
+        });
       }
       break;
       
@@ -457,6 +689,19 @@ self.addEventListener('message', function(event) {
       if (event.ports && event.ports[0]) {
         event.ports[0].postMessage({ sent: wasSent });
       }
+      break;
+      
+    case 'FORCE_CHECK_TIMERS':
+      // Forçar verificação imediata de timers
+      console.log('[SW] Force checking timers');
+      if (Object.keys(activeTimers).length > 0) {
+        checkAllTimers();
+      }
+      break;
+      
+    case 'RESTORE_TIMERS':
+      // Restaurar timers do IndexedDB
+      restoreTimersFromDB();
       break;
   }
 });

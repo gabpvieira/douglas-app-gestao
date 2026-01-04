@@ -192,7 +192,7 @@ export function useDeletarEvolucao() {
   });
 }
 
-// Buscar avaliações físicas do aluno
+// Buscar avaliações físicas do aluno (incluindo fotos das avaliações posturais)
 export function useAvaliacoesFisicas() {
   return useQuery({
     queryKey: ['avaliacoes-fisicas-aluno'],
@@ -216,14 +216,42 @@ export function useAvaliacoesFisicas() {
 
       if (!aluno) throw new Error('Aluno não encontrado');
 
+      // Buscar avaliações físicas com as avaliações posturais relacionadas
       const { data, error } = await supabase
         .from('avaliacoes_fisicas')
-        .select('*')
+        .select(`
+          *,
+          avaliacoes_posturais (
+            id,
+            foto_frente_url,
+            foto_costas_url,
+            foto_lateral_dir_url,
+            foto_lateral_esq_url
+          )
+        `)
         .eq('aluno_id', aluno.id)
         .order('data_avaliacao', { ascending: false });
 
       if (error) throw error;
-      return data;
+      
+      // Mesclar fotos das avaliações posturais nas avaliações físicas
+      return data.map((avaliacao: any) => {
+        const posturais = avaliacao.avaliacoes_posturais || [];
+        // Pegar a primeira avaliação postural que tenha fotos
+        const posturalComFotos = posturais.find((p: any) => 
+          p.foto_frente_url || p.foto_costas_url || p.foto_lateral_dir_url || p.foto_lateral_esq_url
+        );
+        
+        return {
+          ...avaliacao,
+          // Se não tiver fotos na avaliação física, usar as da postural
+          foto_frente_url: avaliacao.foto_frente_url || posturalComFotos?.foto_frente_url,
+          foto_costas_url: avaliacao.foto_costas_url || posturalComFotos?.foto_costas_url,
+          foto_lateral_url: avaliacao.foto_lateral_url || posturalComFotos?.foto_lateral_dir_url,
+          foto_lateral_direita_url: avaliacao.foto_lateral_direita_url || posturalComFotos?.foto_lateral_dir_url,
+          foto_lateral_esquerda_url: avaliacao.foto_lateral_esquerda_url || posturalComFotos?.foto_lateral_esq_url,
+        };
+      });
     },
   });
 }
