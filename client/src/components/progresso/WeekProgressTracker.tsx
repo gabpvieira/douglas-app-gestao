@@ -7,14 +7,15 @@ interface WeekProgressTrackerProps {
   showLabels?: boolean;
 }
 
+// Semana inicia na SEGUNDA-FEIRA (padrão brasileiro)
 const DIAS_SEMANA = [
-  { label: "D", nome: "Domingo" },
   { label: "S", nome: "Segunda" },
   { label: "T", nome: "Terça" },
   { label: "Q", nome: "Quarta" },
   { label: "Q", nome: "Quinta" },
   { label: "S", nome: "Sexta" },
   { label: "S", nome: "Sábado" },
+  { label: "D", nome: "Domingo" },
 ];
 
 export default function WeekProgressTracker({ 

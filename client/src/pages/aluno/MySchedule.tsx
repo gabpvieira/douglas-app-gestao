@@ -38,7 +38,7 @@ interface ScheduleSession {
 }
 
 export default function MySchedule() {
-  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
+  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [selectedSession, setSelectedSession] = useState<ScheduleSession | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 

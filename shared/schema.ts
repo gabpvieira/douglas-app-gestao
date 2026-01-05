@@ -314,12 +314,23 @@ export type SerieRealizada = typeof seriesRealizadas.$inferSelect;
 // Tabela para planos alimentares
 export const planosAlimentares = pgTable("planos_alimentares", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  alunoId: varchar("aluno_id").references(() => alunos.id, { onDelete: 'cascade' }), // Opcional - relacionamento N:N via planos_alunos
   titulo: text("titulo").notNull(),
   conteudoHtml: text("conteudo_html").notNull(),
   observacoes: text("observacoes"),
   dadosJson: jsonb("dados_json"), // dados estruturados: objetivo, calorias, macros, etc
   dataCriacao: timestamp("data_criacao").default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Tabela de relacionamento N:N entre planos alimentares e alunos
+export const planosAlunos = pgTable("planos_alunos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  planoId: varchar("plano_id").notNull().references(() => planosAlimentares.id, { onDelete: 'cascade' }),
+  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  status: text("status").notNull().default("ativo"), // ativo, inativo
+  dataAtribuicao: date("data_atribuicao").notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
@@ -360,6 +371,12 @@ export const insertPlanoAlimentarSchema = createInsertSchema(planosAlimentares).
   updatedAt: true,
 });
 
+export const insertPlanoAlunoSchema = createInsertSchema(planosAlunos).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertRefeicaoPlanoSchema = createInsertSchema(refeicoesPlano).omit({
   id: true,
   createdAt: true,
@@ -373,6 +390,8 @@ export const insertAlimentoRefeicaoSchema = createInsertSchema(alimentosRefeicao
 
 export type InsertPlanoAlimentar = z.infer<typeof insertPlanoAlimentarSchema>;
 export type PlanoAlimentar = typeof planosAlimentares.$inferSelect;
+export type InsertPlanoAluno = z.infer<typeof insertPlanoAlunoSchema>;
+export type PlanoAluno = typeof planosAlunos.$inferSelect;
 export type InsertRefeicaoPlano = z.infer<typeof insertRefeicaoPlanoSchema>;
 export type RefeicaoPlano = typeof refeicoesPlano.$inferSelect;
 export type InsertAlimentoRefeicao = z.infer<typeof insertAlimentoRefeicaoSchema>;

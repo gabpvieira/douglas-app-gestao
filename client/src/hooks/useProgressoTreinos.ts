@@ -30,6 +30,7 @@ export interface MetricasAluno {
   // Datas de treinos (para calendário)
   diasTreinadosSemanaReal: string[]; // datas ISO
   diasTreinadosMesReal: string[]; // datas ISO
+  diasTreinadosSemanaIndices: number[]; // índices 0-6 (0=seg, 6=dom) para WeekProgressTracker
 }
 
 export interface AlunoDestaque {
@@ -49,11 +50,22 @@ export interface TreinosPorDia {
 }
 
 // Funções auxiliares
+// Semana inicia na SEGUNDA-FEIRA (padrão brasileiro)
+
+// Converte o índice do JavaScript (0=dom, 1=seg...) para índice brasileiro (0=seg, 1=ter...)
+function converterDiaParaIndiceBR(diaJS: number): number {
+  return diaJS === 0 ? 6 : diaJS - 1;
+}
+
 function getInicioSemana(): Date {
   const hoje = new Date();
-  const diaSemana = hoje.getDay();
+  const diaSemana = hoje.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
   const inicio = new Date(hoje);
-  inicio.setDate(hoje.getDate() - diaSemana);
+  // Se for domingo (0), volta 6 dias para segunda anterior
+  // Se for segunda (1), volta 0 dias
+  // Se for terça (2), volta 1 dia, etc.
+  const diasParaVoltar = diaSemana === 0 ? 6 : diaSemana - 1;
+  inicio.setDate(hoje.getDate() - diasParaVoltar);
   inicio.setHours(0, 0, 0, 0);
   return inicio;
 }
@@ -61,7 +73,7 @@ function getInicioSemana(): Date {
 function getFimSemana(): Date {
   const inicio = getInicioSemana();
   const fim = new Date(inicio);
-  fim.setDate(inicio.getDate() + 6);
+  fim.setDate(inicio.getDate() + 6); // Segunda + 6 = Domingo
   fim.setHours(23, 59, 59, 999);
   return fim;
 }
@@ -129,7 +141,8 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
       mediaExerciciosPorTreino: 0,
       ultimoTreino: null,
       diasTreinadosSemanaReal: [],
-      diasTreinadosMesReal: []
+      diasTreinadosMesReal: [],
+      diasTreinadosSemanaIndices: []
     };
   }
   
@@ -168,15 +181,18 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   
   // 7. Calcular métricas da semana
   const diasUnicosSemana = new Set<string>();
+  const diasIndicesSemana = new Set<number>(); // Índices no formato BR (0=seg, 6=dom)
   treinosSemana?.forEach(treino => {
     const data = new Date(treino.data_realizacao);
     diasUnicosSemana.add(data.toISOString().split('T')[0]);
+    diasIndicesSemana.add(converterDiaParaIndiceBR(data.getDay()));
   });
   
   const diasTreinadosSemana = diasUnicosSemana.size;
   const treinosRealizadosSemana = treinosSemana?.length || 0;
   const exerciciosCompletadosSemana = treinosSemana?.length || 0;
   const diasTreinadosSemanaReal = Array.from(diasUnicosSemana);
+  const diasTreinadosSemanaIndices = Array.from(diasIndicesSemana);
   
   // 8. Calcular métricas do mês
   const diasUnicosMes = new Set<string>();
@@ -258,7 +274,8 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     mediaExerciciosPorTreino,
     ultimoTreino,
     diasTreinadosSemanaReal,
-    diasTreinadosMesReal
+    diasTreinadosMesReal,
+    diasTreinadosSemanaIndices
   };
 }
 

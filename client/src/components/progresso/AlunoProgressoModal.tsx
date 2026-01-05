@@ -22,10 +22,8 @@ export default function AlunoProgressoModal({ aluno, onClose }: AlunoProgressoMo
   const [visualizacao, setVisualizacao] = useState<VisualizacaoCalendario>('semanal');
   const { data: historico, isLoading: loadingHistorico } = useHistoricoTreinos(aluno.alunoId, 30);
   
-  const diasTreinadosIndices: number[] = [];
-  for (let i = 0; i < aluno.diasTreinadosSemana; i++) {
-    diasTreinadosIndices.push(i);
-  }
+  // Usar os índices reais dos dias treinados (já no formato BR: 0=seg, 6=dom)
+  const diasTreinadosIndices = aluno.diasTreinadosSemanaIndices || [];
   
   const treinosPorData = historico?.reduce((acc: any, treino: any) => {
     const data = new Date(treino.data_realizacao).toLocaleDateString('pt-BR');

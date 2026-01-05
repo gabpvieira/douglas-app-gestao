@@ -282,15 +282,31 @@ export function useCreatePlanoAlimentar() {
 
   return useMutation({
     mutationFn: async (data: CreatePlanoData) => {
+      console.log('🚀 [Create] Iniciando criação de plano alimentar:', {
+        titulo: data.titulo,
+        alunosIds: data.alunosIds,
+        refeicoesCount: data.refeicoes?.length || 0
+      });
+      
       const { refeicoes, alunosIds, ...planoData } = data;
+      
+      // Validar dados obrigatórios
+      if (!planoData.titulo?.trim()) {
+        throw new Error('O título do plano é obrigatório');
+      }
+      if (!planoData.conteudoHtml?.trim()) {
+        throw new Error('O conteúdo do plano é obrigatório');
+      }
       
       // Converter camelCase para snake_case
       const planoDataSnakeCase = {
-        titulo: planoData.titulo,
+        titulo: planoData.titulo.trim(),
         conteudo_html: planoData.conteudoHtml,
-        observacoes: planoData.observacoes,
-        dados_json: planoData.dadosJson
+        observacoes: planoData.observacoes || null,
+        dados_json: planoData.dadosJson || null
       };
+      
+      console.log('📦 [Create] Payload do plano:', planoDataSnakeCase);
       
       // Criar plano
       const { data: plano, error: planoError } = await supabase
@@ -299,7 +315,12 @@ export function useCreatePlanoAlimentar() {
         .select()
         .single();
       
-      if (planoError) throw planoError;
+      if (planoError) {
+        console.error('❌ [Create] Erro ao criar plano:', planoError);
+        throw new Error(`Erro ao criar plano: ${planoError.message}`);
+      }
+      
+      console.log('✅ [Create] Plano criado com sucesso:', plano.id);
       
       // Atribuir alunos ao plano (REGRA: cada aluno só pode ter UM plano ativo)
       if (alunosIds && alunosIds.length > 0) {
@@ -328,13 +349,19 @@ export function useCreatePlanoAlimentar() {
           data_atribuicao: new Date().toISOString().split('T')[0]
         }));
         
+        console.log('📝 [Create] Inserindo atribuições:', atribuicoes);
+        
         const { error: atribError } = await supabase
           .from('planos_alunos')
           .insert(atribuicoes);
         
         if (atribError) {
           console.error('❌ [Create] Erro ao atribuir alunos:', atribError);
-          throw atribError;
+          // Se a tabela não existe, dar uma mensagem mais clara
+          if (atribError.code === '42P01' || atribError.message?.includes('does not exist')) {
+            throw new Error('Tabela de atribuições não encontrada. Execute o script SQL de criação.');
+          }
+          throw new Error(`Erro ao atribuir alunos: ${atribError.message}`);
         }
         
         console.log('✅ [Create] Alunos atribuídos (planos anteriores desativados):', alunosIds.length);

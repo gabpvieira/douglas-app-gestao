@@ -10,7 +10,8 @@ interface CalendarioMensalProps {
   compact?: boolean;
 }
 
-const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+// Semana inicia na SEGUNDA-FEIRA (padrão brasileiro)
+const DIAS_SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
@@ -46,7 +47,9 @@ export default function CalendarioMensal({ alunoId, compact = false }: Calendari
   const primeiroDia = new Date(anoAtual, mesAtual, 1);
   const ultimoDia = new Date(anoAtual, mesAtual + 1, 0);
   const diasNoMes = ultimoDia.getDate();
-  const diaSemanaInicio = primeiroDia.getDay();
+  // Converter dia da semana JS (0=dom) para índice BR (0=seg)
+  const diaSemanaJS = primeiroDia.getDay();
+  const diaSemanaInicio = diaSemanaJS === 0 ? 6 : diaSemanaJS - 1;
   
   // Criar mapa de treinos por data
   const treinosMap = new Map<string, number>();

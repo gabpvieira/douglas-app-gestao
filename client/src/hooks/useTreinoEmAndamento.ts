@@ -290,13 +290,37 @@ export function useTreinoEmAndamento(alunoId?: string) {
 
   // Finalizar treino (limpar do storage e banco)
   const finalizarTreino = useCallback(async () => {
+    // Tentar deletar por ID se disponível
     if (localTreino?.id) {
-      await deletarMutation.mutateAsync(localTreino.id);
+      try {
+        await deletarMutation.mutateAsync(localTreino.id);
+      } catch (error) {
+        console.error("Erro ao deletar sessão por ID:", error);
+      }
     }
+    
+    // Se não tiver ID mas tiver alunoId, deletar por aluno_id para garantir limpeza
+    // Isso resolve o problema de sessões órfãs quando o ID não foi sincronizado
+    if (localTreino?.alunoId || alunoId) {
+      const targetAlunoId = localTreino?.alunoId || alunoId;
+      try {
+        const { error } = await supabase
+          .from("sessoes_treino_andamento")
+          .delete()
+          .eq("aluno_id", targetAlunoId);
+        
+        if (error) {
+          console.error("Erro ao deletar sessão por aluno_id:", error);
+        }
+      } catch (error) {
+        console.error("Erro ao deletar sessão:", error);
+      }
+    }
+    
     setLocalTreino(null);
     localStorage.removeItem(STORAGE_KEY);
     queryClient.invalidateQueries({ queryKey: ["sessao-treino-andamento"] });
-  }, [localTreino, deletarMutation, queryClient]);
+  }, [localTreino, alunoId, deletarMutation, queryClient]);
 
   // Calcular tempo decorrido desde o início
   const calcularTempoDecorrido = useCallback(() => {

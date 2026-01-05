@@ -225,6 +225,9 @@ export default function TreinoExecucao() {
   };
 
   const handleFinalizarTreino = async () => {
+    let treinosSalvos = 0;
+    let erros: string[] = [];
+    
     try {
       // Salvar cada exercício realizado
       for (const exercicio of exercicios) {
@@ -232,55 +235,97 @@ export default function TreinoExecucao() {
         
         if (seriesConcluidas.length === 0) continue;
 
-        // Inserir treino_realizado
-        const { data: treinoRealizado, error: treinoError } = await supabase
-          .from("treinos_realizados")
-          .insert({
-            ficha_aluno_id: fichaAlunoId,
-            exercicio_id: exercicio.id,
-            data_realizacao: new Date().toISOString(),
-            series_realizadas: seriesConcluidas.length,
-          })
-          .select()
-          .single();
-
-        if (treinoError) throw treinoError;
-
-        // Inserir cada série realizada
-        for (const serie of seriesConcluidas) {
-          const { error: serieError } = await supabase
-            .from("series_realizadas")
+        try {
+          // Inserir treino_realizado
+          const { data: treinoRealizado, error: treinoError } = await supabase
+            .from("treinos_realizados")
             .insert({
-              treino_realizado_id: treinoRealizado.id,
-              numero_serie: serie.numero,
-              carga: serie.peso,
-              repeticoes: serie.repeticoes,
-              concluida: "true",
-            });
+              ficha_aluno_id: fichaAlunoId,
+              exercicio_id: exercicio.id,
+              data_realizacao: new Date().toISOString(),
+              series_realizadas: seriesConcluidas.length,
+            })
+            .select()
+            .single();
 
-          if (serieError) throw serieError;
+          if (treinoError) {
+            console.error(`Erro ao salvar exercício ${exercicio.nome}:`, treinoError);
+            erros.push(`${exercicio.nome}: ${treinoError.message}`);
+            continue;
+          }
+
+          // Inserir cada série realizada
+          for (const serie of seriesConcluidas) {
+            const { error: serieError } = await supabase
+              .from("series_realizadas")
+              .insert({
+                treino_realizado_id: treinoRealizado.id,
+                numero_serie: serie.numero,
+                carga: serie.peso || "0",
+                repeticoes: serie.repeticoes || 0,
+                concluida: "true",
+              });
+
+            if (serieError) {
+              console.error(`Erro ao salvar série ${serie.numero}:`, serieError);
+            }
+          }
+          
+          treinosSalvos++;
+        } catch (exercicioError) {
+          console.error(`Erro ao processar exercício ${exercicio.nome}:`, exercicioError);
+          erros.push(`${exercicio.nome}: erro inesperado`);
         }
       }
 
-      // Limpar sessão em andamento
+      // SEMPRE limpar sessão em andamento, mesmo se houve erros parciais
       await finalizarTreino();
 
-      toast({
-        title: "Treino Finalizado! 🎉",
-        description: "Seu treino foi salvo com sucesso.",
-      });
+      // Mostrar feedback apropriado
+      if (erros.length === 0) {
+        toast({
+          title: "Treino Finalizado! 🎉",
+          description: treinosSalvos > 0 
+            ? `${treinosSalvos} exercício(s) salvo(s) com sucesso.`
+            : "Treino finalizado.",
+        });
+      } else if (treinosSalvos > 0) {
+        toast({
+          title: "Treino Finalizado com avisos",
+          description: `${treinosSalvos} exercício(s) salvo(s). Alguns não puderam ser salvos.`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Treino Finalizado",
+          description: "Nenhum exercício foi registrado. Marque as séries como concluídas para salvar.",
+          variant: "default",
+        });
+      }
 
       // Fechar modal de finalização e abrir modal de feedback
       setModalFinalizar(false);
       setTreinoFinalizadoId(fichaAlunoId || null);
       setModalFeedback(true);
     } catch (error) {
-      console.error("Erro ao salvar treino:", error);
+      console.error("Erro crítico ao salvar treino:", error);
+      
+      // Mesmo em caso de erro crítico, tentar limpar a sessão
+      try {
+        await finalizarTreino();
+      } catch (cleanupError) {
+        console.error("Erro ao limpar sessão:", cleanupError);
+      }
+      
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar o treino. Tente novamente.",
+        description: "Não foi possível salvar o treino. A sessão foi encerrada.",
         variant: "destructive",
       });
+      
+      // Redirecionar para a página de treinos
+      setModalFinalizar(false);
+      setLocation("/aluno/treinos");
     }
   };
 

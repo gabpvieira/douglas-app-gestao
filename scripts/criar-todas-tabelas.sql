@@ -86,7 +86,7 @@ COMMENT ON TABLE treinos_video IS 'Biblioteca de vídeos de treino disponíveis 
 -- ============================================
 CREATE TABLE IF NOT EXISTS planos_alimentares (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  aluno_id UUID NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
+  aluno_id UUID REFERENCES alunos(id) ON DELETE CASCADE, -- Opcional: relacionamento N:N via planos_alunos
   titulo TEXT NOT NULL,
   conteudo_html TEXT NOT NULL,
   dados_json JSONB,
@@ -107,6 +107,31 @@ CREATE TRIGGER update_planos_alimentares_updated_at
 
 COMMENT ON TABLE planos_alimentares IS 'Planos alimentares personalizados para cada aluno';
 COMMENT ON COLUMN planos_alimentares.dados_json IS 'Dados estruturados do plano: refeições, alimentos, macros, etc.';
+
+-- ============================================
+-- TABELA: planos_alunos (Relacionamento N:N)
+-- ============================================
+CREATE TABLE IF NOT EXISTS planos_alunos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  plano_id UUID NOT NULL REFERENCES planos_alimentares(id) ON DELETE CASCADE,
+  aluno_id UUID NOT NULL REFERENCES alunos(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
+  data_atribuicao DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(plano_id, aluno_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_planos_alunos_plano_id ON planos_alunos(plano_id);
+CREATE INDEX IF NOT EXISTS idx_planos_alunos_aluno_id ON planos_alunos(aluno_id);
+CREATE INDEX IF NOT EXISTS idx_planos_alunos_status ON planos_alunos(status);
+
+DROP TRIGGER IF EXISTS update_planos_alunos_updated_at ON planos_alunos;
+CREATE TRIGGER update_planos_alunos_updated_at
+  BEFORE UPDATE ON planos_alunos
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+COMMENT ON TABLE planos_alunos IS 'Relacionamento N:N entre planos alimentares e alunos';
 
 -- ============================================
 -- TABELA: refeicoes_plano
@@ -455,6 +480,7 @@ ALTER TABLE exercicios_ficha ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fichas_alunos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE treinos_realizados ENABLE ROW LEVEL SECURITY;
 ALTER TABLE series_realizadas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE planos_alunos ENABLE ROW LEVEL SECURITY;
 
 -- Políticas permissivas para desenvolvimento (SUBSTITUIR EM PRODUÇÃO)
 CREATE POLICY IF NOT EXISTS "Allow all for development" ON users_profile FOR ALL USING (true) WITH CHECK (true);
@@ -463,6 +489,7 @@ CREATE POLICY IF NOT EXISTS "Allow all for development" ON treinos_video FOR ALL
 CREATE POLICY IF NOT EXISTS "Allow all for development" ON planos_alimentares FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY IF NOT EXISTS "Allow all for development on refeicoes_plano" ON refeicoes_plano FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY IF NOT EXISTS "Allow all for development on alimentos_refeicao" ON alimentos_refeicao FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Allow all for development on planos_alunos" ON planos_alunos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY IF NOT EXISTS "Allow all for development" ON assinaturas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY IF NOT EXISTS "Allow all for development" ON pagamentos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY IF NOT EXISTS "Allow all for development" ON disponibilidade_semanal FOR ALL USING (true) WITH CHECK (true);

@@ -14,13 +14,8 @@ interface AlunoProgressoCardProps {
 }
 
 export default function AlunoProgressoCard({ aluno, onVerDetalhes }: AlunoProgressoCardProps) {
-  // Calcular dias treinados da semana (índices 0-6)
-  const diasTreinadosIndices: number[] = [];
-  // Nota: Esta é uma simplificação. Idealmente, você passaria os dias reais treinados
-  // Por enquanto, vamos simular baseado no número de dias
-  for (let i = 0; i < aluno.diasTreinadosSemana; i++) {
-    diasTreinadosIndices.push(i);
-  }
+  // Usar os índices reais dos dias treinados (já no formato BR: 0=seg, 6=dom)
+  const diasTreinadosIndices = aluno.diasTreinadosSemanaIndices || [];
   
   const getStatusBadge = () => {
     if (aluno.diasTreinadosSemana >= 5) {

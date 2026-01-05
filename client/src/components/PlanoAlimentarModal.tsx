@@ -410,6 +410,12 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
   };
 
   const handleSave = () => {
+    // Validar campos obrigatórios
+    if (!formData.nome?.trim()) {
+      alert('O nome do plano é obrigatório');
+      return;
+    }
+    
     // Calcular macros diretamente dos alimentos para garantir valores atualizados
     let totalCalorias = 0;
     let totalProteinas = 0;
@@ -434,7 +440,12 @@ export function PlanoAlimentarModal({ isOpen, onClose, onSave, plano, alunos }: 
       refeicoes
     };
     
-    console.log('Salvando plano:', planoParaSalvar);
+    console.log('📤 [Modal] Salvando plano:', {
+      nome: planoParaSalvar.nome,
+      alunosAtribuidos: planoParaSalvar.alunosAtribuidos,
+      refeicoesCount: planoParaSalvar.refeicoes?.length || 0,
+      calorias: planoParaSalvar.calorias
+    });
     onSave(planoParaSalvar);
   };
 
