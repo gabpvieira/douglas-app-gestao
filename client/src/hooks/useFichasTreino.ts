@@ -12,6 +12,7 @@ interface Exercicio {
   observacoes?: string;
   tecnica?: string;
   video_id?: string;
+  biset_grupo_id?: string;
 }
 
 interface FichaTreino {
@@ -410,4 +411,184 @@ export function useFichasStats() {
       };
     }
   });
+}
+
+// ============================================
+// FUNÇÕES UTILITÁRIAS PARA BI-SET
+// ============================================
+
+// Gerar UUID para grupo de Bi-set
+export function gerarBisetGrupoId(): string {
+  return crypto.randomUUID();
+}
+
+// Interface para Bi-set agrupado
+export interface BiSetGroup {
+  grupoId: string;
+  exercicioA: Exercicio;
+  exercicioB: Exercicio;
+  series: number;
+  descanso: number;
+}
+
+// Validar se exercícios podem formar um Bi-set
+export function validarBiset(exercicioA: Exercicio, exercicioB: Exercicio): { valido: boolean; erro?: string } {
+  if (!exercicioA || !exercicioB) {
+    return { valido: false, erro: 'Selecione dois exercícios para formar o Bi-set' };
+  }
+  
+  if (exercicioA.id === exercicioB.id) {
+    return { valido: false, erro: 'Selecione dois exercícios diferentes' };
+  }
+  
+  if (exercicioA.series !== exercicioB.series) {
+    return { valido: false, erro: 'Os exercícios do Bi-set devem ter o mesmo número de séries' };
+  }
+  
+  if (exercicioA.biset_grupo_id || exercicioB.biset_grupo_id) {
+    return { valido: false, erro: 'Um dos exercícios já faz parte de outro Bi-set' };
+  }
+  
+  return { valido: true };
+}
+
+// Agrupar exercícios por Bi-set para exibição
+export function agruparExerciciosPorBiset(exercicios: Exercicio[]): (Exercicio | BiSetGroup)[] {
+  const resultado: (Exercicio | BiSetGroup)[] = [];
+  const processados = new Set<string>();
+  
+  // Ordenar por ordem
+  const ordenados = [...exercicios].sort((a, b) => a.ordem - b.ordem);
+  
+  for (const exercicio of ordenados) {
+    const exId = exercicio.id || `temp-${exercicio.ordem}`;
+    
+    if (processados.has(exId)) continue;
+    
+    if (exercicio.biset_grupo_id) {
+      // Encontrar parceiro do Bi-set
+      const parceiro = ordenados.find(
+        e => e.biset_grupo_id === exercicio.biset_grupo_id && 
+             (e.id || `temp-${e.ordem}`) !== exId
+      );
+      
+      if (parceiro) {
+        const parceiroId = parceiro.id || `temp-${parceiro.ordem}`;
+        
+        // Determinar ordem A/B baseado na ordem de execução
+        const [exercicioA, exercicioB] = exercicio.ordem < parceiro.ordem 
+          ? [exercicio, parceiro] 
+          : [parceiro, exercicio];
+        
+        resultado.push({
+          grupoId: exercicio.biset_grupo_id,
+          exercicioA,
+          exercicioB,
+          series: exercicioA.series,
+          descanso: exercicioB.descanso // Descanso após completar o par
+        });
+        
+        processados.add(exId);
+        processados.add(parceiroId);
+      } else {
+        // Bi-set incompleto, tratar como exercício individual
+        resultado.push(exercicio);
+        processados.add(exId);
+      }
+    } else {
+      // Exercício individual
+      resultado.push(exercicio);
+      processados.add(exId);
+    }
+  }
+  
+  return resultado;
+}
+
+// Verificar se um item é um BiSetGroup
+export function isBiSetGroup(item: Exercicio | BiSetGroup): item is BiSetGroup {
+  return 'grupoId' in item && 'exercicioA' in item && 'exercicioB' in item;
+}
+
+// Criar Bi-set a partir de dois exercícios
+export function criarBiset(
+  exercicioA: Exercicio, 
+  exercicioB: Exercicio,
+  series: number,
+  descanso: number
+): { exercicioA: Exercicio; exercicioB: Exercicio } {
+  const grupoId = gerarBisetGrupoId();
+  
+  return {
+    exercicioA: {
+      ...exercicioA,
+      series,
+      biset_grupo_id: grupoId,
+      tecnica: 'Bi-Set',
+      descanso: 0 // Sem descanso após o primeiro exercício
+    },
+    exercicioB: {
+      ...exercicioB,
+      series,
+      biset_grupo_id: grupoId,
+      tecnica: 'Bi-Set',
+      descanso // Descanso após completar o par
+    }
+  };
+}
+
+// Desfazer Bi-set (remover agrupamento)
+export function desfazerBiset(exercicios: Exercicio[], grupoId: string): Exercicio[] {
+  return exercicios.map(ex => {
+    if (ex.biset_grupo_id === grupoId) {
+      return {
+        ...ex,
+        biset_grupo_id: undefined,
+        tecnica: ex.tecnica === 'Bi-Set' ? undefined : ex.tecnica
+      };
+    }
+    return ex;
+  });
+}
+
+// Reordenar exercícios mantendo Bi-sets juntos
+export function reordenarComBisets(exercicios: Exercicio[], fromIndex: number, toIndex: number): Exercicio[] {
+  const resultado = [...exercicios];
+  const exercicioMovido = resultado[fromIndex];
+  
+  // Se o exercício faz parte de um Bi-set, mover o par junto
+  if (exercicioMovido.biset_grupo_id) {
+    const parceiroIndex = resultado.findIndex(
+      (e, i) => i !== fromIndex && e.biset_grupo_id === exercicioMovido.biset_grupo_id
+    );
+    
+    if (parceiroIndex !== -1) {
+      // Remover ambos exercícios
+      const [primeiro, segundo] = fromIndex < parceiroIndex 
+        ? [fromIndex, parceiroIndex] 
+        : [parceiroIndex, fromIndex];
+      
+      const exercicioA = resultado[primeiro];
+      const exercicioB = resultado[segundo];
+      
+      // Remover do array (do maior índice primeiro para não afetar o menor)
+      resultado.splice(segundo, 1);
+      resultado.splice(primeiro, 1);
+      
+      // Calcular nova posição ajustada
+      let novaPosicao = toIndex;
+      if (toIndex > segundo) novaPosicao -= 2;
+      else if (toIndex > primeiro) novaPosicao -= 1;
+      
+      // Inserir na nova posição
+      resultado.splice(novaPosicao, 0, exercicioA, exercicioB);
+    }
+  } else {
+    // Exercício individual - mover normalmente
+    resultado.splice(fromIndex, 1);
+    resultado.splice(toIndex, 0, exercicioMovido);
+  }
+  
+  // Recalcular ordens
+  return resultado.map((ex, index) => ({ ...ex, ordem: index + 1 }));
 }

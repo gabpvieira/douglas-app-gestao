@@ -24,6 +24,7 @@ import {
   RotateCcw,
   Pause,
   Timer,
+  Link2,
 } from "lucide-react";
 
 // Função para formatar tempo em HH:MM:SS
@@ -39,6 +40,63 @@ function formatarTempo(segundos: number): string {
     return `${horas}h ${minutos.toString().padStart(2, "0")}m`;
   }
   return `${minutos}:${segs.toString().padStart(2, "0")}`;
+}
+
+// Tipo para exercício ou grupo de Bi-set
+interface ExercicioOuBiset {
+  tipo: 'individual' | 'biset';
+  exercicio?: any;
+  exercicioA?: any;
+  exercicioB?: any;
+  grupoId?: string;
+}
+
+// Função para agrupar exercícios por Bi-set
+function agruparExerciciosPorBiset(exercicios: any[]): ExercicioOuBiset[] {
+  if (!exercicios || exercicios.length === 0) return [];
+  
+  const resultado: ExercicioOuBiset[] = [];
+  const processados = new Set<string>();
+  
+  // Ordenar por ordem
+  const ordenados = [...exercicios].sort((a, b) => a.ordem - b.ordem);
+  
+  for (const exercicio of ordenados) {
+    if (processados.has(exercicio.id)) continue;
+    
+    if (exercicio.biset_grupo_id) {
+      // Encontrar parceiro do Bi-set
+      const parceiro = ordenados.find(
+        e => e.biset_grupo_id === exercicio.biset_grupo_id && e.id !== exercicio.id
+      );
+      
+      if (parceiro && !processados.has(parceiro.id)) {
+        // Determinar ordem A/B
+        const [exercicioA, exercicioB] = exercicio.ordem < parceiro.ordem
+          ? [exercicio, parceiro]
+          : [parceiro, exercicio];
+        
+        resultado.push({
+          tipo: 'biset',
+          exercicioA,
+          exercicioB,
+          grupoId: exercicio.biset_grupo_id
+        });
+        
+        processados.add(exercicio.id);
+        processados.add(parceiro.id);
+      } else {
+        // Bi-set incompleto
+        resultado.push({ tipo: 'individual', exercicio });
+        processados.add(exercicio.id);
+      }
+    } else {
+      resultado.push({ tipo: 'individual', exercicio });
+      processados.add(exercicio.id);
+    }
+  }
+  
+  return resultado;
 }
 
 export default function MeusTreinos() {
@@ -390,68 +448,153 @@ export default function MeusTreinos() {
 
                               {expandedFichas.has(ficha.id) && (
                                 <div className="space-y-2 mt-3">
-                                  {ficha.fichas_treino.exercicios_ficha
-                                    .sort((a, b) => a.ordem - b.ordem)
-                                    .map((exercicio, index) => (
-                                      <div
-                                        key={exercicio.id}
-                                        className="p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors"
-                                      >
-                                        <div className="flex items-start gap-3">
-                                          <div className="h-7 w-7 rounded bg-blue-600 flex items-center justify-center flex-shrink-0">
-                                            <span className="text-xs font-bold text-white">
-                                              {index + 1}
+                                  {agruparExerciciosPorBiset(ficha.fichas_treino.exercicios_ficha).map((item, index) => {
+                                    if (item.tipo === 'biset') {
+                                      // Renderizar Bi-set agrupado
+                                      return (
+                                        <div
+                                          key={`biset-${item.grupoId}`}
+                                          className="rounded-lg overflow-hidden border border-orange-500/30 bg-gradient-to-br from-orange-950/20 to-purple-950/20"
+                                        >
+                                          {/* Header do Bi-set */}
+                                          <div className="px-3 py-2 bg-orange-500/10 flex items-center gap-2">
+                                            <Link2 className="h-3.5 w-3.5 text-orange-400" />
+                                            <span className="text-xs font-semibold text-orange-400">BI-SET</span>
+                                            <span className="text-[10px] text-gray-400">
+                                              {item.exercicioA.series} séries • {item.exercicioB.descanso}s descanso
                                             </span>
                                           </div>
-                                          <div className="flex-1 min-w-0">
-                                            <h4 className="font-medium text-white text-sm">
-                                              {exercicio.nome}
-                                            </h4>
-                                            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-gray-400">
-                                              <span className="font-medium text-gray-300">
-                                                {exercicio.series}x{exercicio.repeticoes}
-                                              </span>
-                                              {exercicio.descanso && (
-                                                <>
-                                                  <span>•</span>
-                                                  <span className="flex items-center gap-1">
-                                                    <Clock className="h-3 w-3" />
-                                                    {exercicio.descanso}s
-                                                  </span>
-                                                </>
-                                              )}
-                                              {exercicio.grupo_muscular && (
-                                                <>
-                                                  <span>•</span>
-                                                  <Badge
-                                                    variant="outline"
-                                                    className={`text-[10px] px-2 py-0 h-5 border-0 ${getGrupoMuscularColor(
-                                                      exercicio.grupo_muscular
-                                                    )}`}
-                                                  >
-                                                    {exercicio.grupo_muscular}
-                                                  </Badge>
-                                                </>
-                                              )}
-                                            </div>
-                                            {(exercicio.observacoes || exercicio.tecnica) && (
-                                              <div className="mt-2 space-y-1">
-                                                {exercicio.observacoes && (
-                                                  <p className="text-xs text-gray-400">
-                                                    💡 {exercicio.observacoes}
-                                                  </p>
-                                                )}
-                                                {exercicio.tecnica && (
-                                                  <p className="text-xs text-gray-400">
-                                                    ⚡ {exercicio.tecnica}
-                                                  </p>
-                                                )}
+                                          
+                                          {/* Exercício A */}
+                                          <div className="p-3 border-b border-orange-500/20">
+                                            <div className="flex items-start gap-3">
+                                              <div className="h-7 w-7 rounded bg-orange-600 flex items-center justify-center flex-shrink-0">
+                                                <span className="text-xs font-bold text-white">A</span>
                                               </div>
-                                            )}
+                                              <div className="flex-1 min-w-0">
+                                                <h4 className="font-medium text-white text-sm">
+                                                  {item.exercicioA.nome}
+                                                </h4>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
+                                                  <span className="font-medium text-gray-300">
+                                                    {item.exercicioA.repeticoes} reps
+                                                  </span>
+                                                  {item.exercicioA.grupo_muscular && (
+                                                    <>
+                                                      <span>•</span>
+                                                      <Badge
+                                                        variant="outline"
+                                                        className={`text-[10px] px-2 py-0 h-5 border-0 ${getGrupoMuscularColor(
+                                                          item.exercicioA.grupo_muscular
+                                                        )}`}
+                                                      >
+                                                        {item.exercicioA.grupo_muscular}
+                                                      </Badge>
+                                                    </>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Exercício B */}
+                                          <div className="p-3">
+                                            <div className="flex items-start gap-3">
+                                              <div className="h-7 w-7 rounded bg-purple-600 flex items-center justify-center flex-shrink-0">
+                                                <span className="text-xs font-bold text-white">B</span>
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <h4 className="font-medium text-white text-sm">
+                                                  {item.exercicioB.nome}
+                                                </h4>
+                                                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-400">
+                                                  <span className="font-medium text-gray-300">
+                                                    {item.exercicioB.repeticoes} reps
+                                                  </span>
+                                                  {item.exercicioB.grupo_muscular && (
+                                                    <>
+                                                      <span>•</span>
+                                                      <Badge
+                                                        variant="outline"
+                                                        className={`text-[10px] px-2 py-0 h-5 border-0 ${getGrupoMuscularColor(
+                                                          item.exercicioB.grupo_muscular
+                                                        )}`}
+                                                      >
+                                                        {item.exercicioB.grupo_muscular}
+                                                      </Badge>
+                                                    </>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                    ))}
+                                      );
+                                    } else {
+                                      // Renderizar exercício individual
+                                      const exercicio = item.exercicio;
+                                      return (
+                                        <div
+                                          key={exercicio.id}
+                                          className="p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors"
+                                        >
+                                          <div className="flex items-start gap-3">
+                                            <div className="h-7 w-7 rounded bg-blue-600 flex items-center justify-center flex-shrink-0">
+                                              <span className="text-xs font-bold text-white">
+                                                {index + 1}
+                                              </span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <h4 className="font-medium text-white text-sm">
+                                                {exercicio.nome}
+                                              </h4>
+                                              <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-gray-400">
+                                                <span className="font-medium text-gray-300">
+                                                  {exercicio.series}x{exercicio.repeticoes}
+                                                </span>
+                                                {exercicio.descanso && (
+                                                  <>
+                                                    <span>•</span>
+                                                    <span className="flex items-center gap-1">
+                                                      <Clock className="h-3 w-3" />
+                                                      {exercicio.descanso}s
+                                                    </span>
+                                                  </>
+                                                )}
+                                                {exercicio.grupo_muscular && (
+                                                  <>
+                                                    <span>•</span>
+                                                    <Badge
+                                                      variant="outline"
+                                                      className={`text-[10px] px-2 py-0 h-5 border-0 ${getGrupoMuscularColor(
+                                                        exercicio.grupo_muscular
+                                                      )}`}
+                                                    >
+                                                      {exercicio.grupo_muscular}
+                                                    </Badge>
+                                                  </>
+                                                )}
+                                              </div>
+                                              {(exercicio.observacoes || exercicio.tecnica) && (
+                                                <div className="mt-2 space-y-1">
+                                                  {exercicio.observacoes && (
+                                                    <p className="text-xs text-gray-400">
+                                                      💡 {exercicio.observacoes}
+                                                    </p>
+                                                  )}
+                                                  {exercicio.tecnica && exercicio.tecnica !== 'Bi-Set' && (
+                                                    <p className="text-xs text-gray-400">
+                                                      ⚡ {exercicio.tecnica}
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                  })}
                                 </div>
                               )}
                             </div>

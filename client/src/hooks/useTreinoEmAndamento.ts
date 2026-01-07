@@ -19,6 +19,7 @@ export interface ExercicioEmAndamento {
   observacoes?: string;
   tecnica?: string;
   videoId?: string | null;
+  bisetGrupoId?: string;
   seriesRealizadas: SerieRealizada[];
 }
 

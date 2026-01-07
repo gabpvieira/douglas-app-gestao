@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Check, X, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import AlunoLayout from "@/components/aluno/AlunoLayout";
 import TreinoHeader from "@/components/aluno/TreinoHeader";
 import ExercicioCard from "@/components/aluno/ExercicioCard";
+import BiSetCard from "@/components/aluno/BiSetCard";
 import RestTimer from "@/components/aluno/RestTimer";
 import FinalizarTreinoModal from "@/components/aluno/FinalizarTreinoModal";
 import { FeedbackTreinoModal } from "@/components/FeedbackTreinoModal";
@@ -15,6 +16,12 @@ import { useAlunoProfile } from "@/hooks/useAlunoData";
 import { useTreinoEmAndamento, ExercicioEmAndamento } from "@/hooks/useTreinoEmAndamento";
 import { useCreateFeedback } from "@/hooks/useFeedbackTreinos";
 import { notifyInicioTreino } from "@/lib/notificationManager";
+import { 
+  useUltimasCargasExercicios, 
+  useSalvarUltimasCargas,
+  extrairCargasDeExercicios,
+  obterCargaSerie 
+} from "@/hooks/useUltimasCargasExercicios";
 
 export default function TreinoExecucao() {
   const [, params] = useRoute("/aluno/treino/:fichaAlunoId");
@@ -29,6 +36,7 @@ export default function TreinoExecucao() {
   const [treinoFinalizadoId, setTreinoFinalizadoId] = useState<string | null>(null);
   const { toast } = useToast();
   const createFeedback = useCreateFeedback();
+  const salvarUltimasCargas = useSalvarUltimasCargas();
   
   // Buscar perfil do aluno
   const { data: profile } = useAlunoProfile();
@@ -71,9 +79,21 @@ export default function TreinoExecucao() {
     enabled: !!fichaAlunoId,
   });
 
+  // Extrair IDs dos exercícios para buscar últimas cargas
+  const exercicioIds = ficha?.fichas_treino?.exercicios_ficha?.map((e: any) => e.id) || [];
+  
+  // Buscar últimas cargas dos exercícios (para pré-preencher)
+  const { data: ultimasCargas, isLoading: carregandoCargas } = useUltimasCargasExercicios(
+    alunoId,
+    exercicioIds
+  );
+
   // Inicializar ou retomar treino
   useEffect(() => {
     if (!ficha?.fichas_treino?.exercicios_ficha || !alunoId || !treinoCarregado || treinoIniciado) return;
+    
+    // Aguardar carregamento das cargas anteriores (se houver exercícios)
+    if (exercicioIds.length > 0 && carregandoCargas) return;
 
     // Verificar se há treino em andamento para esta ficha
     if (treinoEmAndamento && treinoEmAndamento.fichaAlunoId === fichaAlunoId) {
@@ -85,26 +105,36 @@ export default function TreinoExecucao() {
         description: "Continuando de onde você parou.",
       });
     } else if (!treinoEmAndamento) {
-      // Iniciar novo treino
+      // Iniciar novo treino - pré-preencher com cargas anteriores
       const exerciciosIniciais: ExercicioEmAndamento[] = ficha.fichas_treino.exercicios_ficha
         .sort((a: any, b: any) => a.ordem - b.ordem)
-        .map((ex: any) => ({
-          id: ex.id,
-          nome: ex.nome,
-          grupoMuscular: ex.grupo_muscular,
-          series: ex.series,
-          repeticoes: ex.repeticoes,
-          descanso: ex.descanso,
-          observacoes: ex.observacoes,
-          tecnica: ex.tecnica,
-          videoId: ex.video_id,
-          seriesRealizadas: Array.from({ length: ex.series }, (_, i) => ({
-            numero: i + 1,
-            peso: "",
-            repeticoes: 0,
-            concluida: false,
-          })),
-        }));
+        .map((ex: any) => {
+          // Buscar cargas anteriores deste exercício
+          const cargasAnteriores = ultimasCargas?.[ex.id] || [];
+          
+          return {
+            id: ex.id,
+            nome: ex.nome,
+            grupoMuscular: ex.grupo_muscular,
+            series: ex.series,
+            repeticoes: ex.repeticoes,
+            descanso: ex.descanso,
+            observacoes: ex.observacoes,
+            tecnica: ex.tecnica,
+            videoId: ex.video_id,
+            bisetGrupoId: ex.biset_grupo_id,
+            seriesRealizadas: Array.from({ length: ex.series }, (_, i) => {
+              // Pré-preencher peso com carga anterior (se existir)
+              const cargaAnterior = obterCargaSerie(cargasAnteriores, i + 1);
+              return {
+                numero: i + 1,
+                peso: cargaAnterior, // Pré-preenchido com última carga!
+                repeticoes: 0,
+                concluida: false,
+              };
+            }),
+          };
+        });
       
       setExercicios(exerciciosIniciais);
       iniciarTreino(
@@ -115,12 +145,23 @@ export default function TreinoExecucao() {
       );
       setTreinoIniciado(true);
       
+      // Mostrar toast se cargas foram pré-preenchidas
+      const exerciciosComCarga = exerciciosIniciais.filter(ex => 
+        ex.seriesRealizadas.some(s => s.peso && s.peso !== '')
+      );
+      if (exerciciosComCarga.length > 0) {
+        toast({
+          title: "Cargas carregadas",
+          description: `${exerciciosComCarga.length} exercício(s) com cargas do último treino.`,
+        });
+      }
+      
       // Notificar início do treino
       notifyInicioTreino(ficha.fichas_treino.nome).catch(err => 
         console.error('Error sending start notification:', err)
       );
     }
-  }, [ficha, alunoId, treinoCarregado, treinoEmAndamento, fichaAlunoId, treinoIniciado]);
+  }, [ficha, alunoId, treinoCarregado, treinoEmAndamento, fichaAlunoId, treinoIniciado, ultimasCargas, carregandoCargas, exercicioIds.length]);
 
   // Atualizar exercícios no hook quando mudar
   const exerciciosRef = useRef(exercicios);
@@ -166,29 +207,65 @@ export default function TreinoExecucao() {
 
 
   const handleSerieCompleta = (exercicioId: string, numeroSerie: number) => {
-    setExercicios((prev) =>
-      prev.map((ex) => {
+    setExercicios((prev) => {
+      const exercicioAtual = prev.find(ex => ex.id === exercicioId);
+      if (!exercicioAtual) return prev;
+
+      const novosPrev = prev.map((ex) => {
         if (ex.id === exercicioId) {
           const novasSeries = ex.seriesRealizadas.map((s) =>
             s.numero === numeroSerie ? { ...s, concluida: !s.concluida } : s
           );
-          
-          // Iniciar timer de descanso se série foi marcada como completa
-          const serieCompleta = novasSeries.find((s) => s.numero === numeroSerie)?.concluida;
-          if (serieCompleta && ex.descanso > 0) {
-            setRestTimer({
-              ativo: true,
-              tempo: ex.descanso,
-              exercicioId: ex.id,
-              exercicioNome: ex.nome,
-            });
-          }
-
           return { ...ex, seriesRealizadas: novasSeries };
         }
         return ex;
-      })
-    );
+      });
+
+      // Verificar se é parte de um Bi-set
+      if (exercicioAtual.bisetGrupoId) {
+        const exerciciosDoBiset = novosPrev.filter(ex => ex.bisetGrupoId === exercicioAtual.bisetGrupoId);
+        const exercicioAtualizado = novosPrev.find(ex => ex.id === exercicioId);
+        const serieCompleta = exercicioAtualizado?.seriesRealizadas.find(s => s.numero === numeroSerie)?.concluida;
+        
+        if (serieCompleta && exerciciosDoBiset.length === 2) {
+          // Ordenar por ordem para identificar A e B
+          const [exercicioA, exercicioB] = exerciciosDoBiset.sort((a, b) => {
+            const ordemA = prev.findIndex(e => e.id === a.id);
+            const ordemB = prev.findIndex(e => e.id === b.id);
+            return ordemA - ordemB;
+          });
+          
+          // Verificar se ambas as séries do par estão completas
+          const serieACompleta = exercicioA.seriesRealizadas.find(s => s.numero === numeroSerie)?.concluida;
+          const serieBCompleta = exercicioB.seriesRealizadas.find(s => s.numero === numeroSerie)?.concluida;
+          
+          // Timer de descanso só inicia quando AMBAS as séries do par estão completas
+          if (serieACompleta && serieBCompleta && exercicioB.descanso > 0) {
+            setRestTimer({
+              ativo: true,
+              tempo: exercicioB.descanso,
+              exercicioId: exercicioB.id,
+              exercicioNome: `Bi-Set: ${exercicioA.nome} + ${exercicioB.nome}`,
+            });
+          }
+        }
+      } else {
+        // Exercício individual - comportamento original
+        const exercicioAtualizado = novosPrev.find(ex => ex.id === exercicioId);
+        const serieCompleta = exercicioAtualizado?.seriesRealizadas.find(s => s.numero === numeroSerie)?.concluida;
+        
+        if (serieCompleta && exercicioAtual.descanso > 0) {
+          setRestTimer({
+            ativo: true,
+            tempo: exercicioAtual.descanso,
+            exercicioId: exercicioAtual.id,
+            exercicioNome: exercicioAtual.nome,
+          });
+        }
+      }
+
+      return novosPrev;
+    });
   };
 
   const handleUpdateSerie = (
@@ -278,6 +355,23 @@ export default function TreinoExecucao() {
         }
       }
 
+      // Salvar últimas cargas para referência futura
+      if (alunoId) {
+        const cargasParaSalvar = extrairCargasDeExercicios(exercicios);
+        if (cargasParaSalvar.length > 0) {
+          try {
+            await salvarUltimasCargas.mutateAsync({
+              alunoId,
+              exercicios: cargasParaSalvar,
+            });
+            console.log(`Cargas salvas para ${cargasParaSalvar.length} exercícios`);
+          } catch (cargaError) {
+            console.error('Erro ao salvar últimas cargas:', cargaError);
+            // Não bloquear finalização por erro de cargas
+          }
+        }
+      }
+
       // SEMPRE limpar sessão em andamento, mesmo se houve erros parciais
       await finalizarTreino();
 
@@ -348,11 +442,162 @@ export default function TreinoExecucao() {
     setLocation("/aluno/treinos");
   };
 
-  const exerciciosConcluidos = exercicios.filter((ex) =>
-    ex.seriesRealizadas.every((s) => s.concluida)
-  ).length;
+  // Calcular exercícios concluídos (considerando Bi-sets como unidade)
+  const calcularExerciciosConcluidos = () => {
+    const processados = new Set<string>();
+    let concluidos = 0;
 
-  if (isLoading || !treinoCarregado) {
+    for (const exercicio of exercicios) {
+      if (processados.has(exercicio.id)) continue;
+
+      if (exercicio.bisetGrupoId) {
+        // Encontrar parceiro do Bi-set
+        const parceiro = exercicios.find(
+          (e) => e.bisetGrupoId === exercicio.bisetGrupoId && e.id !== exercicio.id
+        );
+
+        if (parceiro && !processados.has(parceiro.id)) {
+          // Bi-set só conta como concluído se AMBOS exercícios estão completos
+          const exercicioConcluido = exercicio.seriesRealizadas.every((s) => s.concluida);
+          const parceiroConcluido = parceiro.seriesRealizadas.every((s) => s.concluida);
+          
+          if (exercicioConcluido && parceiroConcluido) {
+            concluidos++;
+          }
+
+          processados.add(exercicio.id);
+          processados.add(parceiro.id);
+        } else {
+          // Bi-set incompleto - contar como exercício individual
+          if (exercicio.seriesRealizadas.every((s) => s.concluida)) {
+            concluidos++;
+          }
+          processados.add(exercicio.id);
+        }
+      } else {
+        // Exercício individual
+        if (exercicio.seriesRealizadas.every((s) => s.concluida)) {
+          concluidos++;
+        }
+        processados.add(exercicio.id);
+      }
+    }
+
+    return concluidos;
+  };
+
+  // Calcular total de itens (Bi-sets contam como 1)
+  const calcularTotalItens = () => {
+    const processados = new Set<string>();
+    let total = 0;
+
+    for (const exercicio of exercicios) {
+      if (processados.has(exercicio.id)) continue;
+
+      if (exercicio.bisetGrupoId) {
+        const parceiro = exercicios.find(
+          (e) => e.bisetGrupoId === exercicio.bisetGrupoId && e.id !== exercicio.id
+        );
+
+        if (parceiro && !processados.has(parceiro.id)) {
+          total++;
+          processados.add(exercicio.id);
+          processados.add(parceiro.id);
+        } else {
+          total++;
+          processados.add(exercicio.id);
+        }
+      } else {
+        total++;
+        processados.add(exercicio.id);
+      }
+    }
+
+    return total;
+  };
+
+  const exerciciosConcluidos = calcularExerciciosConcluidos();
+  const totalItens = calcularTotalItens();
+
+  // Função para agrupar e renderizar exercícios (incluindo Bi-sets)
+  const renderExercicios = () => {
+    const resultado: React.ReactNode[] = [];
+    const processados = new Set<string>();
+    let numeroVisual = 1;
+
+    // Ordenar exercícios pela ordem original
+    const exerciciosOrdenados = [...exercicios].sort((a, b) => {
+      const ordemA = ficha?.fichas_treino?.exercicios_ficha?.find((e: any) => e.id === a.id)?.ordem || 0;
+      const ordemB = ficha?.fichas_treino?.exercicios_ficha?.find((e: any) => e.id === b.id)?.ordem || 0;
+      return ordemA - ordemB;
+    });
+
+    for (const exercicio of exerciciosOrdenados) {
+      if (processados.has(exercicio.id)) continue;
+
+      if (exercicio.bisetGrupoId) {
+        // Encontrar parceiro do Bi-set
+        const parceiro = exerciciosOrdenados.find(
+          (e) => e.bisetGrupoId === exercicio.bisetGrupoId && e.id !== exercicio.id
+        );
+
+        if (parceiro && !processados.has(parceiro.id)) {
+          // Determinar ordem A/B baseado na ordem original
+          const ordemExercicio = ficha?.fichas_treino?.exercicios_ficha?.find((e: any) => e.id === exercicio.id)?.ordem || 0;
+          const ordemParceiro = ficha?.fichas_treino?.exercicios_ficha?.find((e: any) => e.id === parceiro.id)?.ordem || 0;
+          
+          const [exercicioA, exercicioB] = ordemExercicio < ordemParceiro
+            ? [exercicio, parceiro]
+            : [parceiro, exercicio];
+
+          resultado.push(
+            <BiSetCard
+              key={`biset-${exercicio.bisetGrupoId}`}
+              exercicioA={exercicioA}
+              exercicioB={exercicioB}
+              numero={numeroVisual}
+              onSerieCompleta={handleSerieCompleta}
+              onUpdateSerie={handleUpdateSerie}
+            />
+          );
+
+          processados.add(exercicio.id);
+          processados.add(parceiro.id);
+          numeroVisual++;
+        } else {
+          // Bi-set incompleto - renderizar como exercício individual
+          resultado.push(
+            <ExercicioCard
+              key={exercicio.id}
+              exercicio={exercicio}
+              numero={numeroVisual}
+              onSerieCompleta={handleSerieCompleta}
+              onUpdateSerie={handleUpdateSerie}
+            />
+          );
+          processados.add(exercicio.id);
+          numeroVisual++;
+        }
+      } else {
+        // Exercício individual
+        resultado.push(
+          <ExercicioCard
+            key={exercicio.id}
+            exercicio={exercicio}
+            numero={numeroVisual}
+            onSerieCompleta={handleSerieCompleta}
+            onUpdateSerie={handleUpdateSerie}
+          />
+        );
+        processados.add(exercicio.id);
+        numeroVisual++;
+      }
+    }
+
+    return resultado;
+  };
+
+  if (isLoading || !treinoCarregado || (exercicioIds.length > 0 && carregandoCargas && !treinoEmAndamento)) {
     return (
       <AlunoLayout>
         <div className="flex items-center justify-center h-96">
@@ -421,7 +666,7 @@ export default function TreinoExecucao() {
           nomeFicha={ficha.fichas_treino?.nome || "Treino"}
           tempoDecorrido={tempoDecorrido}
           exerciciosConcluidos={exerciciosConcluidos}
-          totalExercicios={exercicios.length}
+          totalExercicios={totalItens}
           pausado={treinoEmAndamento?.pausado || false}
           onPausar={handlePausar}
           onVoltar={handleVoltar}
@@ -437,15 +682,7 @@ export default function TreinoExecucao() {
 
         {/* Lista de Exercícios */}
         <div className="space-y-3">
-          {exercicios.map((exercicio, index) => (
-            <ExercicioCard
-              key={exercicio.id}
-              exercicio={exercicio}
-              numero={index + 1}
-              onSerieCompleta={handleSerieCompleta}
-              onUpdateSerie={handleUpdateSerie}
-            />
-          ))}
+          {renderExercicios()}
         </div>
 
         {/* Botão Finalizar */}

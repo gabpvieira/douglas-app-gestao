@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Play, Info, Check } from "lucide-react";
+import { Play, Info, Check, History } from "lucide-react";
 import ExercicioVideoModal from "./ExercicioVideoModal";
 
 interface SerieRealizada {
@@ -48,6 +48,11 @@ export default function ExercicioCard({
 
   const seriesConcluidas = exercicio.seriesRealizadas.filter((s) => s.concluida).length;
   const todosCompletos = seriesConcluidas === exercicio.seriesRealizadas.length;
+  
+  // Verificar se há cargas pré-preenchidas do treino anterior
+  const temCargasAnteriores = exercicio.seriesRealizadas.some(
+    (s) => s.peso && s.peso !== '' && s.peso !== '0' && !s.concluida
+  );
 
   return (
     <div
@@ -93,6 +98,14 @@ export default function ExercicioCard({
             Vídeo
           </Button>
         </div>
+
+        {/* Indicador de cargas do treino anterior */}
+        {temCargasAnteriores && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-blue-400">
+            <History className="h-3 w-3" />
+            <span>Cargas do último treino</span>
+          </div>
+        )}
 
         {/* Modal de Vídeo */}
         <ExercicioVideoModal
@@ -150,73 +163,82 @@ export default function ExercicioCard({
           </div>
 
           {/* Linhas de Séries */}
-          {exercicio.seriesRealizadas.map((serie) => (
-            <div
-              key={serie.numero}
-              className={`grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center p-2 rounded-lg transition-all ${
-                serie.concluida
-                  ? "bg-emerald-600"
-                  : "bg-secondary"
-              }`}
-            >
-              {/* Número da Série */}
-              <div className={`text-center font-bold ${serie.concluida ? "text-white" : "text-muted-foreground"}`}>
-                {serie.numero}
-              </div>
-
-              {/* Input Peso */}
-              <Input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={serie.peso}
-                onChange={(e) =>
-                  onUpdateSerie(exercicio.id, serie.numero, "peso", e.target.value)
-                }
-                disabled={serie.concluida}
-                className={`text-center text-base font-semibold h-10 border-0 ${
-                  serie.concluida 
-                    ? "bg-emerald-500/50 text-white placeholder:text-emerald-200" 
-                    : "bg-background text-foreground placeholder:text-muted-foreground"
+          {exercicio.seriesRealizadas.map((serie) => {
+            // Verificar se esta série tem carga pré-preenchida
+            const temCargaPreenchida = serie.peso && serie.peso !== '' && serie.peso !== '0' && !serie.concluida;
+            
+            return (
+              <div
+                key={serie.numero}
+                className={`grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center p-2 rounded-lg transition-all ${
+                  serie.concluida
+                    ? "bg-emerald-600"
+                    : "bg-secondary"
                 }`}
-              />
+              >
+                {/* Número da Série */}
+                <div className={`text-center font-bold ${serie.concluida ? "text-white" : "text-muted-foreground"}`}>
+                  {serie.numero}
+                </div>
 
-              {/* Input Repetições */}
-              <Input
-                type="number"
-                inputMode="numeric"
-                placeholder="0"
-                value={serie.repeticoes || ""}
-                onChange={(e) =>
-                  onUpdateSerie(
-                    exercicio.id,
-                    serie.numero,
-                    "repeticoes",
-                    parseInt(e.target.value) || 0
-                  )
-                }
-                disabled={serie.concluida}
-                className={`text-center text-base font-semibold h-10 border-0 ${
-                  serie.concluida 
-                    ? "bg-emerald-500/50 text-white placeholder:text-emerald-200" 
-                    : "bg-background text-foreground placeholder:text-muted-foreground"
-                }`}
-              />
+                {/* Input Peso */}
+                <div className="relative">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={serie.peso}
+                    onChange={(e) =>
+                      onUpdateSerie(exercicio.id, serie.numero, "peso", e.target.value)
+                    }
+                    disabled={serie.concluida}
+                    className={`text-center text-base font-semibold h-10 border-0 ${
+                      serie.concluida 
+                        ? "bg-emerald-500/50 text-white placeholder:text-emerald-200" 
+                        : temCargaPreenchida
+                          ? "bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/30"
+                          : "bg-background text-foreground placeholder:text-muted-foreground"
+                    }`}
+                  />
+                </div>
 
-              {/* Checkbox */}
-              <div className="flex items-center justify-center">
-                <Checkbox
-                  checked={serie.concluida}
-                  onCheckedChange={() => onSerieCompleta(exercicio.id, serie.numero)}
-                  className={`h-7 w-7 rounded-md border-2 transition-all ${
+                {/* Input Repetições */}
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={serie.repeticoes || ""}
+                  onChange={(e) =>
+                    onUpdateSerie(
+                      exercicio.id,
+                      serie.numero,
+                      "repeticoes",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                  disabled={serie.concluida}
+                  className={`text-center text-base font-semibold h-10 border-0 ${
                     serie.concluida 
-                      ? "bg-white border-white data-[state=checked]:bg-white data-[state=checked]:text-emerald-600" 
-                      : "border-gray-400 bg-gray-700/50 hover:border-blue-400 hover:bg-gray-600/50"
+                      ? "bg-emerald-500/50 text-white placeholder:text-emerald-200" 
+                      : "bg-background text-foreground placeholder:text-muted-foreground"
                   }`}
                 />
+
+                {/* Checkbox */}
+                <div className="flex items-center justify-center">
+                  <Checkbox
+                    checked={serie.concluida}
+                    onCheckedChange={() => onSerieCompleta(exercicio.id, serie.numero)}
+                    className={`h-7 w-7 rounded-md border-2 transition-all ${
+                      serie.concluida 
+                        ? "bg-white border-white data-[state=checked]:bg-white data-[state=checked]:text-emerald-600" 
+                        : "border-gray-400 bg-gray-700/50 hover:border-blue-400 hover:bg-gray-600/50"
+                    }`}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Progresso */}

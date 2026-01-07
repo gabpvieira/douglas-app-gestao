@@ -232,6 +232,7 @@ export const exerciciosFicha = pgTable("exercicios_ficha", {
   descanso: integer("descanso").notNull(), // em segundos
   observacoes: text("observacoes"),
   tecnica: text("tecnica"), // drop set, bi-set, super set, etc
+  bisetGrupoId: varchar("biset_grupo_id"), // UUID compartilhado entre exercícios do mesmo Bi-set
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
@@ -679,3 +680,35 @@ export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions
 
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
+// ============================================
+// TABELA DE ÚLTIMA CARGA POR EXERCÍCIO/ALUNO
+// ============================================
+
+// Tabela para cache de última carga utilizada por aluno/exercício
+export const ultimaCargaExercicio = pgTable("ultima_carga_exercicio", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  alunoId: varchar("aluno_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  exercicioId: varchar("exercicio_id").notNull().references(() => exerciciosFicha.id, { onDelete: 'cascade' }),
+  cargasPorSerie: jsonb("cargas_por_serie").notNull().default([]),
+  ultimaAtualizacao: timestamp("ultima_atualizacao").notNull().default(sql`CURRENT_TIMESTAMP`),
+  treinoReferenciaId: varchar("treino_referencia_id").references(() => treinosRealizados.id),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertUltimaCargaExercicioSchema = createInsertSchema(ultimaCargaExercicio).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertUltimaCargaExercicio = z.infer<typeof insertUltimaCargaExercicioSchema>;
+export type UltimaCargaExercicio = typeof ultimaCargaExercicio.$inferSelect;
+
+// Interface para o JSONB cargas_por_serie
+export interface CargaSerie {
+  serie: number;
+  carga: string;
+  repeticoes?: number;
+}

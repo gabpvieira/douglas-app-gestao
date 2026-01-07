@@ -19,6 +19,9 @@ interface RestTimerProps {
   exercicioNome?: string;
 }
 
+// Contador global para garantir IDs únicos mesmo em múltiplas instâncias rápidas
+let globalTimerCounter = 0;
+
 export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioNome }: RestTimerProps) {
   // Timer baseado em timestamp para funcionar em background
   const [startTime] = useState(() => Date.now());
@@ -28,11 +31,14 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
   
   // Refs para controle de estado e evitar duplicações
   const alertFiredRef = useRef(false);
+  const notificationHandledRef = useRef(false); // Nova ref para controle mais robusto
   const swNotifiedRef = useRef(false);
-  const timerIdRef = useRef<string>(`rest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  // ID único garantido com contador global + timestamp + random
+  const timerIdRef = useRef<string>(`rest-${Date.now()}-${++globalTimerCounter}-${Math.random().toString(36).substr(2, 9)}`);
   const cleanupRef = useRef<(() => void) | null>(null);
   const swAvailableRef = useRef(false);
   const lastSWCheckRef = useRef(0);
+  const mountedRef = useRef(true); // Controle de componente montado
 
   // Calcular tempo restante baseado em timestamp
   const calculateTimeRemaining = useCallback(() => {
@@ -42,23 +48,26 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
 
   // Verificar status do timer no SW periodicamente
   const checkSWTimerStatus = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     const timerId = timerIdRef.current;
     const now = Date.now();
     
-    // Não verificar mais que a cada 2 segundos
-    if (now - lastSWCheckRef.current < 2000) return;
+    // Não verificar mais que a cada 1 segundo (reduzido de 2s para maior responsividade)
+    if (now - lastSWCheckRef.current < 1000) return;
     lastSWCheckRef.current = now;
     
     try {
       const status = await getBackgroundTimerStatus(timerId);
       
-      if (status) {
+      if (status && mountedRef.current) {
         swAvailableRef.current = true;
         
         // Se SW diz que completou e ainda não processamos
-        if (status.completed && !completo) {
+        if (status.completed && !completo && !notificationHandledRef.current) {
           console.log('[RestTimer] SW reports timer complete');
           swNotifiedRef.current = status.notificationSent || false;
+          notificationHandledRef.current = true;
           setCompleto(true);
         }
       }
@@ -69,8 +78,11 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
 
   // Iniciar timer de background e listeners
   useEffect(() => {
+    mountedRef.current = true;
     const timerId = timerIdRef.current;
     const settings = getAudioSettings();
+    
+    console.log('[RestTimer] Initializing timer:', timerId, 'duration:', duration);
     
     // Iniciar keep-alive para manter SW ativo
     if (settings.backgroundEnabled) {
@@ -79,11 +91,15 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     
     // Iniciar timer no Service Worker
     const initTimer = async () => {
+      if (!mountedRef.current) return;
+      
       const started = await startBackgroundTimer(timerId, duration, exercicioNome);
       swAvailableRef.current = started;
       
       if (!started) {
         console.warn('[RestTimer] SW timer not started, using local fallback');
+      } else {
+        console.log('[RestTimer] SW timer started successfully:', timerId);
       }
     };
     
@@ -92,9 +108,12 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     // Setup listener para quando timer completar via SW
     cleanupRef.current = setupServiceWorkerListener(
       (completedTimerId, notificationSentBySW) => {
-        if (completedTimerId === timerId && !completo) {
+        if (!mountedRef.current) return;
+        
+        if (completedTimerId === timerId && !notificationHandledRef.current) {
           console.log('[RestTimer] Timer complete from SW, notification sent:', notificationSentBySW);
           swNotifiedRef.current = notificationSentBySW;
+          notificationHandledRef.current = true;
           setCompleto(true);
         }
       }
@@ -102,12 +121,15 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
     
     // Cleanup ao desmontar
     return () => {
+      mountedRef.current = false;
+      console.log('[RestTimer] Cleaning up timer:', timerId);
       cancelBackgroundTimer(timerId);
       if (cleanupRef.current) {
         cleanupRef.current();
+        cleanupRef.current = null;
       }
     };
-  }, [duration, exercicioNome, completo]);
+  }, []); // Dependências vazias - executar apenas na montagem
 
   // Solicitar permissão de notificação (apenas uma vez)
   useEffect(() => {
@@ -118,13 +140,17 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
 
   // Efeito quando completar - SOM APENAS SE SW NÃO NOTIFICOU
   useEffect(() => {
-    if (!completo || alertFiredRef.current) return;
+    if (!completo || alertFiredRef.current || !mountedRef.current) return;
     
     alertFiredRef.current = true;
     const timerId = timerIdRef.current;
     
+    console.log('[RestTimer] Processing completion for timer:', timerId);
+    
     // Verificar se o SW já enviou notificação
     const handleCompletion = async () => {
+      if (!mountedRef.current) return;
+      
       // Se o SW já notificou, não precisamos fazer nada
       if (swNotifiedRef.current) {
         console.log('[RestTimer] SW already sent notification, skipping local alert');
@@ -133,7 +159,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
         // Verificar novamente com o SW antes de tocar som local
         const swSent = await checkNotificationSentBySW(timerId);
         
-        if (!swSent) {
+        if (!swSent && mountedRef.current) {
           console.log('[RestTimer] SW did not notify, playing local alert');
           // Tocar alerta local apenas se SW não enviou
           await playCompleteAlert(undefined, timerId);
@@ -146,9 +172,13 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
       }
       
       // Fechar timer após 3 segundos
-      setTimeout(() => {
-        onComplete();
-      }, 3000);
+      if (mountedRef.current) {
+        setTimeout(() => {
+          if (mountedRef.current) {
+            onComplete();
+          }
+        }, 3000);
+      }
     };
     
     handleCompletion();
@@ -164,7 +194,7 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
             : 'Volte ao exercício!',
           icon: '/icon-192.png',
           badge: '/icon-72.png',
-          tag: 'rest-timer-fallback',
+          tag: `rest-timer-${timerIdRef.current}`, // Tag única por timer
           requireInteraction: false,
           silent: true, // Silencioso pois já tocamos o som via Web Audio
         });
@@ -181,9 +211,14 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
 
   // Timer countdown baseado em timestamp com verificação de SW
   useEffect(() => {
-    if (completo) return;
+    if (completo || !mountedRef.current) return;
 
     const interval = setInterval(() => {
+      if (!mountedRef.current) {
+        clearInterval(interval);
+        return;
+      }
+      
       const remaining = calculateTimeRemaining();
       setTempoRestante(remaining);
 
@@ -191,14 +226,10 @@ export default function RestTimer({ tempoInicial, onSkip, onComplete, exercicioN
       checkSWTimerStatus();
 
       // Timer completou localmente (fallback se SW não notificar)
-      if (remaining <= 0 && !completo) {
-        // Dar uma pequena margem para o SW notificar primeiro
-        setTimeout(() => {
-          if (!completo) {
-            console.log('[RestTimer] Local timer completed, SW may have missed');
-            setCompleto(true);
-          }
-        }, 500);
+      if (remaining <= 0 && !notificationHandledRef.current) {
+        notificationHandledRef.current = true;
+        console.log('[RestTimer] Local timer completed');
+        setCompleto(true);
       }
     }, 100);
 

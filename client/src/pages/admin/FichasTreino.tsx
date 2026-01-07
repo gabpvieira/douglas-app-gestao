@@ -26,6 +26,7 @@ interface Exercicio {
   observacoes?: string;
   tecnica?: string;
   videoId?: string;
+  bisetGrupoId?: string;
 }
 
 interface FichaTreino {
@@ -81,8 +82,9 @@ export default function FichasTreino() {
       descanso: ex.descanso,
       observacoes: ex.observacoes,
       tecnica: ex.tecnica,
-      videoId: ex.video_id
-    })) || [],
+      videoId: ex.video_id,
+      bisetGrupoId: ex.biset_grupo_id
+    })).sort((a: any, b: any) => a.ordem - b.ordem) || [],
     createdAt: new Date(ficha.created_at),
     updatedAt: new Date(ficha.updated_at)
   }));
@@ -128,7 +130,8 @@ export default function FichasTreino() {
           descanso: ex.descanso,
           observacoes: ex.observacoes,
           tecnica: ex.tecnica,
-          video_id: ex.videoId
+          video_id: ex.videoId,
+          biset_grupo_id: ex.bisetGrupoId
         }))
       };
 

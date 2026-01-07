@@ -34,8 +34,22 @@ const STORAGE_KEY = 'workout_audio_settings';
 let globalAudioContext: AudioContext | null = null;
 
 // Controle de alertas já disparados para evitar duplicação
+// Usa Map com timestamp para limpeza automática
 const firedAlerts = new Map<string, number>();
-const ALERT_COOLDOWN = 5000; // 5 segundos de cooldown entre alertas do mesmo timer
+const ALERT_COOLDOWN = 10000; // 10 segundos de cooldown entre alertas do mesmo timer (aumentado de 5s)
+
+// Limpar alertas antigos periodicamente
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    const entries = Array.from(firedAlerts.entries());
+    for (const [timerId, timestamp] of entries) {
+      if (now - timestamp > ALERT_COOLDOWN + 5000) {
+        firedAlerts.delete(timerId);
+      }
+    }
+  }, 30000); // Limpar a cada 30 segundos
+}
 
 /**
  * Obter configurações de áudio do localStorage
@@ -276,11 +290,7 @@ function canFireAlert(timerId?: string): boolean {
 function markAlertFired(timerId?: string): void {
   if (timerId) {
     firedAlerts.set(timerId, Date.now());
-    
-    // Limpar após cooldown
-    setTimeout(() => {
-      firedAlerts.delete(timerId);
-    }, ALERT_COOLDOWN + 1000);
+    // Limpeza automática é feita pelo setInterval global
   }
 }
 

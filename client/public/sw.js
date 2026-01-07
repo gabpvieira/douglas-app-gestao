@@ -10,11 +10,12 @@
  * - Logs detalhados para debug
  */
 
-var CACHE_VERSION = 'app-v6';
+var CACHE_VERSION = 'app-v7';
 var STATIC_CACHE = 'static-' + CACHE_VERSION;
 var DYNAMIC_CACHE = 'dynamic-' + CACHE_VERSION;
 var TIMER_DB_NAME = 'sw-timers-db';
 var TIMER_STORE_NAME = 'active-timers';
+var NOTIFICATION_STORE_NAME = 'sent-notifications';
 
 // Assets estáticos para cache
 var STATIC_ASSETS = [
@@ -38,7 +39,7 @@ function openTimerDB() {
   if (dbPromise) return dbPromise;
   
   dbPromise = new Promise(function(resolve, reject) {
-    var request = indexedDB.open(TIMER_DB_NAME, 1);
+    var request = indexedDB.open(TIMER_DB_NAME, 2); // Versão 2 para nova store
     
     request.onerror = function() {
       console.error('[SW] IndexedDB error:', request.error);
@@ -53,6 +54,10 @@ function openTimerDB() {
       var db = event.target.result;
       if (!db.objectStoreNames.contains(TIMER_STORE_NAME)) {
         db.createObjectStore(TIMER_STORE_NAME, { keyPath: 'id' });
+      }
+      // Nova store para rastrear notificações enviadas (persiste entre reinícios do SW)
+      if (!db.objectStoreNames.contains(NOTIFICATION_STORE_NAME)) {
+        db.createObjectStore(NOTIFICATION_STORE_NAME, { keyPath: 'id' });
       }
     };
   });
@@ -201,7 +206,8 @@ self.addEventListener('fetch', function(event) {
 });
 
 // ============================================
-// SISTEMA DE TIMERS ROBUSTO v4.0
+// SISTEMA DE TIMERS ROBUSTO v5.0
+// Correção: Notificações 100% confiáveis em múltiplos intervalos
 // ============================================
 
 var activeTimers = {};
@@ -212,13 +218,96 @@ var lastCheckTime = 0;
 var checkLoopRunning = false;
 
 // Controle de notificações enviadas para evitar duplicação
+// Agora com persistência via IndexedDB para sobreviver reinícios do SW
 var sentNotifications = {};
+var NOTIFICATION_STORE_NAME = 'sent-notifications';
+
+// Carregar notificações enviadas do IndexedDB ao iniciar
+function loadSentNotificationsFromDB() {
+  return openTimerDB().then(function(db) {
+    // Verificar se a store existe
+    if (!db.objectStoreNames.contains(NOTIFICATION_STORE_NAME)) {
+      return;
+    }
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(NOTIFICATION_STORE_NAME, 'readonly');
+      var store = tx.objectStore(NOTIFICATION_STORE_NAME);
+      var request = store.getAll();
+      request.onsuccess = function() {
+        var results = request.result || [];
+        var now = Date.now();
+        results.forEach(function(item) {
+          // Manter apenas notificações dos últimos 5 minutos
+          if (now - item.timestamp < 300000) {
+            sentNotifications[item.id] = item.timestamp;
+          }
+        });
+        console.log('[SW] Loaded', Object.keys(sentNotifications).length, 'sent notifications from DB');
+        resolve();
+      };
+      request.onerror = function() { resolve(); }; // Ignorar erros
+    });
+  }).catch(function(err) {
+    console.warn('[SW] Error loading sent notifications:', err);
+  });
+}
+
+// Salvar notificação enviada no IndexedDB
+function saveSentNotificationToDB(timerId) {
+  return openTimerDB().then(function(db) {
+    // Verificar se a store existe
+    if (!db.objectStoreNames.contains(NOTIFICATION_STORE_NAME)) {
+      return;
+    }
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(NOTIFICATION_STORE_NAME, 'readwrite');
+      var store = tx.objectStore(NOTIFICATION_STORE_NAME);
+      var request = store.put({ id: timerId, timestamp: Date.now() });
+      request.onsuccess = function() { resolve(); };
+      request.onerror = function() { resolve(); }; // Ignorar erros
+    });
+  }).catch(function(err) {
+    console.warn('[SW] Error saving sent notification:', err);
+  });
+}
+
+// Limpar notificações antigas do IndexedDB
+function cleanOldNotificationsFromDB() {
+  return openTimerDB().then(function(db) {
+    if (!db.objectStoreNames.contains(NOTIFICATION_STORE_NAME)) {
+      return;
+    }
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(NOTIFICATION_STORE_NAME, 'readwrite');
+      var store = tx.objectStore(NOTIFICATION_STORE_NAME);
+      var request = store.getAll();
+      request.onsuccess = function() {
+        var results = request.result || [];
+        var now = Date.now();
+        results.forEach(function(item) {
+          // Remover notificações com mais de 5 minutos
+          if (now - item.timestamp > 300000) {
+            store.delete(item.id);
+          }
+        });
+        resolve();
+      };
+      request.onerror = function() { resolve(); };
+    });
+  }).catch(function() {});
+}
 
 /**
  * Restaurar timers do IndexedDB após SW reiniciar
  */
 function restoreTimersFromDB() {
-  return loadTimersFromDB().then(function(timers) {
+  // Primeiro carregar notificações enviadas
+  return loadSentNotificationsFromDB().then(function() {
+    // Limpar notificações antigas
+    return cleanOldNotificationsFromDB();
+  }).then(function() {
+    return loadTimersFromDB();
+  }).then(function(timers) {
     var now = Date.now();
     var restoredCount = 0;
     
@@ -227,11 +316,15 @@ function restoreTimersFromDB() {
       var elapsed = now - timer.startTime;
       var remaining = (timer.duration * 1000) - elapsed;
       
-      // Se expirou há menos de 30 segundos, ainda processar
+      // Se expirou há menos de 30 segundos E não foi notificado, ainda processar
       if (remaining > -30000 && !sentNotifications[timer.id]) {
         activeTimers[timer.id] = timer;
         restoredCount++;
         console.log('[SW] Restored timer from DB:', timer.id, 'remaining:', Math.ceil(remaining / 1000) + 's');
+      } else if (sentNotifications[timer.id]) {
+        // Timer já foi notificado, remover do DB
+        console.log('[SW] Timer already notified, removing:', timer.id);
+        removeTimerFromDB(timer.id);
       } else {
         // Timer muito antigo, remover do DB
         removeTimerFromDB(timer.id);
@@ -344,6 +437,7 @@ function checkAllTimers() {
     var remaining = (timer.duration * 1000) - elapsed;
     
     // Timer completou - verificar se já enviamos notificação
+    // Verificação tripla: timer.notificationSent, sentNotifications em memória, e DB
     if (remaining <= 0 && !timer.notificationSent && !sentNotifications[timerId]) {
       console.log('[SW] Timer completed:', timerId, 'elapsed:', Math.floor(elapsed / 1000) + 's');
       
@@ -351,8 +445,9 @@ function checkAllTimers() {
       timer.notificationSent = true;
       sentNotifications[timerId] = now;
       
-      // Atualizar no DB
+      // Persistir no DB para sobreviver reinícios
       saveTimerToDB(timer);
+      saveSentNotificationToDB(timerId);
       
       // Enviar notificação única
       sendTimerCompleteNotification(timer);
@@ -365,10 +460,11 @@ function checkAllTimers() {
         delete activeTimers[timerId];
         removeTimerFromDB(timerId);
         
-        // Manter registro de notificação por 60 segundos para evitar duplicação
+        // Manter registro de notificação por 5 minutos para evitar duplicação
+        // (agora persistido no DB, então não precisa limpar da memória imediatamente)
         setTimeout(function() {
           delete sentNotifications[timerId];
-        }, 60000);
+        }, 300000); // 5 minutos
         
         // Verificar se ainda há timers ativos
         if (Object.keys(activeTimers).length === 0) {
@@ -385,9 +481,15 @@ function checkAllTimers() {
 function handleStartTimer(timerData) {
   var timerId = timerData.id;
   
-  // Se já existe um timer com esse ID e já foi notificado, ignorar
+  // Se já existe um timer com esse ID e já foi notificado (em memória ou DB), ignorar
   if (sentNotifications[timerId]) {
-    console.log('[SW] Timer already completed, ignoring:', timerId);
+    console.log('[SW] Timer already completed (memory), ignoring:', timerId);
+    return;
+  }
+  
+  // Verificar também se já existe um timer ativo com esse ID
+  if (activeTimers[timerId] && activeTimers[timerId].notificationSent) {
+    console.log('[SW] Timer already completed (active), ignoring:', timerId);
     return;
   }
   
