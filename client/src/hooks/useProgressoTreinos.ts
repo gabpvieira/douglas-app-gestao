@@ -183,9 +183,13 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   const diasUnicosSemana = new Set<string>();
   const diasIndicesSemana = new Set<number>(); // Índices no formato BR (0=seg, 6=dom)
   treinosSemana?.forEach(treino => {
-    const data = new Date(treino.data_realizacao);
-    diasUnicosSemana.add(data.toISOString().split('T')[0]);
-    diasIndicesSemana.add(converterDiaParaIndiceBR(data.getDay()));
+    // Usar a data ISO diretamente para evitar problemas de timezone
+    const dataISO = treino.data_realizacao.split('T')[0];
+    diasUnicosSemana.add(dataISO);
+    
+    // Criar data em UTC para obter o dia da semana correto
+    const data = new Date(dataISO + 'T00:00:00Z');
+    diasIndicesSemana.add(converterDiaParaIndiceBR(data.getUTCDay()));
   });
   
   const diasTreinadosSemana = diasUnicosSemana.size;
@@ -197,8 +201,9 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   // 8. Calcular métricas do mês
   const diasUnicosMes = new Set<string>();
   treinosMes?.forEach(treino => {
-    const data = new Date(treino.data_realizacao);
-    diasUnicosMes.add(data.toISOString().split('T')[0]);
+    // Usar a data ISO diretamente para evitar problemas de timezone
+    const dataISO = treino.data_realizacao.split('T')[0];
+    diasUnicosMes.add(dataISO);
   });
   
   const diasTreinadosMes = diasUnicosMes.size;
@@ -208,28 +213,29 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   // 9. Calcular total de dias únicos treinados (histórico completo)
   const diasUnicosTotal = new Set<string>();
   todosTreinos?.forEach(treino => {
-    const data = new Date(treino.data_realizacao);
-    diasUnicosTotal.add(data.toISOString().split('T')[0]);
+    // Usar a data ISO diretamente para evitar problemas de timezone
+    const dataISO = treino.data_realizacao.split('T')[0];
+    diasUnicosTotal.add(dataISO);
   });
   
   // 10. Calcular sequências
   const diasTreinados = Array.from(
-    new Set(todosTreinos?.map(t => new Date(t.data_realizacao).toDateString()))
-  ).map(d => new Date(d)).sort((a, b) => b.getTime() - a.getTime());
+    new Set(todosTreinos?.map(t => t.data_realizacao.split('T')[0]))
+  ).map(d => new Date(d + 'T00:00:00Z')).sort((a, b) => b.getTime() - a.getTime());
   
   let sequenciaAtual = 0;
   let melhorSequencia = 0;
   let sequenciaTemp = 0;
   
   const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  hoje.setUTCHours(0, 0, 0, 0);
   
   for (let i = 0; i < 90; i++) {
     const dia = new Date(hoje);
-    dia.setDate(hoje.getDate() - i);
+    dia.setUTCDate(hoje.getUTCDate() - i);
     
     const treinouNesteDia = diasTreinados.some(d => 
-      d.toDateString() === dia.toDateString()
+      d.toISOString().split('T')[0] === dia.toISOString().split('T')[0]
     );
     
     if (treinouNesteDia) {
@@ -496,8 +502,9 @@ export function useTreinosMes(alunoId: string, ano: number, mes: number) {
       // Agrupar por dia
       const treinosPorDia: Record<string, number> = {};
       treinos?.forEach(treino => {
-        const data = new Date(treino.data_realizacao).toISOString().split('T')[0];
-        treinosPorDia[data] = (treinosPorDia[data] || 0) + 1;
+        // Usar a data ISO diretamente para evitar problemas de timezone
+        const dataISO = treino.data_realizacao.split('T')[0];
+        treinosPorDia[dataISO] = (treinosPorDia[dataISO] || 0) + 1;
       });
       
       return Object.entries(treinosPorDia).map(([data, quantidade]) => ({
