@@ -152,10 +152,26 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   // 3. Buscar treinos realizados na semana (com séries)
   const { data: treinosSemana } = await supabase
     .from('treinos_realizados')
-    .select('data_realizacao, exercicio_id, series_realizadas')
+    .select('id, data_realizacao, exercicio_id, series_realizadas')
     .in('ficha_aluno_id', fichaIds)
     .gte('data_realizacao', inicioSemana.toISOString())
     .lte('data_realizacao', fimSemana.toISOString());
+  
+  // 3a. Buscar contagem real de séries da tabela series_realizadas
+  const treinoIds = treinosSemana?.map(t => t.id) || [];
+  let seriesReaisMap: Record<string, number> = {};
+  
+  if (treinoIds.length > 0) {
+    const { data: seriesReais } = await supabase
+      .from('series_realizadas')
+      .select('treino_realizado_id')
+      .in('treino_realizado_id', treinoIds);
+    
+    // Contar séries por treino
+    seriesReais?.forEach(serie => {
+      seriesReaisMap[serie.treino_realizado_id] = (seriesReaisMap[serie.treino_realizado_id] || 0) + 1;
+    });
+  }
   
   // 3b. Buscar feedbacks da semana como fallback (para treinos deletados)
   const { data: feedbacksSemana } = await supabase
@@ -227,7 +243,11 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   const diasTreinadosSemana = diasUnicosSemana.size;
   const treinosRealizadosSemana = treinosSemana?.length || 0;
   const exerciciosCompletadosSemana = treinosSemana?.length || 0;
-  const seriesRealizadasSemana = treinosSemana?.reduce((total, treino) => total + (treino.series_realizadas || 0), 0) || 0;
+  // Usar contagem real de séries da tabela series_realizadas
+  const seriesRealizadasSemana = treinosSemana?.reduce((total, treino) => {
+    const seriesReais = seriesReaisMap[treino.id] || 0;
+    return total + seriesReais;
+  }, 0) || 0;
   const diasTreinadosSemanaReal = Array.from(diasUnicosSemana);
   const diasTreinadosSemanaIndices = Array.from(diasIndicesSemana);
   
