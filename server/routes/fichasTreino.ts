@@ -159,6 +159,28 @@ export function registerFichasTreinoRoutes(app: Express) {
     try {
       const { id } = req.params;
       
+      // Verificar se há atribuições com histórico de treinos
+      const { data: atribuicoes } = await supabase
+        .from('fichas_alunos')
+        .select('id')
+        .eq('ficha_id', id);
+      
+      if (atribuicoes && atribuicoes.length > 0) {
+        const fichaIds = atribuicoes.map(a => a.id);
+        
+        // Verificar se há treinos realizados
+        const { count } = await supabase
+          .from('treinos_realizados')
+          .select('*', { count: 'exact', head: true })
+          .in('ficha_aluno_id', fichaIds);
+        
+        if (count && count > 0) {
+          return res.status(400).json({ 
+            error: 'Não é possível deletar esta ficha pois existem treinos realizados. Desative-a ao invés de deletar.' 
+          });
+        }
+      }
+      
       const { error } = await supabase
         .from('fichas_treino')
         .delete()
@@ -260,6 +282,18 @@ export function registerFichasTreinoRoutes(app: Express) {
   app.delete('/api/fichas-treino/:fichaId/atribuicoes/:atribuicaoId', async (req, res) => {
     try {
       const { atribuicaoId } = req.params;
+      
+      // Verificar se há treinos realizados nesta atribuição
+      const { count } = await supabase
+        .from('treinos_realizados')
+        .select('*', { count: 'exact', head: true })
+        .eq('ficha_aluno_id', atribuicaoId);
+      
+      if (count && count > 0) {
+        return res.status(400).json({ 
+          error: 'Não é possível remover esta atribuição pois existem treinos realizados. Altere o status para "concluído" ao invés de deletar.' 
+        });
+      }
       
       const { error } = await supabase
         .from('fichas_alunos')
