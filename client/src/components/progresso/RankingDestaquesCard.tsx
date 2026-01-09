@@ -38,8 +38,8 @@ const BADGE_CONFIG = {
 export default function RankingDestaquesCard({ alunos, isLoading }: RankingDestaquesCardProps) {
   const [showMensagemModal, setShowMensagemModal] = useState(false);
   
-  // Filtrar alunos com pelo menos 5 dias
-  const alunosDestaque = alunos.filter(a => a.diasTreinados >= 5);
+  // Filtrar alunos com pelo menos 4 dias e bom volume (80+ séries)
+  const alunosDestaque = alunos.filter(a => a.diasTreinados >= 4 && a.seriesRealizadas >= 80);
   
   if (isLoading) {
     return (
@@ -61,13 +61,14 @@ export default function RankingDestaquesCard({ alunos, isLoading }: RankingDesta
             </div>
             <div>
               <h2 className="text-lg font-semibold text-white">Alunos Destaque da Semana</h2>
-              <p className="text-sm text-gray-400">Mínimo de 5 dias de treino</p>
+              <p className="text-sm text-gray-400">Mínimo de 4 dias e 80 séries</p>
             </div>
           </div>
           
           <div className="text-center py-8 text-gray-500">
             <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>Nenhum aluno atingiu 5 dias de treino esta semana</p>
+            <p>Nenhum aluno atingiu 4 dias com alto volume esta semana</p>
+            <p className="text-xs mt-2">Critério: 4+ dias e 80+ séries</p>
           </div>
         </div>
       </Card>
@@ -85,7 +86,7 @@ export default function RankingDestaquesCard({ alunos, isLoading }: RankingDesta
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-white">🔥 Alunos Destaque da Semana</h2>
-                <p className="text-sm text-gray-400">{alunosDestaque.length} alunos com 5+ dias de treino</p>
+                <p className="text-sm text-gray-400">{alunosDestaque.length} alunos com 4+ dias e alto volume</p>
               </div>
             </div>
             
@@ -121,7 +122,7 @@ export default function RankingDestaquesCard({ alunos, isLoading }: RankingDesta
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-white truncate">{aluno.nome}</div>
                     <div className="text-sm text-gray-400">
-                      {aluno.diasTreinados} dias • {aluno.treinosRealizados} treinos
+                      {aluno.diasTreinados} dias • {aluno.treinosRealizados} treinos • {aluno.seriesRealizadas} séries
                     </div>
                   </div>
                   

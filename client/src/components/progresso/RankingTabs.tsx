@@ -141,11 +141,16 @@ export default function RankingTabs() {
                       
                       <div className="mt-2 space-y-1">
                         <div className="text-2xl font-bold text-primary">
-                          {aluno.pontuacao}
+                          {tipoRanking === 'semanal' ? aluno.diasTreinados : aluno.pontuacao}
                         </div>
                         <div className="text-xs text-gray-400">
                           {tipoRanking === 'semanal' ? 'dias esta semana' : 'treinos no total'}
                         </div>
+                        {tipoRanking === 'semanal' && (
+                          <div className="text-[10px] text-gray-500">
+                            {aluno.seriesRealizadas} séries
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -179,7 +184,7 @@ export default function RankingTabs() {
                         <div className="font-medium text-white truncate">{aluno.nome}</div>
                         <div className="text-xs text-gray-400">
                           {tipoRanking === 'semanal' 
-                            ? `${aluno.diasTreinados} dias • ${aluno.treinosRealizados} treinos`
+                            ? `${aluno.diasTreinados} dias • ${aluno.treinosRealizados} treinos • ${aluno.seriesRealizadas} séries`
                             : `${aluno.diasTreinados} dias únicos`}
                         </div>
                       </div>

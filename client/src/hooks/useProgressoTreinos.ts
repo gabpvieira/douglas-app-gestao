@@ -11,6 +11,7 @@ export interface MetricasAluno {
   diasTreinadosSemana: number;
   treinosRealizadosSemana: number;
   exerciciosCompletadosSemana: number;
+  seriesRealizadasSemana: number; // Volume total de séries na semana
   
   // Mês Atual
   diasTreinadosMes: number;
@@ -41,6 +42,7 @@ export interface AlunoDestaque {
   pontuacao: number;
   diasTreinados: number;
   treinosRealizados: number;
+  seriesRealizadas: number; // Volume total de séries
   badge: 'ouro' | 'prata' | 'bronze' | 'fogo' | null;
 }
 
@@ -131,6 +133,7 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
       diasTreinadosSemana: 0,
       treinosRealizadosSemana: 0,
       exerciciosCompletadosSemana: 0,
+      seriesRealizadasSemana: 0,
       diasTreinadosMes: 0,
       treinosRealizadosMes: 0,
       sequenciaAtual: 0,
@@ -146,10 +149,10 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     };
   }
   
-  // 3. Buscar treinos realizados na semana
+  // 3. Buscar treinos realizados na semana (com séries)
   const { data: treinosSemana } = await supabase
     .from('treinos_realizados')
-    .select('data_realizacao, exercicio_id')
+    .select('data_realizacao, exercicio_id, series_realizadas')
     .in('ficha_aluno_id', fichaIds)
     .gte('data_realizacao', inicioSemana.toISOString())
     .lte('data_realizacao', fimSemana.toISOString());
@@ -195,6 +198,7 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   const diasTreinadosSemana = diasUnicosSemana.size;
   const treinosRealizadosSemana = treinosSemana?.length || 0;
   const exerciciosCompletadosSemana = treinosSemana?.length || 0;
+  const seriesRealizadasSemana = treinosSemana?.reduce((total, treino) => total + (treino.series_realizadas || 0), 0) || 0;
   const diasTreinadosSemanaReal = Array.from(diasUnicosSemana);
   const diasTreinadosSemanaIndices = Array.from(diasIndicesSemana);
   
@@ -270,6 +274,7 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     diasTreinadosSemana,
     treinosRealizadosSemana,
     exerciciosCompletadosSemana,
+    seriesRealizadasSemana,
     diasTreinadosMes,
     treinosRealizadosMes,
     sequenciaAtual,
@@ -338,10 +343,21 @@ export function useRankingSemanal(criterio: 'dias' | 'treinos' | 'exercicios' = 
         alunos.map(aluno => buscarMetricasAluno(aluno.id))
       );
       
-      // 3. Ordenar por critério
-      const ordenado = metricas.sort((a, b) => {
+      // 3. Calcular pontuação composta para cada aluno
+      // Fórmula: (dias * 100) + (treinos * 10) + (séries * 1)
+      // Isso prioriza dias, mas considera volume de trabalho
+      const alunosComPontuacao = metricas.map(aluno => ({
+        ...aluno,
+        pontuacaoComposta: (aluno.diasTreinadosSemana * 100) + 
+                          (aluno.treinosRealizadosSemana * 10) + 
+                          (aluno.seriesRealizadasSemana * 1)
+      }));
+      
+      // 4. Ordenar por pontuação composta (ou critério específico se fornecido)
+      const ordenado = alunosComPontuacao.sort((a, b) => {
         if (criterio === 'dias') {
-          return b.diasTreinadosSemana - a.diasTreinadosSemana;
+          // Ordenar por pontuação composta (dias + volume)
+          return b.pontuacaoComposta - a.pontuacaoComposta;
         } else if (criterio === 'treinos') {
           return b.treinosRealizadosSemana - a.treinosRealizadosSemana;
         } else {
@@ -349,17 +365,19 @@ export function useRankingSemanal(criterio: 'dias' | 'treinos' | 'exercicios' = 
         }
       });
       
-      // 4. Criar ranking com badges
+      // 5. Criar ranking com badges aprimorados
       const ranking: AlunoDestaque[] = ordenado.map((aluno, index) => {
         let badge: 'ouro' | 'prata' | 'bronze' | 'fogo' | null = null;
         
+        // Top 3 sempre recebem medalhas
         if (index === 0) badge = 'ouro';
         else if (index === 1) badge = 'prata';
         else if (index === 2) badge = 'bronze';
-        else if (aluno.diasTreinadosSemana >= 5) badge = 'fogo';
+        // Badge "fogo" para quem treinou 4+ dias com bom volume (80+ séries)
+        else if (aluno.diasTreinadosSemana >= 4 && aluno.seriesRealizadasSemana >= 80) badge = 'fogo';
         
         const pontuacao = criterio === 'dias' 
-          ? aluno.diasTreinadosSemana
+          ? aluno.pontuacaoComposta
           : criterio === 'treinos'
           ? aluno.treinosRealizadosSemana
           : aluno.exerciciosCompletadosSemana;
@@ -372,11 +390,12 @@ export function useRankingSemanal(criterio: 'dias' | 'treinos' | 'exercicios' = 
           pontuacao,
           diasTreinados: aluno.diasTreinadosSemana,
           treinosRealizados: aluno.treinosRealizadosSemana,
+          seriesRealizadas: aluno.seriesRealizadasSemana,
           badge
         };
       });
       
-      // 5. Retornar top 10
+      // 6. Retornar top 10
       return ranking.slice(0, 10);
     },
     staleTime: 1000 * 60 * 5
