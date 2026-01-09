@@ -157,6 +157,14 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     .gte('data_realizacao', inicioSemana.toISOString())
     .lte('data_realizacao', fimSemana.toISOString());
   
+  // 3b. Buscar feedbacks da semana como fallback (para treinos deletados)
+  const { data: feedbacksSemana } = await supabase
+    .from('feedback_treinos')
+    .select('created_at, treino_id')
+    .eq('aluno_id', alunoId)
+    .gte('created_at', inicioSemana.toISOString())
+    .lte('created_at', fimSemana.toISOString());
+  
   // 4. Buscar treinos realizados no mês
   const { data: treinosMes } = await supabase
     .from('treinos_realizados')
@@ -164,6 +172,14 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     .in('ficha_aluno_id', fichaIds)
     .gte('data_realizacao', inicioMes.toISOString())
     .lte('data_realizacao', fimMes.toISOString());
+  
+  // 4b. Buscar feedbacks do mês como fallback
+  const { data: feedbacksMes } = await supabase
+    .from('feedback_treinos')
+    .select('created_at, treino_id')
+    .eq('aluno_id', alunoId)
+    .gte('created_at', inicioMes.toISOString())
+    .lte('created_at', fimMes.toISOString());
   
   // 5. Buscar todos os treinos (últimos 90 dias para calcular sequências)
   const dataLimite = new Date();
@@ -185,6 +201,8 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   // 7. Calcular métricas da semana
   const diasUnicosSemana = new Set<string>();
   const diasIndicesSemana = new Set<number>(); // Índices no formato BR (0=seg, 6=dom)
+  
+  // Adicionar dias dos treinos realizados
   treinosSemana?.forEach(treino => {
     // Usar a data ISO diretamente para evitar problemas de timezone
     const dataISO = treino.data_realizacao.split('T')[0];
@@ -193,6 +211,17 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     // Criar data em UTC para obter o dia da semana correto
     const data = new Date(dataISO + 'T00:00:00Z');
     diasIndicesSemana.add(converterDiaParaIndiceBR(data.getUTCDay()));
+  });
+  
+  // Adicionar dias dos feedbacks (para treinos deletados)
+  feedbacksSemana?.forEach(feedback => {
+    const dataISO = feedback.created_at.split('T')[0];
+    // Verificar se já não foi contado pelos treinos
+    if (!diasUnicosSemana.has(dataISO)) {
+      diasUnicosSemana.add(dataISO);
+      const data = new Date(dataISO + 'T00:00:00Z');
+      diasIndicesSemana.add(converterDiaParaIndiceBR(data.getUTCDay()));
+    }
   });
   
   const diasTreinadosSemana = diasUnicosSemana.size;
@@ -204,10 +233,20 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   
   // 8. Calcular métricas do mês
   const diasUnicosMes = new Set<string>();
+  
+  // Adicionar dias dos treinos realizados
   treinosMes?.forEach(treino => {
     // Usar a data ISO diretamente para evitar problemas de timezone
     const dataISO = treino.data_realizacao.split('T')[0];
     diasUnicosMes.add(dataISO);
+  });
+  
+  // Adicionar dias dos feedbacks (para treinos deletados)
+  feedbacksMes?.forEach(feedback => {
+    const dataISO = feedback.created_at.split('T')[0];
+    if (!diasUnicosMes.has(dataISO)) {
+      diasUnicosMes.add(dataISO);
+    }
   });
   
   const diasTreinadosMes = diasUnicosMes.size;
