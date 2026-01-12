@@ -61,9 +61,12 @@ export default function ProgressoTreinos() {
   
   // Calcular estatísticas gerais
   const totalAlunos = alunos?.length || 0;
-  const alunosAtivos = alunos?.filter(a => a.diasTreinadosSemana >= 3).length || 0;
-  const alunosInativos = alunos?.filter(a => a.diasTreinadosSemana === 0).length || 0;
-  const taxaAtivacao = totalAlunos > 0 ? (alunosAtivos / totalAlunos) * 100 : 0;
+  // Alunos que treinaram pelo menos 1 dia na semana
+  const alunosTreinaramSemana = alunos?.filter(a => a.diasTreinadosSemana >= 1).length || 0;
+  // Alunos que não treinaram nenhum dia na semana
+  const alunosNaoTreinaram = alunos?.filter(a => a.diasTreinadosSemana === 0).length || 0;
+  const taxaTreinaram = totalAlunos > 0 ? (alunosTreinaramSemana / totalAlunos) * 100 : 0;
+  const taxaNaoTreinaram = totalAlunos > 0 ? (alunosNaoTreinaram / totalAlunos) * 100 : 0;
   
   return (
     <div className="min-h-screen bg-gray-950 p-3 sm:p-6 pb-20 sm:pb-6">
@@ -97,9 +100,9 @@ export default function ProgressoTreinos() {
               </div>
               <div className="min-w-0">
                 <div className="text-xl sm:text-2xl font-bold text-white">
-                  {alunosAtivos} ({taxaAtivacao.toFixed(0)}%)
+                  {alunosTreinaramSemana} ({taxaTreinaram.toFixed(0)}%)
                 </div>
-                <div className="text-xs sm:text-sm text-gray-400 truncate">Alunos Ativos</div>
+                <div className="text-xs sm:text-sm text-gray-400 truncate">Treinaram esta Semana</div>
               </div>
             </div>
           </Card>
@@ -111,9 +114,9 @@ export default function ProgressoTreinos() {
               </div>
               <div className="min-w-0">
                 <div className="text-xl sm:text-2xl font-bold text-white">
-                  {alunosInativos} ({totalAlunos > 0 ? ((alunosInativos / totalAlunos) * 100).toFixed(0) : 0}%)
+                  {alunosNaoTreinaram} ({taxaNaoTreinaram.toFixed(0)}%)
                 </div>
-                <div className="text-xs sm:text-sm text-gray-400 truncate">Alunos Inativos</div>
+                <div className="text-xs sm:text-sm text-gray-400 truncate">Não Treinaram esta Semana</div>
               </div>
             </div>
           </Card>
