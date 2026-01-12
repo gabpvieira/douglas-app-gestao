@@ -116,174 +116,93 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     ? alunoData.users_profile[0] 
     : alunoData.users_profile;
   
-  // 2. Buscar fichas do aluno
-  const { data: fichas } = await supabase
-    .from('fichas_alunos')
-    .select('id')
-    .eq('aluno_id', alunoId);
-  
-  const fichaIds = fichas?.map(f => f.id) || [];
-  
-  if (fichaIds.length === 0) {
-    return {
-      alunoId,
-      nome: profile.nome,
-      fotoUrl: profile.foto_url,
-      email: profile.email,
-      diasTreinadosSemana: 0,
-      treinosRealizadosSemana: 0,
-      exerciciosCompletadosSemana: 0,
-      seriesRealizadasSemana: 0,
-      diasTreinadosMes: 0,
-      treinosRealizadosMes: 0,
-      sequenciaAtual: 0,
-      melhorSequencia: 0,
-      totalTreinosRealizados: 0,
-      totalDiasTreinados: 0,
-      taxaFrequencia: 0,
-      mediaExerciciosPorTreino: 0,
-      ultimoTreino: null,
-      diasTreinadosSemanaReal: [],
-      diasTreinadosMesReal: [],
-      diasTreinadosSemanaIndices: []
-    };
-  }
-  
-  // 3. Buscar treinos realizados na semana (com séries)
+  // 2. Buscar treinos da semana usando workout_progress_backup (fonte única da verdade)
   const { data: treinosSemana } = await supabase
-    .from('treinos_realizados')
-    .select('id, data_realizacao, exercicio_id, series_realizadas')
-    .in('ficha_aluno_id', fichaIds)
-    .gte('data_realizacao', inicioSemana.toISOString())
-    .lte('data_realizacao', fimSemana.toISOString());
+    .from('workout_progress_backup')
+    .select('workout_date, total_exercises, completed_exercises, workout_snapshot')
+    .eq('user_id', alunoId)
+    .gte('workout_date', inicioSemana.toISOString().split('T')[0])
+    .lte('workout_date', fimSemana.toISOString().split('T')[0]);
   
-  // 3a. Buscar contagem real de séries da tabela series_realizadas
-  const treinoIds = treinosSemana?.map(t => t.id) || [];
-  let seriesReaisMap: Record<string, number> = {};
-  
-  if (treinoIds.length > 0) {
-    const { data: seriesReais } = await supabase
-      .from('series_realizadas')
-      .select('treino_realizado_id')
-      .in('treino_realizado_id', treinoIds);
-    
-    // Contar séries por treino
-    seriesReais?.forEach(serie => {
-      seriesReaisMap[serie.treino_realizado_id] = (seriesReaisMap[serie.treino_realizado_id] || 0) + 1;
-    });
-  }
-  
-  // 3b. Buscar feedbacks da semana como fallback (para treinos deletados)
-  const { data: feedbacksSemana } = await supabase
-    .from('feedback_treinos')
-    .select('created_at, treino_id')
-    .eq('aluno_id', alunoId)
-    .gte('created_at', inicioSemana.toISOString())
-    .lte('created_at', fimSemana.toISOString());
-  
-  // 4. Buscar treinos realizados no mês
+  // 3. Buscar treinos do mês usando workout_progress_backup
   const { data: treinosMes } = await supabase
-    .from('treinos_realizados')
-    .select('data_realizacao')
-    .in('ficha_aluno_id', fichaIds)
-    .gte('data_realizacao', inicioMes.toISOString())
-    .lte('data_realizacao', fimMes.toISOString());
+    .from('workout_progress_backup')
+    .select('workout_date, total_exercises, completed_exercises')
+    .eq('user_id', alunoId)
+    .gte('workout_date', inicioMes.toISOString().split('T')[0])
+    .lte('workout_date', fimMes.toISOString().split('T')[0]);
   
-  // 4b. Buscar feedbacks do mês como fallback
-  const { data: feedbacksMes } = await supabase
-    .from('feedback_treinos')
-    .select('created_at, treino_id')
-    .eq('aluno_id', alunoId)
-    .gte('created_at', inicioMes.toISOString())
-    .lte('created_at', fimMes.toISOString());
-  
-  // 5. Buscar todos os treinos (últimos 90 dias para calcular sequências)
+  // 4. Buscar todos os treinos (últimos 90 dias para calcular sequências)
   const dataLimite = new Date();
   dataLimite.setDate(dataLimite.getDate() - 90);
   
   const { data: todosTreinos } = await supabase
-    .from('treinos_realizados')
-    .select('data_realizacao')
-    .in('ficha_aluno_id', fichaIds)
-    .gte('data_realizacao', dataLimite.toISOString())
-    .order('data_realizacao', { ascending: false });
+    .from('workout_progress_backup')
+    .select('workout_date')
+    .eq('user_id', alunoId)
+    .gte('workout_date', dataLimite.toISOString().split('T')[0])
+    .order('workout_date', { ascending: false });
   
-  // 6. Buscar total geral de treinos (histórico completo)
+  // 5. Buscar total geral de treinos (histórico completo)
   const { count: totalGeral } = await supabase
-    .from('treinos_realizados')
+    .from('workout_progress_backup')
     .select('*', { count: 'exact', head: true })
-    .in('ficha_aluno_id', fichaIds);
+    .eq('user_id', alunoId);
   
-  // 7. Calcular métricas da semana
+  // 6. Calcular métricas da semana
   const diasUnicosSemana = new Set<string>();
   const diasIndicesSemana = new Set<number>(); // Índices no formato BR (0=seg, 6=dom)
+  let totalExerciciosSemana = 0;
+  let totalSeriesSemana = 0;
   
-  // Adicionar dias dos treinos realizados
   treinosSemana?.forEach(treino => {
-    // Usar a data ISO diretamente para evitar problemas de timezone
-    const dataISO = treino.data_realizacao.split('T')[0];
+    const dataISO = treino.workout_date;
     diasUnicosSemana.add(dataISO);
     
     // Criar data em UTC para obter o dia da semana correto
     const data = new Date(dataISO + 'T00:00:00Z');
     diasIndicesSemana.add(converterDiaParaIndiceBR(data.getUTCDay()));
-  });
-  
-  // Adicionar dias dos feedbacks (para treinos deletados)
-  feedbacksSemana?.forEach(feedback => {
-    const dataISO = feedback.created_at.split('T')[0];
-    // Verificar se já não foi contado pelos treinos
-    if (!diasUnicosSemana.has(dataISO)) {
-      diasUnicosSemana.add(dataISO);
-      const data = new Date(dataISO + 'T00:00:00Z');
-      diasIndicesSemana.add(converterDiaParaIndiceBR(data.getUTCDay()));
+    
+    // Somar exercícios completados
+    totalExerciciosSemana += treino.completed_exercises || 0;
+    
+    // Contar séries do snapshot
+    if (treino.workout_snapshot?.exercicios) {
+      treino.workout_snapshot.exercicios.forEach((ex: any) => {
+        if (ex.series_realizadas) {
+          totalSeriesSemana += ex.series_realizadas.length;
+        }
+      });
     }
   });
   
   const diasTreinadosSemana = diasUnicosSemana.size;
   const treinosRealizadosSemana = treinosSemana?.length || 0;
-  const exerciciosCompletadosSemana = treinosSemana?.length || 0;
-  // Usar contagem real de séries da tabela series_realizadas
-  const seriesRealizadasSemana = treinosSemana?.reduce((total, treino) => {
-    const seriesReais = seriesReaisMap[treino.id] || 0;
-    return total + seriesReais;
-  }, 0) || 0;
+  const exerciciosCompletadosSemana = totalExerciciosSemana;
+  const seriesRealizadasSemana = totalSeriesSemana;
   const diasTreinadosSemanaReal = Array.from(diasUnicosSemana);
   const diasTreinadosSemanaIndices = Array.from(diasIndicesSemana);
   
-  // 8. Calcular métricas do mês
+  // 7. Calcular métricas do mês
   const diasUnicosMes = new Set<string>();
   
-  // Adicionar dias dos treinos realizados
   treinosMes?.forEach(treino => {
-    // Usar a data ISO diretamente para evitar problemas de timezone
-    const dataISO = treino.data_realizacao.split('T')[0];
-    diasUnicosMes.add(dataISO);
-  });
-  
-  // Adicionar dias dos feedbacks (para treinos deletados)
-  feedbacksMes?.forEach(feedback => {
-    const dataISO = feedback.created_at.split('T')[0];
-    if (!diasUnicosMes.has(dataISO)) {
-      diasUnicosMes.add(dataISO);
-    }
+    diasUnicosMes.add(treino.workout_date);
   });
   
   const diasTreinadosMes = diasUnicosMes.size;
   const treinosRealizadosMes = treinosMes?.length || 0;
   const diasTreinadosMesReal = Array.from(diasUnicosMes);
   
-  // 9. Calcular total de dias únicos treinados (histórico completo)
+  // 8. Calcular total de dias únicos treinados (histórico completo)
   const diasUnicosTotal = new Set<string>();
   todosTreinos?.forEach(treino => {
-    // Usar a data ISO diretamente para evitar problemas de timezone
-    const dataISO = treino.data_realizacao.split('T')[0];
-    diasUnicosTotal.add(dataISO);
+    diasUnicosTotal.add(treino.workout_date);
   });
   
-  // 10. Calcular sequências
+  // 9. Calcular sequências
   const diasTreinados = Array.from(
-    new Set(todosTreinos?.map(t => t.data_realizacao.split('T')[0]))
+    new Set(todosTreinos?.map(t => t.workout_date))
   ).map(d => new Date(d + 'T00:00:00Z')).sort((a, b) => b.getTime() - a.getTime());
   
   let sequenciaAtual = 0;
@@ -313,7 +232,7 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     }
   }
   
-  // 11. Calcular outras métricas
+  // 10. Calcular outras métricas
   const totalTreinosRealizados = totalGeral || 0;
   const totalDiasTreinados = diasUnicosTotal.size;
   const taxaFrequencia = (diasTreinadosSemana / 7) * 100;
@@ -322,7 +241,7 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     : 0;
   
   const ultimoTreino = todosTreinos && todosTreinos.length > 0
-    ? new Date(todosTreinos[0].data_realizacao)
+    ? new Date(todosTreinos[0].workout_date + 'T00:00:00')
     : null;
   
   return {
@@ -469,31 +388,30 @@ export function useHistoricoTreinos(alunoId: string, dias: number = 30) {
       const dataLimite = new Date();
       dataLimite.setDate(dataLimite.getDate() - dias);
       
-      // Buscar fichas do aluno
-      const { data: fichas } = await supabase
-        .from('fichas_alunos')
-        .select('id')
-        .eq('aluno_id', alunoId);
-      
-      const fichaIds = fichas?.map(f => f.id) || [];
-      
-      if (fichaIds.length === 0) return [];
-      
-      // Buscar treinos realizados
+      // Buscar treinos usando workout_progress_backup
       const { data: treinos } = await supabase
-        .from('treinos_realizados')
-        .select(`
-          id,
-          data_realizacao,
-          series_realizadas,
-          observacoes,
-          exercicios_ficha!inner(nome, grupo_muscular)
-        `)
-        .in('ficha_aluno_id', fichaIds)
-        .gte('data_realizacao', dataLimite.toISOString())
-        .order('data_realizacao', { ascending: false });
+        .from('workout_progress_backup')
+        .select('workout_date, workout_snapshot, total_exercises, completed_exercises')
+        .eq('user_id', alunoId)
+        .gte('workout_date', dataLimite.toISOString().split('T')[0])
+        .order('workout_date', { ascending: false });
       
-      return treinos || [];
+      // Transformar dados para formato esperado
+      const treinosFormatados = treinos?.flatMap(treino => {
+        const exercicios = treino.workout_snapshot?.exercicios || [];
+        return exercicios.map((ex: any) => ({
+          id: `${treino.workout_date}-${ex.exercicio_id}`,
+          data_realizacao: treino.workout_date + 'T12:00:00',
+          series_realizadas: ex.series_realizadas?.length || 0,
+          observacoes: null,
+          exercicios_ficha: {
+            nome: ex.nome,
+            grupo_muscular: ex.grupo_muscular
+          }
+        }));
+      }) || [];
+      
+      return treinosFormatados;
     },
     enabled: !!alunoId,
     staleTime: 1000 * 60 * 5
@@ -559,30 +477,18 @@ export function useTreinosMes(alunoId: string, ano: number, mes: number) {
       const inicioMes = new Date(ano, mes, 1, 0, 0, 0, 0);
       const fimMes = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
       
-      // Buscar fichas do aluno
-      const { data: fichas } = await supabase
-        .from('fichas_alunos')
-        .select('id')
-        .eq('aluno_id', alunoId);
-      
-      const fichaIds = fichas?.map(f => f.id) || [];
-      
-      if (fichaIds.length === 0) return [];
-      
-      // Buscar treinos do mês
+      // Buscar treinos do mês usando workout_progress_backup
       const { data: treinos } = await supabase
-        .from('treinos_realizados')
-        .select('data_realizacao')
-        .in('ficha_aluno_id', fichaIds)
-        .gte('data_realizacao', inicioMes.toISOString())
-        .lte('data_realizacao', fimMes.toISOString());
+        .from('workout_progress_backup')
+        .select('workout_date')
+        .eq('user_id', alunoId)
+        .gte('workout_date', inicioMes.toISOString().split('T')[0])
+        .lte('workout_date', fimMes.toISOString().split('T')[0]);
       
-      // Agrupar por dia
+      // Agrupar por dia (já vem um registro por dia)
       const treinosPorDia: Record<string, number> = {};
       treinos?.forEach(treino => {
-        // Usar a data ISO diretamente para evitar problemas de timezone
-        const dataISO = treino.data_realizacao.split('T')[0];
-        treinosPorDia[dataISO] = (treinosPorDia[dataISO] || 0) + 1;
+        treinosPorDia[treino.workout_date] = 1; // Um treino por dia
       });
       
       return Object.entries(treinosPorDia).map(([data, quantidade]) => ({

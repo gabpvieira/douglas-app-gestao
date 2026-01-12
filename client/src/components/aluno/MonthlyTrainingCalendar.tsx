@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight, Dumbbell, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useMonthlyTrainingDays } from "@/hooks/useWorkoutProgress";
 
 interface MonthlyTrainingCalendarProps {
   alunoId: string;
@@ -17,74 +17,24 @@ const MESES = [
 
 export default function MonthlyTrainingCalendar({ alunoId }: MonthlyTrainingCalendarProps) {
   const [mesAtual, setMesAtual] = useState(new Date());
-  const [diasTreinados, setDiasTreinados] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [totalTreinosMes, setTotalTreinosMes] = useState(0);
 
   const ano = mesAtual.getFullYear();
   const mes = mesAtual.getMonth();
+
+  // Usar novo hook que busca da tabela workout_progress_backup
+  const { data: diasTreinados = new Set<number>(), isLoading: loading } = useMonthlyTrainingDays(
+    alunoId,
+    ano,
+    mes + 1 // API usa 1-12, JS usa 0-11
+  );
+
+  const totalTreinosMes = diasTreinados.size;
 
   // Primeiro dia do mês e total de dias
   const primeiroDia = new Date(ano, mes, 1);
   const ultimoDia = new Date(ano, mes + 1, 0);
   const diasNoMes = ultimoDia.getDate();
   const diaSemanaInicio = primeiroDia.getDay();
-
-  useEffect(() => {
-    async function buscarTreinosMes() {
-      if (!alunoId) return;
-      setLoading(true);
-
-      try {
-        const inicioMes = new Date(ano, mes, 1);
-        inicioMes.setHours(0, 0, 0, 0);
-        
-        const fimMes = new Date(ano, mes + 1, 0);
-        fimMes.setHours(23, 59, 59, 999);
-
-        // Buscar fichas do aluno
-        const { data: fichasAluno } = await supabase
-          .from("fichas_alunos")
-          .select("id")
-          .eq("aluno_id", alunoId);
-
-        if (!fichasAluno || fichasAluno.length === 0) {
-          setDiasTreinados(new Set());
-          setTotalTreinosMes(0);
-          setLoading(false);
-          return;
-        }
-
-        const fichaIds = fichasAluno.map(f => f.id);
-
-        // Buscar treinos realizados no mês
-        const { data: treinos } = await supabase
-          .from("treinos_realizados")
-          .select("data_realizacao")
-          .in("ficha_aluno_id", fichaIds)
-          .gte("data_realizacao", inicioMes.toISOString())
-          .lte("data_realizacao", fimMes.toISOString());
-
-        const diasUnicos = new Set<number>();
-        
-        if (treinos) {
-          treinos.forEach(treino => {
-            const data = new Date(treino.data_realizacao);
-            diasUnicos.add(data.getDate());
-          });
-        }
-
-        setDiasTreinados(diasUnicos);
-        setTotalTreinosMes(diasUnicos.size);
-      } catch (error) {
-        console.error("Erro ao buscar treinos do mês:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    buscarTreinosMes();
-  }, [alunoId, ano, mes]);
 
   const navegarMes = (direcao: number) => {
     setMesAtual(prev => new Date(prev.getFullYear(), prev.getMonth() + direcao, 1));

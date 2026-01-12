@@ -712,3 +712,53 @@ export interface CargaSerie {
   carga: string;
   repeticoes?: number;
 }
+
+// ============================================
+// TABELA DE BACKUP DE PROGRESSO DE TREINOS
+// ============================================
+
+export const workoutProgressBackup = pgTable("workout_progress_backup", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => alunos.id, { onDelete: 'cascade' }),
+  workoutDate: date("workout_date").notNull(),
+  workoutSnapshot: jsonb("workout_snapshot").notNull(),
+  totalExercises: integer("total_exercises").notNull().default(0),
+  completedExercises: integer("completed_exercises").notNull().default(0),
+  durationMinutes: integer("duration_minutes"),
+  sourceWorkoutId: uuid("source_workout_id"),
+  sourceFichaAlunoId: uuid("source_ficha_aluno_id"),
+  locked: boolean("locked").notNull().default(true),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertWorkoutProgressBackupSchema = createInsertSchema(workoutProgressBackup).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertWorkoutProgressBackup = z.infer<typeof insertWorkoutProgressBackupSchema>;
+export type WorkoutProgressBackup = typeof workoutProgressBackup.$inferSelect;
+
+// Interface para o JSONB workout_snapshot
+export interface WorkoutSnapshotData {
+  ficha_id: string;
+  ficha_nome: string;
+  exercicios: Array<{
+    exercicio_id: string;
+    nome: string;
+    grupo_muscular: string;
+    series: number;
+    repeticoes: string;
+    descanso: number;
+    ordem: number;
+    concluido: boolean;
+    series_realizadas?: Array<{
+      numero_serie: number;
+      carga: string;
+      repeticoes: number;
+      concluida: boolean;
+    }>;
+  }>;
+}

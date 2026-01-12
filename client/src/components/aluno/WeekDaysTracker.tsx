@@ -50,33 +50,29 @@ export default function WeekDaysTracker({ alunoId, includeToday = true }: WeekDa
         fimSemana.setDate(inicioSemana.getDate() + 6); // Segunda + 6 = Domingo
         fimSemana.setHours(23, 59, 59, 999);
 
-        // Buscar treinos realizados na semana
-        const { data: fichasAluno } = await supabase
-          .from("fichas_alunos")
-          .select("id")
-          .eq("aluno_id", alunoId);
+        // Buscar treinos da semana usando workout_progress_backup (fonte única da verdade)
+        const { data: treinos, error } = await supabase
+          .from("workout_progress_backup")
+          .select("workout_date")
+          .eq("user_id", alunoId)
+          .gte("workout_date", inicioSemana.toISOString().split('T')[0])
+          .lte("workout_date", fimSemana.toISOString().split('T')[0]);
 
-        if (!fichasAluno || fichasAluno.length === 0) {
-          setDiasTreinados(includeToday ? [converterDiaParaIndiceBR(diaSemanaAtual)] : []);
+        if (error) {
+          console.error("Erro ao buscar treinos da semana:", error);
+          if (includeToday) {
+            setDiasTreinados([converterDiaParaIndiceBR(diaSemanaAtual)]);
+          }
           setLoading(false);
           return;
         }
-
-        const fichaIds = fichasAluno.map(f => f.id);
-
-        const { data: treinos } = await supabase
-          .from("treinos_realizados")
-          .select("data_realizacao")
-          .in("ficha_aluno_id", fichaIds)
-          .gte("data_realizacao", inicioSemana.toISOString())
-          .lte("data_realizacao", fimSemana.toISOString());
 
         // Extrair dias únicos da semana que tiveram treino (convertendo para índice BR)
         const diasUnicos = new Set<number>();
         
         if (treinos) {
           treinos.forEach(treino => {
-            const data = new Date(treino.data_realizacao);
+            const data = new Date(treino.workout_date + 'T00:00:00');
             diasUnicos.add(converterDiaParaIndiceBR(data.getDay()));
           });
         }
