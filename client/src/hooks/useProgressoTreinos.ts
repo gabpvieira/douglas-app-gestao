@@ -59,6 +59,14 @@ function converterDiaParaIndiceBR(diaJS: number): number {
   return diaJS === 0 ? 6 : diaJS - 1;
 }
 
+// Formata data para string YYYY-MM-DD sem conversão de timezone
+function formatarDataLocal(data: Date): string {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
 function getInicioSemana(): Date {
   const hoje = new Date();
   const diaSemana = hoje.getDay(); // 0 = domingo, 1 = segunda, ..., 6 = sábado
@@ -97,6 +105,12 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   const inicioMes = getInicioMes();
   const fimMes = getFimMes();
   
+  // Usar formatação local para evitar problemas de timezone
+  const inicioSemanaStr = formatarDataLocal(inicioSemana);
+  const fimSemanaStr = formatarDataLocal(fimSemana);
+  const inicioMesStr = formatarDataLocal(inicioMes);
+  const fimMesStr = formatarDataLocal(fimMes);
+  
   // 1. Buscar dados do aluno
   const { data: alunoData } = await supabase
     .from('alunos')
@@ -121,26 +135,27 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
     .from('workout_progress_backup')
     .select('workout_date, total_exercises, completed_exercises, workout_snapshot')
     .eq('user_id', alunoId)
-    .gte('workout_date', inicioSemana.toISOString().split('T')[0])
-    .lte('workout_date', fimSemana.toISOString().split('T')[0]);
+    .gte('workout_date', inicioSemanaStr)
+    .lte('workout_date', fimSemanaStr);
   
   // 3. Buscar treinos do mês usando workout_progress_backup
   const { data: treinosMes } = await supabase
     .from('workout_progress_backup')
     .select('workout_date, total_exercises, completed_exercises')
     .eq('user_id', alunoId)
-    .gte('workout_date', inicioMes.toISOString().split('T')[0])
-    .lte('workout_date', fimMes.toISOString().split('T')[0]);
+    .gte('workout_date', inicioMesStr)
+    .lte('workout_date', fimMesStr);
   
   // 4. Buscar todos os treinos (últimos 90 dias para calcular sequências)
   const dataLimite = new Date();
   dataLimite.setDate(dataLimite.getDate() - 90);
+  const dataLimiteStr = formatarDataLocal(dataLimite);
   
   const { data: todosTreinos } = await supabase
     .from('workout_progress_backup')
     .select('workout_date')
     .eq('user_id', alunoId)
-    .gte('workout_date', dataLimite.toISOString().split('T')[0])
+    .gte('workout_date', dataLimiteStr)
     .order('workout_date', { ascending: false });
   
   // 5. Buscar total geral de treinos (histórico completo)
@@ -201,24 +216,22 @@ async function buscarMetricasAluno(alunoId: string): Promise<MetricasAluno> {
   });
   
   // 9. Calcular sequências
-  const diasTreinados = Array.from(
-    new Set(todosTreinos?.map(t => t.workout_date))
-  ).map(d => new Date(d + 'T00:00:00Z')).sort((a, b) => b.getTime() - a.getTime());
+  // Usar as datas como strings para evitar problemas de timezone
+  const diasTreinadosStr = new Set(todosTreinos?.map(t => t.workout_date) || []);
   
   let sequenciaAtual = 0;
   let melhorSequencia = 0;
   let sequenciaTemp = 0;
   
   const hoje = new Date();
-  hoje.setUTCHours(0, 0, 0, 0);
+  hoje.setHours(0, 0, 0, 0);
   
   for (let i = 0; i < 90; i++) {
     const dia = new Date(hoje);
-    dia.setUTCDate(hoje.getUTCDate() - i);
+    dia.setDate(hoje.getDate() - i);
+    const diaStr = formatarDataLocal(dia);
     
-    const treinouNesteDia = diasTreinados.some(d => 
-      d.toISOString().split('T')[0] === dia.toISOString().split('T')[0]
-    );
+    const treinouNesteDia = diasTreinadosStr.has(diaStr);
     
     if (treinouNesteDia) {
       sequenciaTemp++;
@@ -387,13 +400,14 @@ export function useHistoricoTreinos(alunoId: string, dias: number = 30) {
     queryFn: async () => {
       const dataLimite = new Date();
       dataLimite.setDate(dataLimite.getDate() - dias);
+      const dataLimiteStr = formatarDataLocal(dataLimite);
       
       // Buscar treinos usando workout_progress_backup
       const { data: treinos } = await supabase
         .from('workout_progress_backup')
         .select('workout_date, workout_snapshot, total_exercises, completed_exercises')
         .eq('user_id', alunoId)
-        .gte('workout_date', dataLimite.toISOString().split('T')[0])
+        .gte('workout_date', dataLimiteStr)
         .order('workout_date', { ascending: false });
       
       // Transformar dados para formato esperado
@@ -476,14 +490,16 @@ export function useTreinosMes(alunoId: string, ano: number, mes: number) {
     queryFn: async () => {
       const inicioMes = new Date(ano, mes, 1, 0, 0, 0, 0);
       const fimMes = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
+      const inicioMesStr = formatarDataLocal(inicioMes);
+      const fimMesStr = formatarDataLocal(fimMes);
       
       // Buscar treinos do mês usando workout_progress_backup
       const { data: treinos } = await supabase
         .from('workout_progress_backup')
         .select('workout_date')
         .eq('user_id', alunoId)
-        .gte('workout_date', inicioMes.toISOString().split('T')[0])
-        .lte('workout_date', fimMes.toISOString().split('T')[0]);
+        .gte('workout_date', inicioMesStr)
+        .lte('workout_date', fimMesStr);
       
       // Agrupar por dia (já vem um registro por dia)
       const treinosPorDia: Record<string, number> = {};

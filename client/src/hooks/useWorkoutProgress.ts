@@ -23,6 +23,14 @@ interface MonthlyWorkoutStats {
   completionRate: number;
 }
 
+// Formata data para string YYYY-MM-DD sem conversão de timezone
+function formatarDataLocal(data: Date): string {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
 /**
  * Hook para buscar progresso de treinos de um aluno em um mês específico
  * Usa a tabela workout_progress_backup (fonte única da verdade)
@@ -35,13 +43,15 @@ export function useMonthlyWorkoutProgress(alunoId: string | null, year: number, 
 
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0);
+      const startDateStr = formatarDataLocal(startDate);
+      const endDateStr = formatarDataLocal(endDate);
 
       const { data, error } = await supabase
         .from('workout_progress_backup')
         .select('*')
         .eq('user_id', alunoId)
-        .gte('workout_date', startDate.toISOString().split('T')[0])
-        .lte('workout_date', endDate.toISOString().split('T')[0])
+        .gte('workout_date', startDateStr)
+        .lte('workout_date', endDateStr)
         .order('workout_date', { ascending: false });
 
       if (error) {
@@ -80,13 +90,15 @@ export function useMonthlyTrainingDays(alunoId: string | null, year: number, mon
 
       const startDate = new Date(year, month - 1, 1);
       const endDate = new Date(year, month, 0);
+      const startDateStr = formatarDataLocal(startDate);
+      const endDateStr = formatarDataLocal(endDate);
 
       const { data, error } = await supabase
         .from('workout_progress_backup')
         .select('workout_date')
         .eq('user_id', alunoId)
-        .gte('workout_date', startDate.toISOString().split('T')[0])
-        .lte('workout_date', endDate.toISOString().split('T')[0]);
+        .gte('workout_date', startDateStr)
+        .lte('workout_date', endDateStr);
 
       if (error) {
         console.error('❌ Erro ao buscar dias treinados:', error);
@@ -95,8 +107,9 @@ export function useMonthlyTrainingDays(alunoId: string | null, year: number, mon
 
       const diasUnicos = new Set<number>();
       (data || []).forEach((item: any) => {
-        const data = new Date(item.workout_date + 'T00:00:00');
-        diasUnicos.add(data.getDate());
+        // Extrair o dia diretamente da string YYYY-MM-DD
+        const dia = parseInt(item.workout_date.split('-')[2], 10);
+        diasUnicos.add(dia);
       });
 
       return diasUnicos;
@@ -109,8 +122,11 @@ export function useMonthlyTrainingDays(alunoId: string | null, year: number, mon
  * Hook para buscar estatísticas de treino em um período
  */
 export function useWorkoutStats(alunoId: string | null, startDate: Date, endDate: Date) {
+  const startDateStr = formatarDataLocal(startDate);
+  const endDateStr = formatarDataLocal(endDate);
+  
   return useQuery<MonthlyWorkoutStats>({
-    queryKey: ['workout-progress', 'stats', alunoId, startDate.toISOString(), endDate.toISOString()],
+    queryKey: ['workout-progress', 'stats', alunoId, startDateStr, endDateStr],
     queryFn: async () => {
       if (!alunoId) {
         return {
@@ -125,8 +141,8 @@ export function useWorkoutStats(alunoId: string | null, startDate: Date, endDate
         .from('workout_progress_backup')
         .select('workout_date, total_exercises, completed_exercises')
         .eq('user_id', alunoId)
-        .gte('workout_date', startDate.toISOString().split('T')[0])
-        .lte('workout_date', endDate.toISOString().split('T')[0]);
+        .gte('workout_date', startDateStr)
+        .lte('workout_date', endDateStr);
 
       if (error) {
         console.error('❌ Erro ao buscar estatísticas:', error);
@@ -152,12 +168,12 @@ export function useWorkoutStats(alunoId: string | null, startDate: Date, endDate
  * Hook para buscar progresso de uma data específica
  */
 export function useWorkoutProgressByDate(alunoId: string | null, date: Date) {
+  const dateStr = formatarDataLocal(date);
+  
   return useQuery<WorkoutProgressDay | null>({
-    queryKey: ['workout-progress', 'by-date', alunoId, date.toISOString()],
+    queryKey: ['workout-progress', 'by-date', alunoId, dateStr],
     queryFn: async () => {
       if (!alunoId) return null;
-
-      const dateStr = date.toISOString().split('T')[0];
 
       const { data, error } = await supabase
         .from('workout_progress_backup')
