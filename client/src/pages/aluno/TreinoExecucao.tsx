@@ -314,12 +314,16 @@ export default function TreinoExecucao() {
 
         try {
           // Inserir treino_realizado
+          // Usar apenas a data local (sem hora) para evitar problemas de timezone
+          const dataHoje = new Date();
+          const dataLocal = `${dataHoje.getFullYear()}-${String(dataHoje.getMonth() + 1).padStart(2, '0')}-${String(dataHoje.getDate()).padStart(2, '0')}`;
+          
           const { data: treinoRealizado, error: treinoError } = await supabase
             .from("treinos_realizados")
             .insert({
               ficha_aluno_id: fichaAlunoId,
               exercicio_id: exercicio.id,
-              data_realizacao: new Date().toISOString(),
+              data_realizacao: dataLocal + 'T12:00:00Z', // Meio-dia UTC para garantir que a data seja correta
               series_realizadas: seriesConcluidas.length,
             })
             .select()
