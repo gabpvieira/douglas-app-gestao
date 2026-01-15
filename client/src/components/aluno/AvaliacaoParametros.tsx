@@ -159,30 +159,30 @@ export default function AvaliacaoParametros({ avaliacao }: AvaliacaoParametrosPr
         {/* Gráfico de Composição Corporal */}
         <div className="bg-gray-900/30 rounded-lg p-3 sm:p-4 md:p-5">
           <h3 className="text-sm sm:text-base font-semibold text-white mb-3 sm:mb-4 text-center">% de Gordura</h3>
-          <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 md:gap-12">
             <div className="text-center">
               <div className="relative inline-flex items-center justify-center">
-                <svg className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28">
+                <svg className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32" viewBox="0 0 100 100">
                   <circle
                     className="text-gray-700"
                     strokeWidth="8"
                     stroke="currentColor"
                     fill="transparent"
-                    r="36"
-                    cx="50%"
-                    cy="50%"
+                    r="40"
+                    cx="50"
+                    cy="50"
                   />
                   <circle
                     className="text-blue-500"
                     strokeWidth="8"
-                    strokeDasharray={`${peso > 0 ? (massaMagra / peso) * 226 : 0} 226`}
+                    strokeDasharray={`${peso > 0 ? (massaMagra / peso) * 251.2 : 0} 251.2`}
                     strokeLinecap="round"
                     stroke="currentColor"
                     fill="transparent"
-                    r="36"
-                    cx="50%"
-                    cy="50%"
-                    transform="rotate(-90 50 50)"
+                    r="40"
+                    cx="50"
+                    cy="50"
+                    style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
                   />
                 </svg>
                 <span className="absolute text-base sm:text-lg md:text-xl font-bold text-white">
@@ -195,27 +195,27 @@ export default function AvaliacaoParametros({ avaliacao }: AvaliacaoParametrosPr
             
             <div className="text-center">
               <div className="relative inline-flex items-center justify-center">
-                <svg className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28">
+                <svg className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32" viewBox="0 0 100 100">
                   <circle
                     className="text-gray-700"
                     strokeWidth="8"
                     stroke="currentColor"
                     fill="transparent"
-                    r="36"
-                    cx="50%"
-                    cy="50%"
+                    r="40"
+                    cx="50"
+                    cy="50"
                   />
                   <circle
                     className="text-orange-500"
                     strokeWidth="8"
-                    strokeDasharray={`${(percentualGordura / 100) * 226} 226`}
+                    strokeDasharray={`${(percentualGordura / 100) * 251.2} 251.2`}
                     strokeLinecap="round"
                     stroke="currentColor"
                     fill="transparent"
-                    r="36"
-                    cx="50%"
-                    cy="50%"
-                    transform="rotate(-90 50 50)"
+                    r="40"
+                    cx="50"
+                    cy="50"
+                    style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
                   />
                 </svg>
                 <span className="absolute text-base sm:text-lg md:text-xl font-bold text-white">
