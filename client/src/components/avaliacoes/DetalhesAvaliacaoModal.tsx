@@ -22,6 +22,7 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAvaliacaoById, useDeleteAvaliacao } from '@/hooks/useAvaliacoesFisicas';
+import AvaliacaoFisicaPDF from '@/components/AvaliacaoFisicaPDF';
 import { useState } from 'react';
 
 interface DetalhesAvaliacaoModalProps {
@@ -87,9 +88,15 @@ export default function DetalhesAvaliacaoModal({
                 </span>
               </p>
             </div>
-            <Badge variant="outline" className="border-gray-700 text-gray-300 text-xs flex-shrink-0 self-start">
-              {getProtocoloLabel(avaliacao.protocolo)}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <AvaliacaoFisicaPDF 
+                avaliacao={avaliacao} 
+                nomeAluno={avaliacao.aluno?.nome || 'Aluno'} 
+              />
+              <Badge variant="outline" className="border-gray-700 text-gray-300 text-xs flex-shrink-0">
+                {getProtocoloLabel(avaliacao.protocolo)}
+              </Badge>
+            </div>
           </div>
         </DialogHeader>
 

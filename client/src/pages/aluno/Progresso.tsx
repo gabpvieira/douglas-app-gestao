@@ -16,6 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import AlunoLayout from '@/components/aluno/AlunoLayout';
 import MonthlyTrainingCalendar from '@/components/aluno/MonthlyTrainingCalendar';
+import AvaliacaoParametros from '@/components/aluno/AvaliacaoParametros';
+import AvaliacaoFisicaPDF from '@/components/AvaliacaoFisicaPDF';
 
 export default function Progresso() {
   const { data: evolucoes = [], isLoading: loadingEvolucoes } = useEvolucoes();
@@ -403,8 +405,14 @@ export default function Progresso() {
                   </div>
                 </Card>
               ) : (
-                <div className="space-y-2 sm:space-y-3">
-                  {avaliacoes.map((avaliacao) => (
+                <>
+                  {/* Card de Parâmetros da Última Avaliação */}
+                  {ultimaAvaliacao && <AvaliacaoParametros avaliacao={ultimaAvaliacao} />}
+                  
+                  {/* Histórico de Avaliações */}
+                  <div className="space-y-2 sm:space-y-3">
+                    <h3 className="text-sm font-medium text-gray-400">Histórico de Avaliações</h3>
+                    {avaliacoes.map((avaliacao) => (
                     <Card key={avaliacao.id} className="border-gray-800 bg-gray-900/30">
                       <div className="p-3 sm:p-4 md:p-5">
                         <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -432,18 +440,24 @@ export default function Progresso() {
                               </div>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setAvaliacaoExpandida(avaliacaoExpandida === avaliacao.id ? null : avaliacao.id)}
-                            className="text-gray-400 hover:text-white h-8 w-8 p-0"
-                          >
-                            {avaliacaoExpandida === avaliacao.id ? (
-                              <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
-                            )}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <AvaliacaoFisicaPDF 
+                              avaliacao={avaliacao} 
+                              nomeAluno={profile?.nome || 'Aluno'} 
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setAvaliacaoExpandida(avaliacaoExpandida === avaliacao.id ? null : avaliacao.id)}
+                              className="text-gray-400 hover:text-white h-8 w-8 p-0"
+                            >
+                              {avaliacaoExpandida === avaliacao.id ? (
+                                <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
+                              )}
+                            </Button>
+                          </div>
                         </div>
 
                         {/* Resumo Principal */}
@@ -605,8 +619,9 @@ export default function Progresso() {
                         )}
                       </div>
                     </Card>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -977,22 +992,22 @@ export default function Progresso() {
 
           {/* Modal Comparação de Fotos */}
           <Dialog open={!!comparacaoFotos} onOpenChange={() => setComparacaoFotos(null)}>
-            <DialogContent className="bg-gray-900 border-gray-800 max-w-6xl">
+            <DialogContent className="bg-gray-900 border-gray-800 max-w-[95vw] sm:max-w-[90vw] md:max-w-4xl lg:max-w-6xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="text-white">Comparação de Evolução</DialogTitle>
-                <DialogDescription className="text-gray-400">
+                <DialogTitle className="text-white text-sm sm:text-base">Comparação de Evolução</DialogTitle>
+                <DialogDescription className="text-gray-400 text-xs sm:text-sm">
                   Compare suas fotos de diferentes períodos
                 </DialogDescription>
               </DialogHeader>
               {comparacaoFotos && (
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-gray-300 text-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+                  <div className="space-y-2 sm:space-y-3">
+                    <p className="text-xs sm:text-sm font-medium text-gray-300 text-center">
                       {new Date(comparacaoFotos.data1 + 'T00:00:00').toLocaleDateString('pt-BR', { 
                         day: '2-digit', month: 'long', year: 'numeric' 
                       })}
                     </p>
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-3 md:grid-cols-1 gap-2">
                       {fotosPorData[comparacaoFotos.data1]?.map((foto: any) => (
                         <div key={foto.id} className="aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden">
                           <img 
@@ -1004,13 +1019,13 @@ export default function Progresso() {
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium text-gray-300 text-center">
+                  <div className="space-y-2 sm:space-y-3">
+                    <p className="text-xs sm:text-sm font-medium text-gray-300 text-center">
                       {new Date(comparacaoFotos.data2 + 'T00:00:00').toLocaleDateString('pt-BR', { 
                         day: '2-digit', month: 'long', year: 'numeric' 
                       })}
                     </p>
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-3 md:grid-cols-1 gap-2">
                       {fotosPorData[comparacaoFotos.data2]?.map((foto: any) => (
                         <div key={foto.id} className="aspect-[3/4] bg-gray-800 rounded-lg overflow-hidden">
                           <img 
